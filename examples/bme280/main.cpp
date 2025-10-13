@@ -33,7 +33,6 @@ unsigned long delayTime;
 uint8_t sda_pin = 19;
 uint8_t scl_pin = 18;
 
-
 void setup() {
     Serial.begin(115200);
     while(!Serial);

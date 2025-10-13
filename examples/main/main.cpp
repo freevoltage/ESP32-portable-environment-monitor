@@ -11,12 +11,14 @@
 #include "main.h"
 #include <I2CScanner.h>
 
+//void setup();
+//void loop();
 
 #define SEALEVELPRESSURE_HPA (1013.25)
 
-Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
+//Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
-Adafruit_BME280 bme;
+//Adafruit_BME280 bme;
 
 
 void setup(){
@@ -28,13 +30,14 @@ void setup(){
     //I2CScanner::begin(Wire, SDA, SCL);
     //I2CScanner::scan(Wire);
 
-    tft.init(135, 240);
-    tft.fillScreen(ST77XX_BLACK);
+    //tft.init(135, 240);
+    //tft.fillScreen(ST77XX_BLACK);
 
     //Wire.begin();
-    Wire.begin(SDA, SCL);
+    //Wire.begin(SDA, SCL);
+    //Wire.begin(19, 18);
     unsigned bme_status;
-    bme_status = bme.begin(BME280_ADDRESS, &Wire);
+    //bme_status = bme.begin(BME280_ADDRESS, &Wire);
 
     if(!bme_status){
         Serial.print("Could not connect to the BME280 sensor!");
@@ -42,37 +45,21 @@ void setup(){
 }
 
 void loop(){
-    printValues();
-    displaySensorData();
-    delay(1000);
+    //displayText();
 }
 
-void displaySensorData(){
-    tft.setRotation(1);
+/*
+void displayText(){
     tft.setTextWrap(true);
     tft.fillScreen(ST77XX_BLACK);
-    tft.setCursor(0, 0);
+    tft.setCursor(0, 30);
     tft.setTextColor(ST77XX_WHITE);
-    tft.setTextSize(2);
-
-    tft.print("Temp: ");
-    tft.print(bme.readTemperature());
-    tft.println(" C");
-
-    tft.print("Pres: ");
-    tft.print(bme.readPressure() / 100.0F);
-    tft.println(" hPa");
-
-    tft.print("Hum: ");
-    tft.print(bme.readHumidity());
-    tft.println(" %");
-
-    tft.print("Alt: ");
-    tft.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
-    tft.println(" m");
+    tft.setTextSize(5);
+    tft.println("Hello World");
 }
+*/
 
-
+/*
 void printValues() {
     Serial.print("Temperature = ");
     Serial.print(bme.readTemperature());
@@ -93,3 +80,4 @@ void printValues() {
 
     Serial.println();
 }
+    */
