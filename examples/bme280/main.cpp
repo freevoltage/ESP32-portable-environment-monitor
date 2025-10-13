@@ -15,6 +15,7 @@
   BSD license, all text above must be included in any redistribution
   See the LICENSE file for details.
  ***************************************************************************/
+#include <Arduino.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
@@ -29,7 +30,7 @@
 Adafruit_BME280 bme; // I2C
 
 unsigned long delayTime;
-uint8_t sda_pin = 19; 
+uint8_t sda_pin = 19;
 uint8_t scl_pin = 18;
 
 
@@ -44,7 +45,7 @@ void setup() {
     unsigned bme_status;
 
     // default settings
-    Wire.begin(sda_pin, scl_pin);  // Feather ESP32-C6: SDA=5, SCL=6
+    Wire.begin(sda_pin, scl_pin);  // Feather ESP32-C6: SDA=19, SCL=18
     bme_status = bme.begin(BME280_ADDRESS, &Wire);
     // You can also pass in a Wire library object like &Wire2
     // status = bme.begin(0x76, &Wire2)

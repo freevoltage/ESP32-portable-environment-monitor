@@ -1,11 +1,9 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 
-// Define the built-in RGB LED pin and number of LEDs
-#define LED_PIN 9
 #define NUM_LEDS 1
 
-Adafruit_NeoPixel rgbLed(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel rgbLed(NUM_LEDS, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
 
 // Define some colors
 struct RGB {
