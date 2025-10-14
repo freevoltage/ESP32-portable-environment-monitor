@@ -8,11 +8,13 @@
 #include <Adafruit_ST7789.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
-//#include "FS.h"
-//#include "SD.h"
+#include "FS.h"
+//#include "SD.h" // When adding the SD Library it doesnt compile anymore
 
 #include "main.h"
 
+
+RTC_DATA_ATTR int bootCount = 0;  // Variable stored in RTC memory
 
 #define SEALEVELPRESSURE_HPA (1013.25)
 
@@ -26,7 +28,6 @@ Adafruit_BME280 bme;
 // NEXT STEPS
 // [ ] Read sensor data and save them to the sd card.
 // [ ] Figure out how many sensor readings I can read before I need to save them to the SD card (save some energy)
-// [ ] Add RTC to get the current time
 // [ ] It would be very nice to have an error system using the neopixel LED. If an error occurs just turn it red.
 
 
