@@ -1,0 +1,109 @@
+Resolving main dependencies...
+Platform espressif32 @ 2025.10.30+sha.5935aae (required: git+https://github.com/tasmota/platform-espressif32.git)
+├── contrib-piohome @ 3.4.4 (required: /Users/davidwitulla/.platformio/packages/contrib-piohome)
+├── framework-arduinoespressif32 @ 3.1.4 (required: https://github.com/tasmota/arduino-esp32/releases/download/v3.1.4/framework-arduinoespressif32.zip)
+├── tool-esptoolpy @ 5.1.0 (required: /Users/davidwitulla/.platformio/packages/tool-esptoolpy)
+├── tool-mkfatfs @ 2.0.1 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mkfatfs-v2.0.1.zip)
+├── tool-mklittlefs @ 3.2.0 (required: /Users/davidwitulla/.platformio/packages/tool-mklittlefs)
+├── tool-mklittlefs4 @ 4.0.2 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mklittlefs-4.0.2.zip)
+└── toolchain-riscv32-esp @ 13.2.0+20250707 (required: /Users/davidwitulla/.platformio/packages/toolchain-riscv32-esp)
+
+Libraries
+├── Adafruit BME280 Library @ 2.3.0 (required: adafruit/Adafruit BME280 Library @ ^2.2.2)
+│   ├── Adafruit BusIO @ 1.17.4 (required: Adafruit BusIO)
+│   └── Adafruit Unified Sensor @ 1.1.15 (required: Adafruit Unified Sensor)
+├── Adafruit GFX Library @ 1.12.3 (required: adafruit/Adafruit GFX Library @ ^1.12.3)
+└── Adafruit ST7735 and ST7789 Library @ 1.11.0 (required: adafruit/Adafruit ST7735 and ST7789 Library @ ^1.11.0)
+│   ├── Adafruit seesaw Library @ 1.7.9 (required: Adafruit seesaw Library)
+│   └── SD @ 1.3.0 (required: SD)
+
+Resolving example-bme280 dependencies...
+Platform espressif32 @ 2025.10.30+sha.5935aae (required: git+https://github.com/tasmota/platform-espressif32.git)
+├── contrib-piohome @ 3.4.4 (required: /Users/davidwitulla/.platformio/packages/contrib-piohome)
+├── framework-arduinoespressif32 @ 3.1.4 (required: https://github.com/tasmota/arduino-esp32/releases/download/v3.1.4/framework-arduinoespressif32.zip)
+├── tool-esptoolpy @ 5.1.0 (required: /Users/davidwitulla/.platformio/packages/tool-esptoolpy)
+├── tool-mkfatfs @ 2.0.1 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mkfatfs-v2.0.1.zip)
+├── tool-mklittlefs @ 3.2.0 (required: /Users/davidwitulla/.platformio/packages/tool-mklittlefs)
+├── tool-mklittlefs4 @ 4.0.2 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mklittlefs-4.0.2.zip)
+└── toolchain-riscv32-esp @ 13.2.0+20250707 (required: /Users/davidwitulla/.platformio/packages/toolchain-riscv32-esp)
+
+Libraries
+└── Adafruit BME280 Library @ 2.3.0 (required: adafruit/Adafruit BME280 Library @ ^2.2.2)
+│   ├── Adafruit BusIO @ 1.17.4 (required: Adafruit BusIO)
+│   └── Adafruit Unified Sensor @ 1.1.15 (required: Adafruit Unified Sensor)
+
+Resolving example-neopixel dependencies...
+Platform espressif32 @ 2025.10.30+sha.5935aae (required: git+https://github.com/tasmota/platform-espressif32.git)
+├── contrib-piohome @ 3.4.4 (required: /Users/davidwitulla/.platformio/packages/contrib-piohome)
+├── framework-arduinoespressif32 @ 3.1.4 (required: https://github.com/tasmota/arduino-esp32/releases/download/v3.1.4/framework-arduinoespressif32.zip)
+├── tool-esptoolpy @ 5.1.0 (required: /Users/davidwitulla/.platformio/packages/tool-esptoolpy)
+├── tool-mkfatfs @ 2.0.1 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mkfatfs-v2.0.1.zip)
+├── tool-mklittlefs @ 3.2.0 (required: /Users/davidwitulla/.platformio/packages/tool-mklittlefs)
+├── tool-mklittlefs4 @ 4.0.2 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mklittlefs-4.0.2.zip)
+└── toolchain-riscv32-esp @ 13.2.0+20250707 (required: /Users/davidwitulla/.platformio/packages/toolchain-riscv32-esp)
+
+
+Resolving example-sd dependencies...
+Platform espressif32 @ 2025.10.30+sha.5935aae (required: git+https://github.com/tasmota/platform-espressif32.git)
+├── contrib-piohome @ 3.4.4 (required: /Users/davidwitulla/.platformio/packages/contrib-piohome)
+├── framework-arduinoespressif32 @ 3.1.4 (required: https://github.com/tasmota/arduino-esp32/releases/download/v3.1.4/framework-arduinoespressif32.zip)
+├── tool-esptoolpy @ 5.1.0 (required: /Users/davidwitulla/.platformio/packages/tool-esptoolpy)
+├── tool-mkfatfs @ 2.0.1 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mkfatfs-v2.0.1.zip)
+├── tool-mklittlefs @ 3.2.0 (required: /Users/davidwitulla/.platformio/packages/tool-mklittlefs)
+├── tool-mklittlefs4 @ 4.0.2 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mklittlefs-4.0.2.zip)
+└── toolchain-riscv32-esp @ 13.2.0+20250707 (required: /Users/davidwitulla/.platformio/packages/toolchain-riscv32-esp)
+
+
+Resolving example-display dependencies...
+Platform espressif32 @ 2025.10.30+sha.5935aae (required: git+https://github.com/tasmota/platform-espressif32.git)
+├── contrib-piohome @ 3.4.4 (required: /Users/davidwitulla/.platformio/packages/contrib-piohome)
+├── framework-arduinoespressif32 @ 3.1.4 (required: https://github.com/tasmota/arduino-esp32/releases/download/v3.1.4/framework-arduinoespressif32.zip)
+├── tool-esptoolpy @ 5.1.0 (required: /Users/davidwitulla/.platformio/packages/tool-esptoolpy)
+├── tool-mkfatfs @ 2.0.1 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mkfatfs-v2.0.1.zip)
+├── tool-mklittlefs @ 3.2.0 (required: /Users/davidwitulla/.platformio/packages/tool-mklittlefs)
+├── tool-mklittlefs4 @ 4.0.2 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mklittlefs-4.0.2.zip)
+└── toolchain-riscv32-esp @ 13.2.0+20250707 (required: /Users/davidwitulla/.platformio/packages/toolchain-riscv32-esp)
+
+
+Resolving example-rtc dependencies...
+Platform espressif32 @ 2025.10.30+sha.5935aae (required: git+https://github.com/tasmota/platform-espressif32.git)
+├── contrib-piohome @ 3.4.4 (required: /Users/davidwitulla/.platformio/packages/contrib-piohome)
+├── framework-arduinoespressif32 @ 3.1.4 (required: https://github.com/tasmota/arduino-esp32/releases/download/v3.1.4/framework-arduinoespressif32.zip)
+├── tool-esptoolpy @ 5.1.0 (required: /Users/davidwitulla/.platformio/packages/tool-esptoolpy)
+├── tool-mkfatfs @ 2.0.1 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mkfatfs-v2.0.1.zip)
+├── tool-mklittlefs @ 3.2.0 (required: /Users/davidwitulla/.platformio/packages/tool-mklittlefs)
+├── tool-mklittlefs4 @ 4.0.2 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mklittlefs-4.0.2.zip)
+└── toolchain-riscv32-esp @ 13.2.0+20250707 (required: /Users/davidwitulla/.platformio/packages/toolchain-riscv32-esp)
+
+
+Resolving example-deep-sleep dependencies...
+Platform espressif32 @ 2025.10.30+sha.5935aae (required: git+https://github.com/tasmota/platform-espressif32.git)
+├── contrib-piohome @ 3.4.4 (required: /Users/davidwitulla/.platformio/packages/contrib-piohome)
+├── framework-arduinoespressif32 @ 3.1.4 (required: https://github.com/tasmota/arduino-esp32/releases/download/v3.1.4/framework-arduinoespressif32.zip)
+├── tool-esptoolpy @ 5.1.0 (required: /Users/davidwitulla/.platformio/packages/tool-esptoolpy)
+├── tool-mkfatfs @ 2.0.1 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mkfatfs-v2.0.1.zip)
+├── tool-mklittlefs @ 3.2.0 (required: /Users/davidwitulla/.platformio/packages/tool-mklittlefs)
+├── tool-mklittlefs4 @ 4.0.2 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mklittlefs-4.0.2.zip)
+└── toolchain-riscv32-esp @ 13.2.0+20250707 (required: /Users/davidwitulla/.platformio/packages/toolchain-riscv32-esp)
+
+
+Resolving example-blink dependencies...
+Platform espressif32 @ 2025.10.30+sha.5935aae (required: git+https://github.com/tasmota/platform-espressif32.git)
+├── contrib-piohome @ 3.4.4 (required: /Users/davidwitulla/.platformio/packages/contrib-piohome)
+├── framework-arduinoespressif32 @ 3.1.4 (required: https://github.com/tasmota/arduino-esp32/releases/download/v3.1.4/framework-arduinoespressif32.zip)
+├── tool-esptoolpy @ 5.1.0 (required: /Users/davidwitulla/.platformio/packages/tool-esptoolpy)
+├── tool-mkfatfs @ 2.0.1 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mkfatfs-v2.0.1.zip)
+├── tool-mklittlefs @ 3.2.0 (required: /Users/davidwitulla/.platformio/packages/tool-mklittlefs)
+├── tool-mklittlefs4 @ 4.0.2 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mklittlefs-4.0.2.zip)
+└── toolchain-riscv32-esp @ 13.2.0+20250707 (required: /Users/davidwitulla/.platformio/packages/toolchain-riscv32-esp)
+
+
+Resolving example-bme280-sd dependencies...
+Platform espressif32 @ 2025.10.30+sha.5935aae (required: git+https://github.com/tasmota/platform-espressif32.git)
+├── contrib-piohome @ 3.4.4 (required: /Users/davidwitulla/.platformio/packages/contrib-piohome)
+├── framework-arduinoespressif32 @ 3.1.4 (required: https://github.com/tasmota/arduino-esp32/releases/download/v3.1.4/framework-arduinoespressif32.zip)
+├── tool-esptoolpy @ 5.1.0 (required: /Users/davidwitulla/.platformio/packages/tool-esptoolpy)
+├── tool-mkfatfs @ 2.0.1 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mkfatfs-v2.0.1.zip)
+├── tool-mklittlefs @ 3.2.0 (required: /Users/davidwitulla/.platformio/packages/tool-mklittlefs)
+├── tool-mklittlefs4 @ 4.0.2 (required: https://github.com/pioarduino/registry/releases/download/0.0.1/mklittlefs-4.0.2.zip)
+└── toolchain-riscv32-esp @ 13.2.0+20250707 (required: /Users/davidwitulla/.platformio/packages/toolchain-riscv32-esp)

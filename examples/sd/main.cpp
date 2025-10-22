@@ -14,32 +14,11 @@
 It writes a a text file to the SD card and reads it later to check-.
  */
 
-#include <Arduino.h>
-#include "FS.h"
-#include "SD.h"
-#include "SPI.h"
-
 #include "main.h"
+#include "config.h"
 
-// Pin definitions for ESP32 (adjust according to your wiring)
-#define SD_CS    8    // Chip Select pin - change this to match your wiring
-#define SD_MOSI  22   // Master Out Slave In
-#define SD_MISO  23   // Master In Slave Out  
-#define SD_SCK   21   // Serial Clock
 
-void setup() {
-  Serial.begin(115200);
-  delay(1000); // Give serial time to initialize
-  
-  Serial.println("\nESP32 SD Card Test");
-  Serial.println("==================");
-
-  // Initialize SPI with custom pins (optional - ESP32 can use default pins)
-  SPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
-  
-  Serial.print("Initializing SD card...");
-
-  // Initialize SD card
+void perform_SD_Test(){
   if (!SD.begin(SD_CS)) {
     Serial.println("Card Mount Failed!");
     Serial.println("Things to check:");
@@ -47,60 +26,59 @@ void setup() {
     Serial.println("* Is your wiring correct?");
     Serial.println("* Did you change the chipSelect pin to match your setup?");
     Serial.println("* Is the card formatted as FAT32?");
-    return;
+    while (true);
   }
-  
-  Serial.println("SD card initialized successfully!");
 
-  // Get card type
-  uint8_t cardType = SD.cardType();
-  Serial.print("\nCard Type: ");
-  if(cardType == CARD_NONE){
-    Serial.println("No SD card attached");
-    return;
-  } else if(cardType == CARD_MMC){
-    Serial.println("MMC");
-  } else if(cardType == CARD_SD){
-    Serial.println("SDSC");
-  } else if(cardType == CARD_SDHC){
-    Serial.println("SDHC");
+  Serial.println("initialization done.");
+
+  // USE ABSOLUTE PATH with leading slash - IMPORTANT FOR ESP32
+  File myFile = SD.open("/test.txt", FILE_WRITE);
+
+  if (myFile) {
+    Serial.print("Writing to test.txt...");
+    myFile.println("testing 1, 2, 3, Das ist ein Super Test. Hurra, Hurra.");
+    myFile.close();
+    Serial.println("done.");
   } else {
-    Serial.println("UNKNOWN");
+    Serial.println("error opening test.txt for writing");
   }
 
-  // Get card size
-  uint64_t cardSize = SD.cardSize();
-  Serial.printf("SD Card Size: %llu bytes\n", cardSize);
-  Serial.printf("SD Card Size: %.2f MB\n", (float)cardSize / (1024 * 1024));
-  Serial.printf("SD Card Size: %.2f GB\n", (float)cardSize / (1024 * 1024 * 1024));
+  // USE ABSOLUTE PATH for reading too
+  myFile = SD.open("/test.txt");
+  if (myFile) {
+    Serial.println("test.txt:");
+    while (myFile.available()) {
+      Serial.write(myFile.read());
+    }
+    myFile.close();
+  } else {
+    Serial.println("error opening test.txt for reading");
+  }
+}
 
-  // Get total space and used space
-  uint64_t totalBytes = SD.totalBytes();
-  uint64_t usedBytes = SD.usedBytes();
-  uint64_t freeBytes = totalBytes - usedBytes;
+void setup() {
+  Serial.begin(115200);
+  while (!Serial);
+
+  pinMode(TFT_CS, OUTPUT);
+  digitalWrite(TFT_CS, HIGH);
   
-  Serial.printf("Total space: %llu bytes (%.2f MB)\n", totalBytes, (float)totalBytes / (1024 * 1024));
-  Serial.printf("Used space: %llu bytes (%.2f MB)\n", usedBytes, (float)usedBytes / (1024 * 1024));
-  Serial.printf("Free space: %llu bytes (%.2f MB)\n", freeBytes, (float)freeBytes / (1024 * 1024));
+  Serial.println("\nESP32 SD Card Test");
+  Serial.println("==================");
 
-  // List files in root directory
-  Serial.println("\nFiles found on the card:");
-  Serial.println("========================");
-  listDir(SD, "/", 0);
+  // Initialize SPI with custom pins (optional - ESP32 can use default pins)
+  SPI.setFrequency(4000000);
+  //SPI.begin(SCK, MISO, MOSI, SD_CS);
+  SPI.begin(); // This does work just fine.
 
-  // Test creating a file
-  Serial.println("\nTesting file operations...");
-  writeFile(SD, "/test.txt", "Hello ESP32 SD Card!");
-  readFile(SD, "/test.txt");
-  
-  Serial.println("\nSD Card test completed!");
+  perform_SD_Test();
 }
 
 void loop() {
-  // Nothing to do here
-  delay(1000);
+  delay(1000); 
 }
 
+/*
 // Function to list directory contents
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels) {
   Serial.printf("Listing directory: %s\n", dirname);
@@ -155,6 +133,19 @@ void readFile(fs::FS &fs, const char * path) {
 void writeFile(fs::FS &fs, const char * path, const char * message) {
   Serial.printf("Writing file: %s\n", path);
 
+  // Add leading slash if not present
+  String fullPath = String(path);
+  if (!fullPath.startsWith("/")) {
+    fullPath = "/" + fullPath;
+    Serial.printf("Corrected path to: %s\n", fullPath.c_str());
+  }
+
+  // Check if SD card is still mounted
+  if (SD.cardType() == CARD_NONE) {
+    Serial.println("SD card not detected!");
+    return;
+  }
+
   File file = fs.open(path, FILE_WRITE);
   if(!file){
     Serial.println("Failed to open file for writing");
@@ -167,3 +158,31 @@ void writeFile(fs::FS &fs, const char * path, const char * message) {
   }
   file.close();
 }
+
+
+void print_card_info(){
+  // Get card type
+  uint8_t cardType = SD.cardType();
+  print_cardType(cardType);
+
+  // Get card size
+  uint64_t cardSize = SD.cardSize();
+  Serial.printf("SD Card Size: %llu bytes\n", cardSize);
+  Serial.printf("SD Card Size: %.2f MB\n", (float)cardSize / (1024 * 1024));
+  Serial.printf("SD Card Size: %.2f GB\n", (float)cardSize / (1024 * 1024 * 1024));
+
+  // Get total space and used space
+  uint64_t totalBytes = SD.totalBytes();
+  uint64_t usedBytes = SD.usedBytes();
+  uint64_t freeBytes = totalBytes - usedBytes;
+  
+  Serial.printf("Total space: %llu bytes (%.2f MB)\n", totalBytes, (float)totalBytes / (1024 * 1024));
+  Serial.printf("Used space: %llu bytes (%.2f MB)\n", usedBytes, (float)usedBytes / (1024 * 1024));
+  Serial.printf("Free space: %llu bytes (%.2f MB)\n", freeBytes, (float)freeBytes / (1024 * 1024));
+
+  // List files in root directory
+  Serial.println("\nFiles found on the card:");
+  Serial.println("========================");
+  listDir(SD, "/", 0);
+}
+*/

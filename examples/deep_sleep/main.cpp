@@ -1,15 +1,24 @@
 /* 
 This example sends the MCU into deep sleep after 10 seconds. 
 
+When the ESP32-C6 is in deep sleep:
+- The USB serial interface is not active
+- The auto-reset circuit can't trigger the bootloader
+- The chip wakes up, runs your code, and immediately goes back to sleep
+- There's not enough time for the bootloader to be triggered
+
 */
 
 
 #include <Arduino.h>
 
 #define uS_TO_S_FACTOR 1000000ULL  // Conversion factor for micro seconds to seconds
-#define TIME_TO_SLEEP  10          // Time ESP32 will go to sleep (in seconds)
+#define TIME_TO_SLEEP  1          // Time ESP32 will go to sleep (in seconds)
 // This is the time the ESP stays in deep_sleep.
 //Its not the time the ESP which it stays awake
+
+
+#define LED_PIN 2
 
 RTC_DATA_ATTR int bootCount = 0;  // Variable stored in RTC memory
 
@@ -51,19 +60,25 @@ void printWakeupReason() {
 }
 
 void setup() {
-    Serial.begin(115200);
-    delay(1000);  // Give time for serial to initialize
-    blink_led(3, 300);
+    gpio_hold_dis((gpio_num_t) LED_PIN); 
 
+    Serial.begin(115200);
+    //while(!Serial){;}
+    delay(50);
     pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(LED_PIN, OUTPUT);
+
+    digitalWrite(LED_BUILTIN, HIGH);
+    digitalWrite(LED_PIN, HIGH);
     
     ++bootCount;
     Serial.println("Boot number: " + String(bootCount));
 
-    blink_led(bootCount, 500);
+    //blink_led(bootCount, 500);
 
     // Print the wakeup reason for ESP32
     printWakeupReason();
+    delay(1000);
 
     // Configure the timer to wake up after TIME_TO_SLEEP seconds
     esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
@@ -72,6 +87,9 @@ void setup() {
     // Do your work here (read sensor, save to SD, etc.)
     Serial.println("Going to sleep now");
     Serial.flush(); 
+
+    digitalWrite(LED_PIN, LOW);
+    gpio_hold_en((gpio_num_t) LED_PIN); // You can hold the status of a GPIO Pin during deep Sleep with this
     
     // Enter deep sleep
     esp_deep_sleep_start();

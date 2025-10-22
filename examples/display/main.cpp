@@ -38,30 +38,16 @@
 
 #include "main.h"
 
-#define TFT_CS        5
-#define TFT_RST        6 // Or set to -1 and connect to Arduino RESET pin
-#define TFT_DC         7
+#define TFT_CS  5
+#define TFT_RST 6 // Or set to -1 and connect to Arduino RESET pin
+#define TFT_DC  7
+#define TFT_LIT 2
 
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
 float p = 3.1415926;
 
-void setup(void) {
-  Serial.begin(9600);
-  Serial.print(F("Hello! ST77xx TFT Test"));
-
-  tft.init(135, 240);           // Init ST7789 240x135
-  
-
-  Serial.println(F("Initialized"));
-
-  uint16_t time = millis();
-  tft.fillScreen(ST77XX_BLACK);
-  time = millis() - time;
-
-  Serial.println(time, DEC);
-  delay(500);
-
+void test_sequence(){
   // large block of text
   tft.fillScreen(ST77XX_BLACK);
   testdrawtext("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur adipiscing ante sed nibh tincidunt feugiat. Maecenas enim massa, fringilla sed malesuada et, malesuada sit amet turpis. Sed porttitor neque ut ante pretium vitae malesuada nunc bibendum. Nullam aliquet ultrices massa eu hendrerit. Ut sed nisi lorem. In vestibulum purus a tortor imperdiet posuere. ", ST77XX_WHITE);
@@ -107,11 +93,42 @@ void setup(void) {
   delay(1000);
 }
 
+void setup(void) {
+  Serial.begin(9600);
+  Serial.print(F("Hello! ST77xx TFT Test"));
+
+  pinMode(TFT_LIT, OUTPUT);
+  digitalWrite(TFT_LIT, HIGH);
+  tft.init(135, 240);           // Init ST7789 240x135
+  
+
+  Serial.println(F("Initialized"));
+
+  uint16_t time = millis();
+  tft.fillScreen(ST77XX_BLACK);
+  time = millis() - time;
+
+  Serial.println(time, DEC);
+  delay(500);
+
+  //test_sequence();
+  mediabuttons();
+}
+
 void loop() {
+  digitalWrite(TFT_LIT, HIGH);
   tft.invertDisplay(true);
-  delay(500);
+  //tft.sendCommand(0x53);
+  //tft.enableSleep(true);
+  //digitalWrite(TFT_LIT, 0);
+  delay(2000);
+
+
+  digitalWrite(TFT_LIT, LOW);
+  //tft.enableSleep(false); 
+  //digitalWrite(TFT_LIT, UINT16_MAX);
   tft.invertDisplay(false);
-  delay(500);
+  delay(2000);
 }
 
 void testlines(uint16_t color) {
