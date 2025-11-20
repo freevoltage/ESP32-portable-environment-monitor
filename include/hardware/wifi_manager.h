@@ -1,6 +1,4 @@
-#ifndef WIFI_MANAGER_H
-#define WIFI_MANAGER_H
-
+#pragma once
 #include <Arduino.h>
 #include <WiFi.h>
 
@@ -34,5 +32,3 @@ private:
     // Wait for NTP time sync
     bool waitForTimeSync(int maxRetries = 10);
 };
-
-#endif

@@ -19,10 +19,9 @@
 #include <Wire.h>
 #include <SPI.h>
 
-#include "main.h"
 #include <config.h>
-#include <storage.h>
-#include <sensor.h>
+#include <hardware/storage.h>
+#include <hardware/sensor.h>
 
 #define SD_MOSI  22   // Master Out Slave In
 #define SD_MISO  23   // Master In Slave Out  
@@ -50,13 +49,13 @@ void setup() {
     // Init SD Card
     storage.begin(); // Attention the SD Card begin function is not implemented yet
 
-    storage.getCardInfo();
+    storage.printCardInfo();
 }
 
 
 void loop() {
-    SensorReading reading = sensor.takeReading();
-    storage.writeReading(reading, " ");
+    SensorReading reading = sensor.getReading();
+    storage.storeReading(reading, " ");
     sensor.printReading(reading);
     delay(1000);
 }

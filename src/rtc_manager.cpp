@@ -1,4 +1,4 @@
-#include "rtc_manager.h"
+#include "hardware/rtc_manager.h"
 #include <sys/time.h>
 
 // RTC memory variable (survives deep sleep)
@@ -8,6 +8,7 @@ RTCManager::RTCManager() {
     // Constructor
 }
 
+// Note This Function is never used
 void RTCManager::begin(int year, int month, int day, int hour, int minute, int second) {
     setSystemTime(year, month, day, hour, minute, second);
     rtcInitialized = true;
@@ -73,7 +74,7 @@ String RTCManager::getFormattedDate() {
     return String(buffer);
 }
 
-time_t RTCManager::getTimestamp() {
+time_t RTCManager::getEpochTime() {
     time_t now;
     time(&now);
     return now;

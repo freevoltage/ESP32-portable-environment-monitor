@@ -22,10 +22,19 @@
   https://docs.arduino.cc/built-in-examples/basics/Blink/
 */
 #include <Arduino.h>
+#include "hardware/storage.h"
+#include "hardware/sensor.h"
+#include "data_structures.h"
+#include "config.h"
 
-#define LED_PIN 8
+//#define LED_PIN LED_BUILTIN
+#define LED_PIN 15
+//#define LED_PIN 8 // TODO It works with 8 but also with LED_BUILTIN which is 15?? What?
 #define TIME_TO_SLEEP 1
 #define uS_TO_S_FACTOR 1000000ULL
+
+StorageManager storage;
+SensorReading reading;
 
 // the setup function runs once when you press reset or power the board
 void setup() {

@@ -1,4 +1,4 @@
-#include "wifi_manager.h"
+#include "hardware/wifi_manager.h"
 #include <time.h>
 
 WiFiManager::WiFiManager() : wifiConnected(false) {

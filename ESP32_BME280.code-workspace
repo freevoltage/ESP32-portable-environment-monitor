@@ -1,0 +1,42 @@
+{
+	"folders": [
+		{
+			"name": "ESP32_BME280",
+			"path": "."
+		}
+	],
+	"settings": {
+		"cSpell.words": [
+			"DISPOFF",
+			"fbiego",
+			"Hurra",
+			"SEALEVELPRESSURE",
+			"SLPIN",
+			"SLPOUT",
+			"SRCS",
+			"ST77XX_SLPOUT",
+			"testdrawcircles",
+			"testdrawrects",
+			"testdrawtext",
+			"testfillcircles"
+		],
+		"files.associations": {
+			"array": "cpp",
+			"chrono": "cpp",
+			"deque": "cpp",
+			"forward_list": "cpp",
+			"string": "cpp",
+			"unordered_map": "cpp",
+			"vector": "cpp",
+			"string_view": "cpp",
+			"memory": "cpp",
+			"random": "cpp",
+			"format": "cpp",
+			"initializer_list": "cpp",
+			"mutex": "cpp",
+			"span": "cpp",
+			"cmath": "cpp",
+			"functional": "cpp"
+		}
+	}
+}

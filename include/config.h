@@ -1,8 +1,7 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#pragma once
 
 // SD Card
-#define SD_CS     0 // original 8
+#define SD_CS     0
 
 // Display pins
 #define TFT_CS  5
@@ -19,9 +18,6 @@
 #define uS_TO_S_FACTOR 1000000ULL
 #define TIME_TO_SLEEP  5  // Sleep duration in seconds
 
-
-
-
 // WiFi Configuration
 #define WIFI_SSID "TP-Link_0B73"
 #define WIFI_PASSWORD "63392418"
@@ -33,5 +29,3 @@
 
 // Time sync interval (sync once per day)
 #define TIME_SYNC_INTERVAL_HOURS 24
-
-#endif

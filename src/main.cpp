@@ -1,10 +1,11 @@
 #include <Arduino.h>
 #include "config.h"
-#include "rtc_manager.h"
-#include "sensor.h"
-#include "display.h"
-#include "storage.h"
-#include "wifi_manager.h"
+#include "hardware/rtc_manager.h"
+#include "hardware/sensor.h"
+#include "hardware/display.h"
+#include "hardware/storage.h"
+#include "hardware/wifi_manager.h"
+#include "data_structures.h"
 
 // RTC memory for boot counter
 RTC_DATA_ATTR int bootCount = 0;
@@ -105,21 +106,22 @@ void setup() {
         Serial.println(buffer);
     };
     
-
     // Take sensor reading
-    SensorReading reading = sensor.takeReading();
+    SensorReading reading = sensor.getReading();
     
     // Print to Serial
-    sensor.printReading(reading);
+    //sensor.print(reading);
+    // TODO Add a print function to the Display Service Class
+    // TODO Actually none of the service classes is even implemented
     Serial.print("DateTime: ");
     Serial.println(rtc.getFormattedDateTime());
     
     // Display on screen
+    // TODO I might want to change that this function doesn't need RTC time. We'll see..
     display.showReading(reading, rtc.getFormattedDateTime());
-    display.showBootCount(bootCount);
     
     // Save to SD card
-    storage.writeReading(reading, rtc.getFormattedDateTime());
+    storage.storeReading(reading, rtc.getFormattedDateTime());
     
     // Wait before sleep (upload window)
     Serial.println("\nWaiting 10 seconds before sleep...");

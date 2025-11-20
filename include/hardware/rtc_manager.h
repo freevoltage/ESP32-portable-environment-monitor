@@ -1,6 +1,4 @@
-#ifndef RTC_MANAGER_H
-#define RTC_MANAGER_H
-
+#pragma once
 #include <Arduino.h>
 #include <time.h>
 
@@ -17,6 +15,9 @@ public:
     // Mark RTC as initialized (stored in RTC memory)
     void setInitialized(bool state);
 
+    // Get Time Stamp
+    time_t getEpochTime();
+
     // Track last NTP sync
     void setLastSyncTime(time_t syncTime);
     time_t getLastSyncTime();
@@ -26,6 +27,8 @@ public:
     String getFormattedDateTime();
     String getFormattedTime();
     String getFormattedDate();
+
+    
     
     // Get Unix timestamp
     time_t getTimestamp();
@@ -38,5 +41,3 @@ private:
     void setSystemTime(int year, int month, int day, 
                       int hour, int minute, int second);
 };
-
-#endif

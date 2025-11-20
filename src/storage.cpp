@@ -1,12 +1,14 @@
-#include "storage.h"
+// storage.cpp
+#include "hardware/storage.h"
+#include "utils.h"
 
-StorageManager::StorageManager() 
-    : _filename("/datalog.csv"), _initialized(false) {
+StorageManager::StorageManager() : _cs(SD_CS), _initialized(false), _sd_card_present(false) {
+    _filename = "/datalog.csv";
 }
-
-StorageManager::~StorageManager() {
-    // Cleanup if needed
-}
+StorageManager::StorageManager(uint8_t cs) 
+    : _initialized(false), _sd_card_present(false), _cs(cs) {
+        _filename = "/datalog.csv";
+    }
 
 bool StorageManager::begin() {
     if (_initialized) {
@@ -16,24 +18,29 @@ bool StorageManager::begin() {
     
     Serial.print("Initializing SD card...");
     
-    if (!SD.begin(SD_CS)) {
+    if (!SD.begin(_cs)) {
         logError("SD card initialization failed");
         return false;
     }
     
-    _initialized = true;
-    Serial.println(" Success!");
+    _sd_card_present = true;
     
     // Create header if needed
     if (!createHeaderIfNeeded()) {
         logError("Failed to create CSV header");
         return false;
     }
-    
+
+    _initialized = true;
+    Serial.println("SD card initialized successfully");
     return true;
 }
 
-bool StorageManager::writeReading(const SensorReading& reading, const String& dateTime) {
+bool StorageManager::isReady(){
+    return _initialized && _sd_card_present;
+}
+bool StorageManager::storeReading(const SensorReading &reading, const String &dateTime)
+{
     if (!_initialized) {
         return initializationError();
     }
@@ -44,7 +51,7 @@ bool StorageManager::writeReading(const SensorReading& reading, const String& da
         return false;
     }
     
-    // Write CSV data: DateTime,Temperature,Humidity,Pressure
+    // Write CSV data: DateTime, Temperature, Humidity, Pressure
     dataFile.print(dateTime);
     dataFile.print(",");
     dataFile.print(reading.temperature, 2);
@@ -59,7 +66,49 @@ bool StorageManager::writeReading(const SensorReading& reading, const String& da
     return true;
 }
 
-bool StorageManager::fileExists(const String& filename) {
+// Add to storage.cpp
+bool StorageManager::getAllReadings(std::vector<SensorReading>& readings) {
+    // Just call getReadingsSince with timestamp 0 to get all readings
+    return getReadingsSince(0, readings);
+}
+
+bool StorageManager::getReadingsSince(time_t timestamp, std::vector<SensorReading>& readings) {
+    readings.clear();
+    
+    if (!isReady()) return false;
+    
+    File dataFile = SD.open(_filename, FILE_READ);
+    if (!dataFile) {
+        logError("Failed to open file for reading");
+        return false;
+    }
+    
+    // Skip header
+    if (dataFile.available()) {
+        dataFile.readStringUntil('\n');
+    }
+    
+    // Parse and filter readings
+    while (dataFile.available()) {
+        String line = dataFile.readStringUntil('\n');
+        line.trim();
+        
+        if (line.length() > 0) {
+            SensorReading reading = parseReading(line); // StorageManager parses everything
+            
+            if (reading.isValid && reading.timestamp >= timestamp) {
+                readings.push_back(reading);
+            }
+        }
+    }
+    
+    dataFile.close();
+    Serial.printf("Retrieved %d readings since %lu\n", readings.size(), timestamp);
+    return true;
+}
+
+bool StorageManager::fileExists(const String &filename)
+{
     return SD.exists(filename.c_str());
 }
 
@@ -142,6 +191,41 @@ bool StorageManager::readFile(const String &filename, String &buff)
     return true;
 }
 
+bool StorageManager::deleteFile(const String &filename)
+{
+    if(!fileExists(filename)){
+        return false;
+    }
+
+    return SD.remove(filename);
+}
+
+bool StorageManager::testConnection() {
+    if (!_initialized) return false;
+    
+    // Try to open and close the root directory
+    File root = SD.open("/");
+    if (!root) return false;
+    
+    root.close();
+    return true;
+}
+
+/* Return the Space used by the datalog file. */
+uint32_t StorageManager::getUsedSpace(){
+    return getFileSize(_filename);
+}
+
+/* Remove reading older than 30 days */
+void StorageManager::cleanup(){
+    // TODO Add adjustable cleanup_period
+    uint32_t cutoffTime = millis() - (30UL * 24UL * 60UL* 60UL * 1000UL);
+
+    // The Cleanup procedure would require to rewrite the file to remove old entries
+    // and is therefore not implemented for now
+    Serial.printf("Cleanup: would remove readings older than %lu\n", cutoffTime);
+}
+
 // Private helper functions
 bool StorageManager::createHeaderIfNeeded() {
     if (fileExists(_filename)) {
@@ -218,6 +302,31 @@ void StorageManager::listDirectory(const String& path, uint8_t levels) {
 
 bool StorageManager::initializationError()
 {
-    Serial.println("SD card not initialized");
+    logError("SD card not initialized");
     return false;
 }
+
+// Helper function to parse the reading of the CSV Line. 
+// It is not very professionally implemented
+SensorReading StorageManager::parseReading(const String &line) {
+    SensorReading reading;
+    
+    // Example Parse: "2024-01-15 10:30:45,23.5,65.2,1013.25"
+    int first = line.indexOf(',');
+    int second = line.indexOf(',', first + 1);
+    int third = line.indexOf(',', second + 1);
+    
+    if (first == -1 || second == -1 || third == -1) {
+        return reading; // isValid = false
+    }
+    
+    String dateTimeStr = line.substring(0, first);
+    reading.timestamp = DateTimeUtils::parseDateTime(dateTimeStr);      // Example: 2024-01-15 10:30:45
+    reading.temperature = line.substring(first + 1, second).toFloat();  // Example: 23.5
+    reading.humidity = line.substring(second + 1, third).toFloat();     // Example: 65.2
+    reading.pressure = line.substring(third + 1).toFloat();             // Example: 1013.25
+    reading.isValid = (reading.timestamp > 0); // Valid if datetime parsed
+    
+    return reading;
+}
+
