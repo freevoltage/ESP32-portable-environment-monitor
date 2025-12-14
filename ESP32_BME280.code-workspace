@@ -3,6 +3,22 @@
 		{
 			"name": "ESP32_BME280",
 			"path": "."
+		},
+		{
+			"name": "UnitTesting",
+			"path": "../UnitTesting"
+		},
+		{
+			"name": "ArduinoUnitTesting",
+			"path": "../ArduinoUnitTesting"
+		},
+		{
+			"name": "UniUno",
+			"path": "../UniUno"
+		},
+		{
+			"name": "AdafruitFeatherESP32C6_ESP_IDF",
+			"path": "../AdafruitFeatherESP32C6_ESP_IDF"
 		}
 	],
 	"settings": {

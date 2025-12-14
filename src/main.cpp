@@ -1,11 +1,11 @@
 #include <Arduino.h>
-#include "config.h"
-#include "hardware/rtc_manager.h"
-#include "hardware/sensor.h"
-#include "hardware/display.h"
-#include "hardware/storage.h"
-#include "hardware/wifi_manager.h"
-#include "data_structures.h"
+#include <config.h>
+#include <rtc_manager.h>
+#include <sensor_manager.h>
+#include <display_manager.h>
+#include <storage_manager.h>
+#include <wifi_manager.h>
+#include <data_structures.h>
 
 // RTC memory for boot counter
 RTC_DATA_ATTR int bootCount = 0;
@@ -18,6 +18,8 @@ StorageManager storage;
 WiFiManager wifiMgr;
 
 void printWakeupReason() {
+    // TODO This should be very likely also moved into some module. I think of an sleep_module
+    // where additional deep sleep related functionality might be added in the future.
     esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
     
     switch(wakeup_reason) {
@@ -32,37 +34,6 @@ void printWakeupReason() {
             break;
     }
 }
-
-void syncTime() {
-    // Check if time sync is needed
-    if (!rtc.needsTimeSync(TIME_SYNC_INTERVAL_HOURS)) {
-        Serial.println("Time sync not needed yet");
-        time_t lastSync = rtc.getLastSyncTime();
-        Serial.printf("Last sync: %ld seconds ago\n",
-                      rtc.getTimestamp() - lastSync);
-        return;
-    }
-    
-    Serial.println("Time sync needed - connecting to WiFi...");
-    
-    // Connect to WiFi
-    if (wifiMgr.connect(WIFI_SSID, WIFI_PASSWORD, 20)) {
-        // Sync time from NTP
-        if (wifiMgr.syncTimeNTP(NTP_SERVER, GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC)) {
-            rtc.setLastSyncTime(rtc.getTimestamp());
-            rtc.setInitialized(true);
-            Serial.println("Time synchronized and saved");
-        } else {
-            Serial.println("Time sync failed");
-        }
-        
-        // Disconnect WiFi to save power
-        wifiMgr.disconnect();
-    } else {
-        Serial.println("WiFi connection failed - using existing time");
-    }
-}
-
 
 void setup() {
     Serial.begin(115200);
@@ -83,7 +54,7 @@ void setup() {
     //syncTime();
 
     Serial.print("Current time: ");
-    Serial.println(rtc.getFormattedDateTime());
+    Serial.println(rtc.getFormattedTime());
     
     // Initialize display
     display.begin(TFT_CS, TFT_DC, TFT_RST, TFT_LIT);
@@ -101,7 +72,7 @@ void setup() {
 
     // Read Datalog.csv File
     String buffer;
-    if(storage.readFile("/datalog.csv", buffer)){
+    if(storage.readFile("/datalog.csv", buffer, DEFAULT_MAX_SIZE)){
         Serial.println("File Content");
         Serial.println(buffer);
     };
@@ -114,14 +85,15 @@ void setup() {
     // TODO Add a print function to the Display Service Class
     // TODO Actually none of the service classes is even implemented
     Serial.print("DateTime: ");
-    Serial.println(rtc.getFormattedDateTime());
+    Serial.println(rtc.getFormattedTime());
     
     // Display on screen
     // TODO I might want to change that this function doesn't need RTC time. We'll see..
-    display.showReading(reading, rtc.getFormattedDateTime());
+    //display.showReading(reading, rtc.getFormattedDateTime());
+    display.showReading(reading);
     
     // Save to SD card
-    storage.storeReading(reading, rtc.getFormattedDateTime());
+    storage.storeReading(reading);
     
     // Wait before sleep (upload window)
     Serial.println("\nWaiting 10 seconds before sleep...");

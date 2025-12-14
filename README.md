@@ -136,3 +136,24 @@ UserSideException: Could not find 'sd' package in the PlatormIO Registry
 
 
 
+
+
+## TODO
+
+Okay today I did a lot of progress. All of the embedded tests (except 1) are working.
+I started to play around to implement a Mock for the hardware modules.
+The idea is that the service modules, work with fake hardware modules, so that they can be tested on the native machine instead. I am also just curious about how mocks work and how to use them. 
+But I came across some difficulties. I am not sure how to implement the MOCK. 
+
+
+What bothers me is
+
+Ich muss ja dann nicht nur einen Test für die hardware schreiben sondern auch einen Test für den MOCK. Oder ist dieser als so trivial anzunehmen, dass der keinen Test braucht? Schließlich ist die Logik ja auf das Minimum reduziert.
+
+--> Ich teste also nicht den MOCK
+
+
+1. Für den Data Service brauche ich also die MOCKs für den Sensor, Storage und den RTC.
+2. Wenn ich diese MOCKS habe dann kann ich den Test für den DATA Service schreiben.
+3. Dann kann ich die Implementation des Data Services schreiben.
+

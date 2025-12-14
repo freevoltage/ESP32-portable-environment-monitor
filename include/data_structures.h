@@ -1,6 +1,12 @@
 // data_structures.h
 #pragma once
-#include <Arduino.h>
+#ifdef MOCK
+    #include <cstdint>
+    #include <ctime>
+#else
+    #include <Arduino.h>
+#endif
+// This causes a compilation fail when we are in a MOCK but it seems that time_t is imported with arduino.h
 
 /**
  * @brief The header defines all shared data structures used between the modules
@@ -9,18 +15,19 @@
  */
 
 
+ // Structure holding a RAW sensor reading.
 struct SensorReading {
     float temperature;
     float humidity;
     float pressure;
-    uint32_t timestamp;
+    time_t timestamp;
     bool isValid;
     
     // Default Constructor
     SensorReading() : temperature(0), humidity(0), pressure(0), timestamp(0), isValid(false) {}
 
     // Specific Constructor
-    SensorReading(float temp, float hum, float press, unsigned long time) 
+    SensorReading(float temp, float hum, float press, time_t time) 
         : temperature(temp), humidity(hum), pressure(press), timestamp(time), isValid(false) {}
 };
 
@@ -64,3 +71,5 @@ enum class ConnectivityStatus {
     TIME_SYNCING,
     SYNC_COMPLETE
 };
+
+//#endif // DATA_STRUCTURES_H

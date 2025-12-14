@@ -29,3 +29,8 @@
 
 // Time sync interval (sync once per day)
 #define TIME_SYNC_INTERVAL_HOURS 24
+
+
+#define DEFAULT_MAX_SIZE 1000
+
+#define SD_FILENAME "/datalog.csv"
