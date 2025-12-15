@@ -12,8 +12,10 @@ public:
     bool isReady() const;
 
     // Core Time operations
-    bool setTime(int year, int month, int day, int hour, int min, int sec);
+    bool setTime(int year, int month, int day, int hour, int min, int sec); // TODO Make this a void
+    bool setTime(unsigned long epoch = 1609459200, int ms = 0); // TODO Implement Test for this function // TODO Make this a void
     time_t getEpochTime();
+    String getTime(); // TODO Implement Test for this function
     String getFormattedTime(const String& format = "%Y-%m-%d %H:%M:%S");
     tm getTimeStruct();
 
@@ -26,10 +28,10 @@ public:
     // Prints all available RTC Formats from the ESP32Lib
     void printRTCFormats();
 
+    static constexpr time_t MIN_VALID_TIME = 1609459200; // 2021-01-01 00:00:00
+
 private:
     ESP32Time _rtc;
     time_t _lastSyncTime;
     bool _initialized;
-
-    static constexpr time_t MIN_VALID_TIME = 1640995200; // Jan 1, 2022
 };

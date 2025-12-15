@@ -5,59 +5,42 @@
 StorageManager::StorageManager() : _cs(SD_CS), _initialized(false), _sd_card_present(false)
 {
     _filename = SD_FILENAME;
+    pinMode(_cs, OUTPUT);
+    digitalWrite(_cs, HIGH);
 }
 StorageManager::StorageManager(uint8_t cs)
     : _initialized(false), _sd_card_present(false), _cs(cs)
 {
     _filename = SD_FILENAME;
+    pinMode(_cs, OUTPUT);
+    digitalWrite(_cs, HIGH);
 }
 
 bool StorageManager::begin()
 {
+    LOG_INFO("StorageManager begin()");
+    reset();
 
-    if (_initialized && _sd_card_present)
-    {
-        // Already initialized - just verify file exists
-        if (!SD.exists(_filename.c_str()))
-        {
-            LOG_INFO("Log file missing - recreating...");
-            if (!createHeaderIfNeeded())
-            {
-                LOG_ERROR("Failed to recreate header");
-                return false;
-            }
-        }
-        return true;
-    }
-
-    if (_initialized)
-    {
-        LOG_INFO("Was initialized but SD card is missing - reinitializing...");
-        SD.end();   // Clean shutdown
-        delay(100); // Give SD card time to reset
-        _initialized = false;
-        _sd_card_present = false;
-    }
-
-    LOG_INFO("Initializing SD card...");
-
-    if (!SD.begin(_cs))
-    {
-        LOG_ERROR("SD card initialization failed");
+    bool result = SD.begin(_cs);
+    
+    if (!result){
+        LOG_ERROR("SD card not accessible");
         return false;
     }
 
     _sd_card_present = true;
 
-    // Create header if needed
-    if (!createHeaderIfNeeded())
-    {
-        LOG_ERROR("Failed to create CSV header");
+    // Ensure file exists with header
+    result = createHeaderIfNeeded();
+
+    if (!result) {
+        LOG_ERROR("Failed to ensure CSV file exists");
+        _initialized = false;
         return false;
     }
 
     _initialized = true;
-    LOG_INFO("SD card initialized successfully");
+    LOG_INFO("SD initialized successfully");
     return true;
 }
 
@@ -70,10 +53,21 @@ void StorageManager::reset()
 {
     if (_initialized)
     {
+        // Close all files before ending
+        File root = SD.open("/");
+        if (root) {
+            root.close();
+        }
         SD.end();
+        delay(50);
     }
+    pinMode(_cs, OUTPUT);
+    digitalWrite(_cs, HIGH);
+    delay(50);
     _initialized = false;
     _sd_card_present = false;
+
+    LOG_DEBUG("StorageManager reset");
 }
 
 bool StorageManager::storeReading(const SensorReading &reading)
@@ -84,6 +78,17 @@ bool StorageManager::storeReading(const SensorReading &reading)
         return false;
     }
 
+    //* If it doesn't exist it simply writes to it, creates it and doesn't creates the header.
+    if(!fileExists(_filename)){
+        LOG_WARN("File doesn't exist.");
+        if(!createHeaderIfNeeded()){
+            LOG_ERROR("Failed to create File");
+            return false;
+        }
+    }
+
+    // Open file for writing
+    delay(50);
     File dataFile = SD.open(_filename.c_str(), FILE_APPEND);
     if (!dataFile)
     {
@@ -215,8 +220,6 @@ bool StorageManager::getLastNReadings(std::vector<SensorReading> &readings, uint
 
     // Step 4: Seek to position of the last N lines
     uint16_t linesToRead = (totalLines < maxCount) ? totalLines : maxCount;
-    //uint16_t linesToSkip = totalLines - linesToRead;
-    //size_t seekPos = HEADER_SIZE + (linesToSkip * BYTES_PER_LINE);
 
     // Seek to the Last Line and then Read backwards
     for(int i=0; i<linesToRead; i++)
@@ -303,6 +306,12 @@ bool StorageManager::getReadingsSince(time_t timestamp, std::vector<SensorReadin
     readings.reserve(maxCount);
     SinceContext ctx = {timestamp, maxCount};
     return processReadings(readings, includeRecentReadings, neverStop, &ctx);
+}
+
+bool StorageManager::createFile(const String &filename)
+{
+    if(fileExists(filename));
+    return false;
 }
 
 bool StorageManager::fileExists(const String &filename)
@@ -449,6 +458,9 @@ bool StorageManager::readFile(const String &filename, String &buff, size_t maxSi
     return totalRead > 0;
 }
 
+/// @brief 
+/// @param filename 
+/// @return 
 bool StorageManager::deleteFile(const String &filename)
 {
     if (!fileExists(filename))
@@ -456,7 +468,28 @@ bool StorageManager::deleteFile(const String &filename)
         return false;
     }
     LOG_INFO("Delete %s", filename.c_str());
-    return SD.remove(filename);
+
+    bool result = SD.remove(filename);
+    
+    // SD.remove() only marks a file for deletion
+    // Physical deletion happens on SD.end() or timeout
+    // SD.exist() might check cached state
+
+    if(!result){
+        LOG_ERROR("DeleteFile '%s' failed!", filename.c_str());
+    }
+    // Force Filesystem Resync
+    SD.end();
+    delay(100);
+    SD.begin(_cs);
+
+    // Verify deletion
+    if(fileExists(filename)){
+        LOG_ERROR("File still exists after delete");
+        return false;
+    }
+
+    return true;
 }
 
 bool StorageManager::resetFile()
@@ -507,6 +540,30 @@ bool StorageManager::testConnection()
         return false;
 
     root.close();
+    return true;
+}
+
+// TODO Add a Test for this method
+bool StorageManager::testSDCardHealth()
+{
+    // Try to create and delete a test file
+    File test = SD.open("/_test.tmp", FILE_WRITE);
+    test.close();
+    if (!test) {
+        LOG_ERROR("SD health check failed: cannot create file");
+        return false;
+    }
+    //test.close();
+    delay(50);
+    
+    // Try to delete file
+    if (!SD.remove("/_test.tmp")) {
+        LOG_ERROR("SD health check failed: cannot delete file");
+        
+        return false;
+    }
+    
+    LOG_INFO("SD health check: OK");
     return true;
 }
 
@@ -587,7 +644,7 @@ bool StorageManager::processReadings(std::vector<SensorReading> &readings,
     while (dataFile.available())
     {
         line = dataFile.readStringUntil('\n');
-        LOG_DEBUG("%s", line.c_str());
+        LOG_DEBUG("Current Line: %s", line.c_str());
         line.trim();
 
         if (line.length() == 0){
@@ -646,20 +703,25 @@ bool StorageManager::createHeaderIfNeeded()
         return true;
     }
 
-    LOG_INFO("Create new %s file with header:", _filename.c_str());
+    LOG_INFO("Create new '%s' file with header:", _filename.c_str());
 
+    // Create the new file
     File dataFile = SD.open(_filename.c_str(), FILE_WRITE);
     if (!dataFile)
     {
+        LOG_ERROR("File creation failed!");
         return false;
     }
 
     // Write CSV header
     LOG_INFO("DateTime,Temperature(C),Humidity(%),Pressure(hPa)");
     dataFile.println("Timestemp,Temperature,Humidity,Pressure");
+    dataFile.flush();
     dataFile.close();
 
-    LOG_INFO("File Created: Success!");
+    delay(50);
+
+    LOG_INFO("File '%s' created: Success!", _filename.c_str());
     return true;
 }
 

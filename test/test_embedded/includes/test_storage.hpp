@@ -6,19 +6,9 @@
 #include <data_structures.h>
 #include <logger.h>
 
+#include "test_utils.h"
 StorageManager testStorage;
 
-void printReading(const char *label, const SensorReading &r)
-{
-    LOG_DEBUG("%s: ts=%lld, temp=%.2f, hum=%.2f%% press= %.2f",
-              label, r.timestamp, r.temperature, r.humidity, r.pressure);
-}
-
-void printAllReadings(const char *label, std::vector<SensorReading> readings)
-{
-    for (int i = 0; i < readings.size(); i++)
-        printReading(label, readings[i]);
-}
 
 // Helper function to create test readings
 SensorReading createTestReading(float temp, float humidity, float pressure, time_t timestamp)
@@ -66,25 +56,6 @@ std::vector<SensorReading> storeTestReadings(int count, time_t startTime = 0)
     return storeReadings;
 }
 
-void assertReadingsEqual(const SensorReading &expected, const SensorReading &actual)
-{
-    printReading("Expected", expected);
-    printReading("Actual", actual);
-    int32_t timeDiff = actual.timestamp - expected.timestamp;
-    LOG_DEBUG("Time Difference = %ld sec", timeDiff);
-
-    // Convert floats to integers (multiply by 100 for 2 decimal precision)
-    TEST_ASSERT_EQUAL_INT32((int32_t)(expected.temperature * 100),
-                            (int32_t)(actual.temperature * 100));
-
-    TEST_ASSERT_EQUAL_INT32((int32_t)(expected.humidity * 100),
-                            (int32_t)(actual.humidity * 100));
-
-    TEST_ASSERT_EQUAL_INT32((int32_t)(expected.pressure * 100),
-                            (int32_t)(actual.pressure * 100));
-
-    TEST_ASSERT_EQUAL(expected.timestamp, actual.timestamp);
-}
 
 // Helper to verify SD card is connected before running tests
 void requireSDCard()
@@ -405,15 +376,44 @@ void printMemoryReportCompact() {
     Serial.println("════════════════════\n");
 }
 
+void test_sd_card_delete_reliability()
+{
+    const char* testFile = "/test_delete_verify.txt";
+    
+    // Create file
+    File f = SD.open(testFile, FILE_WRITE);
+    f.println("test");
+    f.close();
+    delay(50);
+    
+    TEST_ASSERT_TRUE(SD.exists(testFile));
+    
+    // Delete
+    bool deleted = SD.remove(testFile);
+    TEST_ASSERT_TRUE(deleted);
+    
+    // Check immediately
+    bool exists1 = SD.exists(testFile);
+    LOG_INFO("Exists immediately: %s", exists1 ? "YES" : "NO");
+    
+    // Force flush
+    SD.end();
+    delay(100);
+    SD.begin(SD_CS);
+    
+    // Check after flush
+    bool exists2 = SD.exists(testFile);
+    LOG_INFO("Exists after flush: %s", exists2 ? "YES" : "NO");
+    
+    TEST_ASSERT_FALSE(exists2);
+}
+
 
 namespace test_storage
 {
     void run_tests()
     {
         UnitySetTestFile(__FILE__);
-        pinMode(TFT_CS, OUTPUT);
-        digitalWrite(TFT_CS, HIGH);
-
         LOG_INFO("\n[RUN TEST] STORAGE:\n");
 
         // Initialization
@@ -440,5 +440,7 @@ namespace test_storage
         // Edge cases and safety
         RUN_TEST(test_memory_safety);
         RUN_TEST(test_storage_diagnostics);
+        
+        RUN_TEST(test_sd_card_delete_reliability);
     }
 }

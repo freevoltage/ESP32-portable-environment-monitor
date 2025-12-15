@@ -35,8 +35,8 @@ class DataService {
         StorageManager* storageManager;
         RTCManager* rtcManager;
 
-        SensorReading lastReading;
-        bool hasValidData = false;
+        SensorReading _lastReading;
+        bool _hasValidData = false;
 
 
         // Helper Methods

@@ -6,6 +6,7 @@ RTCManager::RTCManager()
 }
 
 bool RTCManager::begin() {
+    LOG_INFO("RTCManager begin()");
     // ESP32Time doesn't have a begin() method, it's ready to use
     // We'll just set a flag and maybe set a default time if needed
     _initialized = true;
@@ -15,7 +16,7 @@ bool RTCManager::begin() {
         // Set to Jan 1, 2024, 00:00:00 as default
         _rtc.setTime(0, 0, 0, 1, 1, 2024);
     }
-    
+    LOG_INFO("RTC initialized successfully");
     return true;
 }
 
@@ -32,11 +33,41 @@ bool RTCManager::setTime(int year, int month, int day, int hour, int min, int se
     return true;
 }
 
+
+/// @brief 
+/// @param epoch 
+/// @param ms 
+/// @return 
+bool RTCManager::setTime(unsigned long epoch, int ms)
+{
+    if (!_initialized) {
+        return false;
+    }
+    
+    _rtc.setTime(epoch, ms);
+    LOG_DEBUG("RTC Time set to: %lu, offset: %i (ms), UTC: %s", epoch, ms, this->getFormattedTime().c_str());
+    return true;
+}
+
+/// @brief Calls the ESP32Time getEpoch function
+/// @return the current epoch seconds as time_t
 time_t RTCManager::getEpochTime(){
     if (!_initialized) {
         return 0;
     }
+    // It's completely save to cast to time_t.
+    //For some reason in the ESPTime Library there was a cast from time_t to unsigned long before ...
     return static_cast<time_t>(_rtc.getEpoch());
+}
+
+/// @brief 
+/// @return the time as an Arduino String object
+String RTCManager::getTime()
+{
+    if(!_initialized){
+        return String();
+    }
+    return _rtc.getTime();
 }
 
 String RTCManager::getFormattedTime(const String& format){

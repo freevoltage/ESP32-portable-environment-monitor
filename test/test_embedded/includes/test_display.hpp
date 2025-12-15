@@ -7,7 +7,7 @@
 DisplayManager testDisplay;
 
 void test_display_initialization(){
-    testDisplay.begin(TFT_CS, TFT_DC, TFT_RST, TFT_LIT);
+    testDisplay.begin();
     bool result = testDisplay.isReady();
     TEST_ASSERT_TRUE(result);
 }

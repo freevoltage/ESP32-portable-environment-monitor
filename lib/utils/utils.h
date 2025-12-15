@@ -9,7 +9,7 @@ public:
     static String convertTimestampToString(time_t timestamp);
     static String formatDateTime(time_t timestamp);
     static bool isValidDateTime(const String& dateTimeStr);
-    
+
 private:
     static bool parseComponents(const String& str, int& year, int& month, 
                                int& day, int& hour, int& min, int& sec);

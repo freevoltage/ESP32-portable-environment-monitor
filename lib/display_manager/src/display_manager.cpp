@@ -8,9 +8,44 @@
 #include "display_manager.h"
 #include <logger.h>
 
-DisplayManager::DisplayManager() : _tft(nullptr), _initialized(false)
+DisplayManager::DisplayManager() : 
+    _tft(nullptr),
+    _cs(TFT_CS),
+    _dc(TFT_DC),
+    _rst(TFT_RST),
+    _lit(TFT_LIT),
+    _initialized(false),
+    _isOn(false) {
+    // Immediately deselect CS pin
+    pinMode(_cs, OUTPUT);
+    digitalWrite(_cs, HIGH);
+
+    //pinMode(_cs, OUTPUT);
+    //pinMode(_dc, OUTPUT);
+    //pinMode(_rst, OUTPUT);
+    pinMode(_lit, OUTPUT);
+
+    digitalWrite(_lit, LOW);
+}
+
+DisplayManager::DisplayManager(uint8_t tft_cs, uint8_t tft_dc, uint8_t tft_rst, uint8_t tft_lit) : 
+    _tft(nullptr),
+    _cs(tft_cs),
+    _dc(tft_dc),
+    _rst(tft_rst),
+    _lit(tft_lit),
+    _initialized(false),
+    _isOn(false)
 {
-    // Empty Constructor
+    pinMode(_cs, OUTPUT);
+    digitalWrite(_cs, HIGH);
+
+    //pinMode(_cs, OUTPUT);
+    //pinMode(_dc, OUTPUT);
+    //pinMode(_rst, OUTPUT);
+
+    pinMode(_lit, OUTPUT);
+    digitalWrite(_lit, LOW);
 }
 
 DisplayManager::~DisplayManager()
@@ -22,24 +57,19 @@ DisplayManager::~DisplayManager()
     }
 }
 
-void DisplayManager::begin(uint8_t tft_cs, uint8_t tft_dc, uint8_t tft_rst, uint8_t tft_lit)
+bool DisplayManager::begin()
 {
-    _cs = tft_cs;
-    _dc = tft_dc;
-    _rst = tft_rst;
-    _lit = tft_lit;
-
-    // Actually cs, dc and rst should be defined as output in the display's library.
-    pinMode(_cs, OUTPUT);
-    pinMode(_dc, OUTPUT);
-    pinMode(_rst, OUTPUT);
-    pinMode(_lit, OUTPUT);
-
-    // Ensure display is deselected initially
-    digitalWrite(_cs, HIGH);
-    digitalWrite(_lit, LOW);
+    if(_initialized){
+        LOG_WARN("Display already initialized.");
+        return true;
+    }
 
     _tft = new Adafruit_ST7789(_cs, _dc, _rst);
+
+    if(!_tft){
+        LOG_ERROR("Failed to allocate display object");
+        return false;
+    }
 
     _tft->init(135, 240);
     _tft->setRotation(3);
@@ -49,6 +79,7 @@ void DisplayManager::begin(uint8_t tft_cs, uint8_t tft_dc, uint8_t tft_rst, uint
     _initialized = true;
     _isOn = true;
     LOG_INFO("Display initialized");
+    return true;
 }
 
 bool DisplayManager::isReady()

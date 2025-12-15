@@ -3,12 +3,15 @@
 #include <Adafruit_BME280.h>
 #include <logger.h>
 
+#include <ESP32Time.h>
+
 SensorManager::SensorManager() : initialized(false) {}
 
 //SensorManager::SensorManager(uint8_t address) : i2cAddress(address), initialized(false) {}
 
 
 bool SensorManager::begin() {
+    LOG_INFO("SensorManager begin()");
     Wire.begin(SDA, SCL);
     
     initialized = bme.begin(BME280_ADDRESS, &Wire);
@@ -35,12 +38,13 @@ bool SensorManager::isReady()
     //return initialized && this->testConnection();
 }
 
-SensorReading SensorManager::getReading() {
+SensorReading SensorManager::getReading(time_t timestamp) {
     SensorReading reading;
     
     if(!initialized){
-        Serial.println("Sensor not initialized");
-        // reading struct has an internal valid which is false by default
+        LOG_ERROR("Sensor not initialized");
+        reading.isValid = false;
+        reading.timestamp = timestamp;
         return reading; 
     }
 
@@ -48,23 +52,19 @@ SensorReading SensorManager::getReading() {
     reading.temperature = readTemperature();
     reading.pressure = readPressure();
     reading.humidity = readHumidity();
-    //reading.altitude = getAltitude(); // TODO 
-    reading.timestamp = millis(); // TODO Verify that this is correct
-    // How is this timestamp converted into a proper Date String when writing into memory
-    // --> This is the responsibility of the Data Service
+    reading.timestamp = timestamp;
     
     validateReading(reading);
 
-    if(reading.isValid){
-        LOG_INFO("Sensor reading: %.1f°C, %.1f%%, %.1fhPa\n", 
-                     reading.temperature, reading.humidity, reading.pressure);
-    }
-    else{
-        LOG_INFO("Invalid sensor reading detected");
-
-    }
-
+    LOG_DEBUG("Sensor reading: %.1f°C, %.1f%%, %.1fhPa @ %ld", 
+            reading.temperature, reading.humidity, reading.pressure, timestamp);
+    
     return reading;
+}
+
+SensorReading SensorManager::getReading()
+{
+    return getReading(millis() / 1000); // Fallback to boot time
 }
 
 float SensorManager::readTemperature() {

@@ -1,69 +1,80 @@
 // data_service.cpp
 #include "data_service.h"
+#include "logger.h"
 
 DataService::DataService(SensorManager* sensor, StorageManager* storage, RTCManager* rtc)
     : sensorManager(sensor), storageManager(storage), rtcManager(rtc) {
-    hasValidData = false;
+    LOG_DEBUG("Allocate DataService object");
+    _hasValidData = false;
+
+    // Initialize with invalid Reading
+    _lastReading = SensorReading();
 }
 
 bool DataService::collectCurrentReading() {
     if (!sensorManager || !sensorManager->isReady()) {
-        Serial.println("Sensor not available");
+        LOG_ERROR("Sensor not available");
         return false;
     }
     
-    lastReading = sensorManager->getReading();
-    hasValidData = isReadingValid(lastReading);
+    // Get Readings from Sensor
+    time_t timestamp = rtcManager->getEpochTime();
+    _lastReading = sensorManager->getReading(timestamp);
+    _hasValidData = isReadingValid(_lastReading);
     
-    if (hasValidData) {
-        Serial.println("Successfully collected sensor reading");
+    if (_hasValidData) {
+        LOG_INFO("Valid reading collected");
     } else {
-        Serial.println("Invalid reading collected");
+        LOG_WARN("Invalid reading collected");
     }
+
+    LOG_INFO("Reading collected: T=%.1f°C, H=%.1f%%, P=%.1fhPa, Time=%ld", 
+             _lastReading.temperature, _lastReading.humidity, _lastReading.pressure, _lastReading.timestamp);
     
-    return hasValidData;
+    return _hasValidData;
 }
 
 SensorReading DataService::getCurrentReading() const {
-    return lastReading;
+    return _lastReading;
 }
 
 bool DataService::hasCurrentReading() const {
-    return hasValidData;
+    return _hasValidData;
 }
 
 bool DataService::storeCurrentReading() {
-    if (!hasValidData) {
-        Serial.println("No valid reading to store");
+    if (!_hasValidData) {
+        LOG_ERROR("No valid reading to store");
         return false;
     }
     
     if (!storageManager || !storageManager->isReady()) {
-        Serial.println("Storage not available");
+        LOG_ERROR("Storage not available");
         return false;
     }
     
-    if (!rtcManager || !rtcManager->isInitialized()) {
-        Serial.println("RTC not available");
-        return false;
+    // storeReading function will handle formatting automatically
+    bool result = storageManager->storeReading(_lastReading);
+    
+    if (result) {
+        LOG_DEBUG("Reading stored successfully");
+    } else {
+        LOG_ERROR("Failed to store reading");
     }
-    
-    // Get current datetime string from RTC
-    String dateTime = DateTimeUtils::formatDateTime(rtcManager->getEpochTime());
-    
-    return storageManager->storeReading(lastReading, dateTime);
+
+    return result;
 }
 
 TemperatureStats DataService::calculateStats(int hoursBack) {
     TemperatureStats stats;
     
     if (!storageManager || !storageManager->isReady()) {
-        Serial.println("Storage not available");
+        LOG_ERROR("Storage not available for stats");
         return stats;
     }
     
-    if (!rtcManager || !rtcManager->isInitialized()) {
-        Serial.println("RTC not available");
+    if (!rtcManager || !rtcManager->isReady()) {
+        LOG_ERROR("RTC not available for stats");
         return stats;
     }
     
@@ -71,14 +82,19 @@ TemperatureStats DataService::calculateStats(int hoursBack) {
     time_t currentTime = rtcManager->getEpochTime();
     time_t cutoffTime = currentTime - (hoursBack * 3600);
     
-    // ✅ Get parsed readings from StorageManager (StorageManager does ALL parsing)
+    LOG_DEBUG("Calculating stats for last %d hours (since %ld)", hoursBack, cutoffTime);
+
     std::vector<SensorReading> readings;
     if (!storageManager->getReadingsSince(cutoffTime, readings)) {
-        Serial.println("Failed to retrieve readings");
+        LOG_ERROR("Failed to retrieve readings for stats");
         return stats;
     }
-    
-    // ✅ Just do calculations on the parsed data
+
+    if (readings.empty()) {
+        LOG_WARN("No readings found in last %d hours", hoursBack);
+        return stats;
+    }
+
     return calculateStatsFromReadings(readings);
 }
 
@@ -105,41 +121,96 @@ std::vector<SensorReading> DataService::getRecentReadings(int count) {
 }
 
 bool DataService::isReadingValid(const SensorReading& reading) {
-    return reading.isValid;
+    if(!reading.isValid){
+        LOG_DEBUG("Reading marked as invalid");
+        return false;
+    }
+    
+    // Validate temperature range (-40 to 85°C for BME280)
+    if (reading.temperature < -40.0f || reading.temperature > 85.0f) {
+        LOG_WARN("Temperature out of range: %.1f°C", reading.temperature);
+        return false;
+    }
+
+    // Validate humidity range (0-100%)
+    if (reading.humidity < 0.0f || reading.humidity > 100.0f) {
+        LOG_WARN("Humidity out of range: %.1f%%", reading.humidity);
+        return false;
+    }
+
+    // Validate pressure range (300-1100 hPa)
+    if (reading.pressure < 300.0f || reading.pressure > 1100.0f) {
+        LOG_WARN("Pressure out of range: %.1fhPa", reading.pressure);
+        return false;
+    }
+
+    // Validate timestamp (must be reasonable)
+    if (reading.timestamp < RTCManager::MIN_VALID_TIME) {
+                LOG_WARN("Invalid timestamp: %ld (min: %ld)", 
+                 (long)reading.timestamp, 
+                 (long)RTCManager::MIN_VALID_TIME);
+        return false;
+    }
+
+    return true;
 }
 
+///
 bool DataService::isDataStale() const {
-    if (!hasValidData) {
+    if (!_hasValidData) {
         return true;
     }
     
-    // Consider data stale if it's older than 5 minutes
-    const unsigned long STALE_THRESHOLD_MS = 5 * 60 * 1000;
-    return (millis() - lastReading.timestamp) > STALE_THRESHOLD_MS;
+
+    if (!rtcManager || !rtcManager->isReady()) {
+        return true;
+    }
+
+    time_t currentTime = rtcManager->getEpochTime();
+    time_t readingAge = currentTime - _lastReading.timestamp;
+
+    // Consider stale if older than 5 minutes
+    const time_t STALE_THRESHOLD_SECONDS = 5 * 60;
+    return readingAge > STALE_THRESHOLD_SECONDS;
 }
 
 unsigned long DataService::getTimeSinceLastReading() const {
-    if (!hasValidData) {
-        return 0;
+    if (!_hasValidData) {
+        return 0; // No Reading Available
     }
     
-    return millis() - lastReading.timestamp;
+    if(!rtcManager || !rtcManager->isReady()){
+        return 0;
+    }
+
+    time_t currentTime = rtcManager->getEpochTime();
+
+    if(currentTime < _lastReading.timestamp){
+        LOG_WARN("Current Time is smaller than reading timestamp!");
+        return 0;
+    }
+    // Convert to millis
+    return (currentTime - _lastReading.timestamp) * 1000UL;
 }
 
-// ✅ Private helper method - only does calculations, no parsing
+// Private helper method - only does calculations, no parsing
 TemperatureStats DataService::calculateStatsFromReadings(const std::vector<SensorReading>& readings) {
     TemperatureStats stats; // isValid = false by default
     
     if (readings.empty()) {
-        Serial.println("No readings available for stats calculation");
+        LOG_DEBUG("Empty readings vector for stats");
         return stats;
     }
-    
-    float tempSum = 0.0;
+
+    // Initialize with first reading
     stats.min = readings[0].temperature;
     stats.max = readings[0].temperature;
-    
+    float tempSum = 0.0;
+
+    // Calculate min, max, and sum
     for (const auto& reading : readings) {
+        if (!reading.isValid) continue; // Skip invalid readings
+
         if (reading.temperature < stats.min) {
             stats.min = reading.temperature;
         }
@@ -148,13 +219,14 @@ TemperatureStats DataService::calculateStatsFromReadings(const std::vector<Senso
         }
         tempSum += reading.temperature;
     }
-    
+
+    // Calculate average
     stats.average = tempSum / readings.size();
     stats.sampleCount = readings.size();
     stats.isValid = true;
-    
-    Serial.printf("Calculated stats: Min=%.1f, Max=%.1f, Avg=%.1f, Count=%d\n",
-                  stats.min, stats.max, stats.average, stats.sampleCount);
-    
+
+    LOG_INFO("Stats calculated: Min=%.1f, Max=%.1f, Avg=%.1f, Samples=%d",
+             stats.min, stats.max, stats.average, stats.sampleCount);
+
     return stats;
 }

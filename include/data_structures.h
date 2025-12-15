@@ -20,7 +20,7 @@ struct SensorReading {
     float temperature;
     float humidity;
     float pressure;
-    time_t timestamp;
+    time_t timestamp; // Seconds since Epoch
     bool isValid;
     
     // Default Constructor

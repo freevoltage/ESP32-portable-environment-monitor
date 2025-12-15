@@ -31,14 +31,18 @@ public:
     bool getReadingsSince(time_t timestamp, std::vector<SensorReading> &readings, uint16_t maxCount = 1000);
 
     /* File operations */
+    bool createFile(const String &filename); // TODO Implement me
     bool fileExists(const String &filename);
     uint32_t getFileSize(const String &filename);
     bool deleteFile(const String &filename);
-    bool resetFile();
+    bool resetFile(); // Remove from File (Delete and Recreate)
 
     /* Utility Methods */
     // Tests the connection to the SD card by trying to open and close the root directory
     bool testConnection();
+    bool testSDCardHealth(); // Creates and Deletes a File
+
+    // TODO Implement getFreeSpace or throw away
     uint32_t getFreeSpace(); // NOTE: SD Library doesn't provide free space function. So this function is not implemented
     uint32_t getUsedSpace();
     // Remove reading older than 30 days.
@@ -49,6 +53,8 @@ public:
     void listFiles();
     // Read the entire file into the buffer
     bool readFile(const String &filename, String &buff, size_t maxSize);
+
+    uint16_t estimateLineCount(); // TODO Move to private later
 
 private:
     uint8_t _cs;
@@ -72,7 +78,6 @@ private:
     // Memory safety helpers
     size_t estimateMemoryNeeded(uint16_t maxCount);
     bool hasEnoughMemory(uint16_t maxCount);
-    uint16_t estimateLineCount();
 };
 
 // TODO The MAXCOUNT Variable should be a class variable initialized by the constructor. 

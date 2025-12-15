@@ -18,6 +18,7 @@ public:
     bool isReady();
     
     // Take a complete sensor reading with timestamp
+    SensorReading getReading(time_t timestamp); //! TODO Update Test 
     SensorReading getReading();
     
     // Get individual readings

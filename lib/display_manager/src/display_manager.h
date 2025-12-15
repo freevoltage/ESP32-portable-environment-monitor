@@ -8,10 +8,11 @@
 class DisplayManager {
 public:
     DisplayManager();
+    DisplayManager(uint8_t tft_cs, uint8_t tft_dc, uint8_t tft_rst, uint8_t tft_lit);
     ~DisplayManager();
     
     // Initialize display
-    void begin(uint8_t tft_cs, uint8_t tft_dc, uint8_t tft_rst, uint8_t tft_lit);
+    bool begin();
     bool isReady();
 
     // Display Control
