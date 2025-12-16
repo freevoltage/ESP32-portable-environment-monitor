@@ -399,8 +399,6 @@ namespace test_data_service
         // LOG_INFO("RTC getTime() = %s", rtc->getTime());
         // LOG_INFO("RTC getEpochTime() = %lu", rtc->getEpochTime());
         
-        //! TODO THe testSDCardHealth does often fail! When I remove this test than the setUp call is successful
-        //! When I insert this test into the test_storage_manager. it also fails. So this test is the reason.
         TEST_ASSERT_TRUE(storage->testSDCardHealth()); 
 
         // Create DataService

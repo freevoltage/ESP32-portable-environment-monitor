@@ -143,6 +143,24 @@ void printRTCFormats(){
     }
 }
 
+
+// === Format Verification Test ===
+void test_format_outputs() {
+    rtcManager.begin();
+    time_t timeset = 1609459200;
+    rtcManager.setTime(timeset);
+
+    // Test all format methods
+    String formatted = rtcManager.getFormattedTime();
+    TEST_ASSERT_EQUAL_STRING(formatted.c_str(), "2021-01-01 00:00:00");
+    
+    String time = rtcManager.getTime();
+    TEST_ASSERT_EQUAL_STRING(time.c_str(), "00:00:00");
+    
+    time_t epoch = rtcManager.getEpochTime();
+    TEST_ASSERT_GREATER_OR_EQUAL(epoch, timeset);
+}
+
 namespace test_rtc{
 
     void setUp(void) {
@@ -179,9 +197,8 @@ namespace test_rtc{
         // Integration
         RUN_TEST(test_typical_usage_flow);
 
-        //printRTCFormats();
+        RUN_TEST(test_format_outputs);
 
-        LOG_INFO("Print RTC Formats directly from ESP32Time");
-        rtcManager.printRTCFormats();
+        TEST_CONTEXT.clearFixtures();
     }
 }

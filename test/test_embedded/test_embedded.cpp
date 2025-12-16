@@ -16,16 +16,15 @@ void tearDown() {
     TEST_CONTEXT.runTearDown();  // Dispatch to active namespace
 }
 
-
 void setup(){
     Serial.begin(115200);
     while(!Serial);
 
     UNITY_BEGIN();
-    test_storage::run_tests();
+    //test_storage::run_tests();
     //test_sensor::run_tests();
     //test_display::run_tests();
-    //test_rtc::run_tets();
+    test_rtc::run_tets();
     UNITY_END();
 }
 
