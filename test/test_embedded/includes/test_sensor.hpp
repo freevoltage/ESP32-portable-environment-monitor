@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <unity.h>
 #include "test_runner.h"
+#include <test_fixture.h>
 #include "sensor_manager.h"
 #include "data_structures.h"
 #include <logger.h>
@@ -55,10 +56,16 @@ void test_sensor_reset() {
 }
 
 namespace test_sensor {
+
+    void setUp(){}
+
+    void tearDown(){}
+
     void run_tests() {
         UnitySetTestFile(__FILE__);
 
         LOG_INFO("\n[RUN TEST] SENSOR:\n");
+        TEST_CONTEXT.setFixtures(setUp, tearDown);
 
         RUN_TEST(test_sensor_initialization);
         RUN_TEST(test_sensor_connection);
@@ -66,5 +73,7 @@ namespace test_sensor {
         RUN_TEST(test_sensor_complete_reading);
         RUN_TEST(test_sensor_altitude);
         RUN_TEST(test_sensor_reset);
+
+        TEST_CONTEXT.clearFixtures();
     }
 }

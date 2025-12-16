@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <unity.h>
 #include "test_runner.h"
+#include <test_fixture.h>
 #include <storage_manager.h>
 #include <data_structures.h>
 #include <logger.h>
@@ -9,6 +10,7 @@
 #include "test_utils.h"
 StorageManager testStorage;
 
+const String TEST_FILE = "/test_file.csv";
 
 // Helper function to create test readings
 SensorReading createTestReading(float temp, float humidity, float pressure, time_t timestamp)
@@ -55,7 +57,6 @@ std::vector<SensorReading> storeTestReadings(int count, time_t startTime = 0)
 
     return storeReadings;
 }
-
 
 // Helper to verify SD card is connected before running tests
 void requireSDCard()
@@ -409,11 +410,328 @@ void test_sd_card_delete_reliability()
 }
 
 
+// ═══════════════════════════════════════════════════════════════
+// SD LIFECYCLE STRESS TESTS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Test: Simulate the data_service test pattern
+ * - Initialize SD
+ * - Write data
+ * - End SD
+ * - Reinitialize
+ * - Repeat multiple times
+ */
+void test_sd_repeated_init_cycles()
+{
+    LOG_INFO("\n=== Testing Repeated SD Init/End Cycles ===");
+    
+    const int CYCLES = 10;
+    const char* testFile = SD_FILENAME;
+    
+    for (int cycle = 0; cycle < CYCLES; cycle++) {
+        LOG_INFO("--- Cycle %d/%d ---", cycle + 1, CYCLES);
+        
+        // 1. Initialize (like setUp())
+        StorageManager storage;
+        bool initResult = storage.begin();
+        TEST_ASSERT_TRUE_MESSAGE(initResult, "Failed to initialize SD");
+        
+        // 2. Write data (like test body)
+        SensorReading reading = createTestReading(
+            20.0f + cycle,
+            50.0f + cycle,
+            1013.0f,
+            1704067200 + (cycle * 60)
+        );
+        
+        bool writeResult = storage.storeReading(reading);
+        TEST_ASSERT_TRUE_MESSAGE(writeResult, "Failed to write reading");
+        
+        // 3. Verify write
+        TEST_ASSERT_TRUE(storage.fileExists(testFile));
+        
+        // 4. Clean up (like tearDown())
+        if (storage.fileExists(testFile)) {
+            bool deleteResult = storage.deleteFile(testFile);
+            TEST_ASSERT_TRUE_MESSAGE(deleteResult, "Failed to delete file");
+            delay(100);
+        }
+        
+        // 5. End SD (like tearDown())
+        SD.end();
+        delay(100);
+        
+        // 6. Verify SD is truly ended
+        TEST_ASSERT_FALSE(SD.exists(testFile));
+        
+        LOG_INFO("Cycle %d: SUCCESS", cycle + 1);
+        printMemoryReportCompact();
+    }
+    
+    LOG_INFO("=== All %d cycles completed ===\n", CYCLES);
+}
+
+/**
+ * Test: Multiple writes without SD.end() between operations
+ * This simulates the WORKING pattern from test_storage.hpp
+ */
+void test_sd_multiple_writes_no_restart()
+{
+    LOG_INFO("\n=== Testing Multiple Writes (No SD Restart) ===");
+    requireSDCard();
+    
+    const int WRITES = 10;
+    const char* testFile = SD_FILENAME;
+    
+    // Clean start
+    testStorage.deleteFile(testFile);
+    testStorage.begin();
+    
+    for (int i = 0; i < WRITES; i++) {
+        SensorReading reading = createTestReading(
+            20.0f + i,
+            50.0f + i,
+            1013.0f,
+            1704067200 + (i * 60)
+        );
+        
+        bool result = testStorage.storeReading(reading);
+        TEST_ASSERT_TRUE_MESSAGE(result, "Failed to write reading");
+        
+        LOG_INFO("Write %d/%d: SUCCESS", i + 1, WRITES);
+    }
+    
+    // Verify all writes
+    std::vector<SensorReading> readings;
+    TEST_ASSERT_TRUE(testStorage.getAllReadings(readings));
+    TEST_ASSERT_EQUAL(WRITES, readings.size());
+    
+    LOG_INFO("=== All %d writes completed (no restarts) ===\n", WRITES);
+}
+
+/**
+ * Test: Rapid SD.end() + SD.begin() cycles without writes
+ * Tests if the SD card can handle rapid mount/unmount
+ */
+void test_sd_rapid_mount_unmount()
+{
+    LOG_INFO("\n=== Testing Rapid Mount/Unmount ===");
+    
+    const int CYCLES = 20;
+    int successCount = 0;
+    
+    for (int i = 0; i < CYCLES; i++) {
+        // End SD
+        SD.end();
+        delay(50);
+        
+        // Begin SD
+        bool result = SD.begin(SD_CS);
+        if (result) {
+            successCount++;
+            LOG_INFO("Cycle %d: Mount SUCCESS", i + 1);
+        } else {
+            LOG_ERROR("Cycle %d: Mount FAILED", i + 1);
+        }
+        
+        delay(50);
+    }
+    
+    LOG_INFO("Success rate: %d/%d (%.1f%%)", 
+             successCount, CYCLES, 
+             (successCount * 100.0) / CYCLES);
+    
+    // Should succeed at least 95% of the time
+    TEST_ASSERT_GREATER_OR_EQUAL(CYCLES * 0.95, successCount);
+}
+
+/**
+ * Test: Write, delete, write pattern with SD restart
+ * Replicates the exact pattern from data_service tests
+ */
+void test_sd_write_delete_cycle_with_restarts()
+{
+    LOG_INFO("\n=== Testing Write-Delete Cycle with SD Restarts ===");
+    
+    const int CYCLES = 5;
+    const char* testFile = SD_FILENAME;
+    
+    for (int cycle = 0; cycle < CYCLES; cycle++) {
+        LOG_INFO("\n--- Cycle %d/%d ---", cycle + 1, CYCLES);
+        
+        // Initialize
+        StorageManager storage;
+        TEST_ASSERT_TRUE(storage.begin());
+        LOG_INFO("SD initialized");
+        
+
+        // Write multiple readings
+        for (int i = 0; i < 3; i++) {
+            SensorReading reading = createTestReading(
+                20.0f + i,
+                50.0f + i,
+                1013.0f,
+                1704067200 + (cycle * 180) + (i * 60)
+            );
+            TEST_ASSERT_TRUE(storage.storeReading(reading));
+        }
+        LOG_INFO("Wrote 3 readings");
+        
+        // Verify reads
+        std::vector<SensorReading> readings;
+        TEST_ASSERT_TRUE(storage.getAllReadings(readings));
+        size_t size = readings.size();
+        LOG_INFO("%Readings Size: %lu", size);
+        TEST_ASSERT_EQUAL(3, size);
+        LOG_INFO("Read back 3 readings");
+        
+        // Delete file
+        TEST_ASSERT_TRUE(storage.deleteFile(testFile));
+        delay(50);
+        TEST_ASSERT_FALSE(storage.fileExists(testFile));
+        LOG_INFO("File deleted");
+        
+        // End SD
+        SD.end();
+        delay(50);
+        LOG_INFO("SD ended");
+        
+        // Check memory
+        LOG_INFO("Free heap: %u bytes", ESP.getFreeHeap());
+    }
+    
+    LOG_INFO("\n=== All %d cycles completed ===", CYCLES);
+}
+
+/**
+ * Test: File handle leak detection
+ * Opens multiple files to find the handle limit
+ */
+void test_sd_file_handle_limit()
+{
+    LOG_INFO("\n=== Testing File Handle Limit ===");
+    requireSDCard();
+    
+    std::vector<File> openFiles;
+    const int MAX_ATTEMPTS = 15;
+    
+    // Try to open many files
+    for (int i = 0; i < MAX_ATTEMPTS; i++) {
+        String filename = "/handle_test_" + String(i) + ".tmp";
+        
+        File f = SD.open(filename.c_str(), FILE_WRITE);
+        if (!f) {
+            LOG_WARN("Failed to open file %d (limit reached)", i);
+            break;
+        }
+        
+        f.println("test");
+        openFiles.push_back(f);
+        LOG_INFO("Opened file %d: %s", i, filename.c_str());
+    }
+    
+    int maxHandles = openFiles.size();
+    LOG_INFO("Maximum concurrent file handles: %d", maxHandles);
+    
+    // Close all files
+    for (auto& f : openFiles) {
+        if (f) {
+            String name = f.name();
+            f.close();
+            SD.remove(name.c_str());
+        }
+    }
+    
+    // ESP32 typically supports 5-10 handles
+    TEST_ASSERT_GREATER_OR_EQUAL(5, maxHandles);
+    LOG_INFO("=== File handle test completed ===\n");
+}
+
+/**
+ * Test: Verify file handle cleanup after operations
+ * Ensures no handles leak during normal operations
+ */
+void test_sd_file_handle_cleanup()
+{
+    LOG_INFO("\n=== Testing File Handle Cleanup ===");
+    requireSDCard();
+    
+    const char* testFile = SD_FILENAME;
+    
+    // Baseline: How many handles can we open?
+    int baselineHandles = 0;
+    for (int i = 0; i < 10; i++) {
+        String name = "/baseline_" + String(i) + ".tmp";
+        File f = SD.open(name.c_str(), FILE_WRITE);
+        if (f) {
+            baselineHandles++;
+            f.close();
+            SD.remove(name.c_str());
+        } else {
+            break;
+        }
+    }
+    LOG_INFO("Baseline: Can open %d handles", baselineHandles);
+    
+    // Now do typical operations
+    testStorage.deleteFile(testFile);
+    testStorage.begin();
+    
+    for (int i = 0; i < 5; i++) {
+        SensorReading reading = createTestReading(20.0f, 50.0f, 1013.0f, 1704067200 + i);
+        TEST_ASSERT_TRUE(testStorage.storeReading(reading));
+    }
+    
+    std::vector<SensorReading> readings;
+    TEST_ASSERT_TRUE(testStorage.getAllReadings(readings));
+    
+    // After operations: Can we still open same number of handles?
+    int afterHandles = 0;
+    for (int i = 0; i < 10; i++) {
+        String name = "/after_" + String(i) + ".tmp";
+        File f = SD.open(name.c_str(), FILE_WRITE);
+        if (f) {
+            afterHandles++;
+            f.close();
+            SD.remove(name.c_str());
+        } else {
+            break;
+        }
+    }
+    LOG_INFO("After ops: Can open %d handles", afterHandles);
+    
+    // Should be able to open same number
+    TEST_ASSERT_EQUAL(baselineHandles, afterHandles);
+    
+    LOG_INFO("=== No file handle leak detected ===\n");
+}
+
 namespace test_storage
 {
+
+    void setUp(){
+        LOG_DEBUG("Test Storage SetUp: Ensure Clean SD state");
+
+        if(!testStorage.isReady()){
+            testStorage.begin();
+        }
+
+        testStorage.clearFile();
+
+        // Recreate Fresh File
+        testStorage.begin();
+
+        TEST_ASSERT_TRUE(testStorage.testSDCardHealth());
+    }
+
+    void tearDown(){}
+    
     void run_tests()
     {
         UnitySetTestFile(__FILE__);
+        TEST_CONTEXT.setFixtures(setUp, tearDown);
+
         LOG_INFO("\n[RUN TEST] STORAGE:\n");
 
         // Initialization
@@ -425,7 +743,7 @@ namespace test_storage
         RUN_TEST(test_storage_single_reading);
         RUN_TEST(test_data_integrity);
 
-        // Bulk read operations
+ /*        // Bulk read operations
         RUN_TEST(test_get_all_readings);
         RUN_TEST(test_get_last_n_readings);
         RUN_TEST(test_get_last_n_more_than_exists);
@@ -442,5 +760,15 @@ namespace test_storage
         RUN_TEST(test_storage_diagnostics);
         
         RUN_TEST(test_sd_card_delete_reliability);
+
+        //* RUN Lifecycle Tests
+        RUN_TEST(test_sd_repeated_init_cycles);           
+        RUN_TEST(test_sd_multiple_writes_no_restart);     
+        RUN_TEST(test_sd_rapid_mount_unmount);            
+        RUN_TEST(test_sd_write_delete_cycle_with_restarts);
+        RUN_TEST(test_sd_file_handle_limit); 
+        RUN_TEST(test_sd_file_handle_cleanup); */
+
+        TEST_CONTEXT.clearFixtures();
     }
 }

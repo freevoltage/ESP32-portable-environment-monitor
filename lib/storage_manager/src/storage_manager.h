@@ -13,8 +13,8 @@
 class StorageManager
 {
 public:
-    StorageManager(); // This uses the SD_CS definition in config.h
-    StorageManager(uint8_t csPin);
+    //StorageManager(); // This uses the SD_CS definition in config.h
+    StorageManager(const String& filename = SD_FILENAME, uint8_t csPin = SD_CS);
 
     // Core functionality
     bool begin();
@@ -29,31 +29,27 @@ public:
     bool getLastNReadings(std::vector<SensorReading> &readings, uint16_t maxCount = 10);
     // Returns the readings since the given timestamp, writes it to the given readings vector by overwriting all of its content.
     bool getReadingsSince(time_t timestamp, std::vector<SensorReading> &readings, uint16_t maxCount = 1000);
+    void cleanup(); // Remove reading older than 30 days.
 
     /* File operations */
-    bool createFile(const String &filename); // TODO Implement me
-    bool fileExists(const String &filename);
-    uint32_t getFileSize(const String &filename);
+    bool fileExists(const String &filename) const;
+    bool createFile(const String &filename);
     bool deleteFile(const String &filename);
-    bool resetFile(); // Remove from File (Delete and Recreate)
+    bool clearFile();
 
     /* Utility Methods */
-    // Tests the connection to the SD card by trying to open and close the root directory
     bool testConnection();
     bool testSDCardHealth(); // Creates and Deletes a File
 
-    // TODO Implement getFreeSpace or throw away
-    uint32_t getFreeSpace(); // NOTE: SD Library doesn't provide free space function. So this function is not implemented
-    uint32_t getUsedSpace();
-    // Remove reading older than 30 days.
-    void cleanup();
+    size_t getFileSize(const String &filename) const;
+    size_t getUsedSpace(); //TODO Update this function
 
     /* Diagnostic functions */
     void printCardInfo();
-    void listFiles();
+    void listFiles(); //! TODO IMPROVE THIS FUNCTION
+
     // Read the entire file into the buffer
     bool readFile(const String &filename, String &buff, size_t maxSize);
-
     uint16_t estimateLineCount(); // TODO Move to private later
 
 private:
@@ -69,15 +65,16 @@ private:
                          void *context);
 
     // Creates the CSV file header if not already present
-    bool createHeaderIfNeeded();
+    bool createHeaderIfNeeded(const String &filename);
     void listDirectory(const String &path, uint8_t levels = 1);
 
     // Parse a line from the SD card andmaxCount save it into a SensorReading struct.
     SensorReading parseReading(const String &line);
 
     // Memory safety helpers
-    size_t estimateMemoryNeeded(uint16_t maxCount);
-    bool hasEnoughMemory(uint16_t maxCount);
+    size_t estimateMemoryNeeded(uint16_t maxCount); 
+    bool checkMemoryAvailable(size_t requiredBytes); //! USE THIS FUNCTION INSTEAD OF BELOW FOR MEMORY CHECKING
+    bool hasEnoughMemory(uint16_t maxCount); //! TODO Remove this method
 };
 
 // TODO The MAXCOUNT Variable should be a class variable initialized by the constructor. 

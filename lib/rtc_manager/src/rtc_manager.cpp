@@ -13,8 +13,7 @@ bool RTCManager::begin() {
     
     // If no valid time is set, set a default time
     if (!isTimeSet()) {
-        // Set to Jan 1, 2024, 00:00:00 as default
-        _rtc.setTime(0, 0, 0, 1, 1, 2024);
+        _rtc.setTime(MIN_VALID_TIME);
     }
     LOG_INFO("RTC initialized successfully");
     return true;

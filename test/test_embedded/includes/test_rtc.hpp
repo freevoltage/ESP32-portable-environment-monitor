@@ -2,17 +2,9 @@
 #include <Arduino.h>
 #include "rtc_manager.h"
 #include <logger.h>
+#include <test_fixture.h>
 
 RTCManager rtcManager;
-
-void setUp(void) {
-    // Create fresh instance for each test
-    rtcManager = RTCManager();
-}
-
-void tearDown(void) {
-    // Clean up after each test
-}
 
 // === Basic Initialization Tests ===
 void test_initial_state() {
@@ -152,8 +144,19 @@ void printRTCFormats(){
 }
 
 namespace test_rtc{
+
+    void setUp(void) {
+        // Create fresh instance for each test
+        rtcManager = RTCManager();
+    }
+    
+    void tearDown(void) {
+        // Clean up after each test
+    }
+    
     void run_tets(){
         UnitySetTestFile(__FILE__);
+        TEST_CONTEXT.setFixtures(setUp, tearDown);
 
         LOG_INFO("\n[RUN TEST] RTC:\n");
 
