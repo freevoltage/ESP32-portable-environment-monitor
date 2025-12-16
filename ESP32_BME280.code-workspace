@@ -3,10 +3,6 @@
 		{
 			"name": "ESP32_BME280",
 			"path": "."
-		},
-		{
-			"name": "AdafruitFeatherESP32C6_ESP_IDF",
-			"path": "../AdafruitFeatherESP32C6_ESP_IDF"
 		}
 	],
 	"settings": {

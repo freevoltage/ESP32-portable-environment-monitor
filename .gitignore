@@ -5,3 +5,7 @@
 .vscode/ipch
 sdkconifg.*
 .DS_Store
+
+*.code-workspace
+.venv
+.vscode
