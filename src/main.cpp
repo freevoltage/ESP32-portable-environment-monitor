@@ -110,9 +110,8 @@ void setup() {
     Serial.printf("Going to deep sleep for %d seconds...\n", TIME_TO_SLEEP);
     Serial.flush();
     
-    //digitalWrite(LED_BUILTIN, LOW); // Would be LOW anyway, because the peripheral shuts down
     display.disconnect();
-    //esp_deep_sleep_start();
+    esp_deep_sleep_start();
 }
 
 void loop() {
