@@ -21,6 +21,12 @@
 #define uS_TO_S_FACTOR 1000000ULL
 #define TIME_TO_SLEEP  5  // Sleep duration in seconds
 
+// User Button
+#define BOOT_BUTTON_PIN 9  // GPIO9 = BOOT button on ESP32-C6
+
+// Sensor Read Interval
+#define SENSOR_REFRESH_INTERVAL 5000  // Milliseconds between sensor reads
+
 // WiFi Configuration
 #define WIFI_SSID "TP-Link_0B73"
 #define WIFI_PASSWORD "63392418"
