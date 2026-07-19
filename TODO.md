@@ -9,7 +9,7 @@
 
 
 - [x] Also I want to implement and test the wifi manager. It should conntect to my wifi. 
-- [] Then The Connetivtiy Service should be implemented and tested. The connectivity Service ensures that the RTC has the correct time stamp  and does:
+- [x] Then The Connetivtiy Service should be implemented and tested. The connectivity Service ensures that the RTC has the correct time stamp  and does:
 - ConnectivityService
 • ensureTimeSync
 • syncTimeIfNeeded
