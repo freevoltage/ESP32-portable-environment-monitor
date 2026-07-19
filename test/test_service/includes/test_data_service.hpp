@@ -79,7 +79,7 @@ namespace test_data_service
         File testFile = SD.open(SD_FILENAME, FILE_READ);
         if (testFile)
         {
-            LOG_INFO("File size: %lu bytes. Estimated lines: %u", testFile.size()), storage->estimateLineCount();
+            LOG_INFO("File size: %lu bytes. Estimated lines: %u", testFile.size(), storage->estimateLineCount());
             testFile.close();
         }
         else
