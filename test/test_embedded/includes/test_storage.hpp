@@ -717,10 +717,11 @@ namespace test_storage
             testStorage.begin();
         }
 
+        // clearFile() deletes /datalog.csv and reinitializes SD internally
         testStorage.clearFile();
 
-        // Recreate Fresh File
-        testStorage.begin();
+        // Let SD card settle after reinit before health check
+        delay(100);
 
         TEST_ASSERT_TRUE(testStorage.testSDCardHealth());
     }
