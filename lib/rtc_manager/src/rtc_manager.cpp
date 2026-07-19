@@ -9,13 +9,10 @@ RTCManager::RTCManager()
 bool RTCManager::begin() {
     LOG_INFO("RTCManager begin()");
     // ESP32Time doesn't have a begin() method, it's ready to use
-    // We'll just set a flag and maybe set a default time if needed
+    // Don't set a default time — let NTP set the real time.
+    // Setting MIN_VALID_TIME here would fool waitForTimeSync() into thinking
+    // NTP has synced when it hasn't (the time would already satisfy the year check).
     _initialized = true;
-    
-    // If no valid time is set, set a default time
-    if (!isTimeSet()) {
-        _rtc.setTime(MIN_VALID_TIME);
-    }
     LOG_INFO("RTC initialized successfully");
     return true;
 }
