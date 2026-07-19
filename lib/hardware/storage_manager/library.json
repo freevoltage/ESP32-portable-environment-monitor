@@ -1,5 +1,5 @@
 {
-    "name": "storage_manager_2",
+    "name": "storage_manager",
     "version": "1.0.0",
     "build": {
         "srcDir": "src",
