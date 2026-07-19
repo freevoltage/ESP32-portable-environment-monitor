@@ -10,7 +10,7 @@
 #define TFT_LIT 2  // Backlight pin
 
 // Backlight polarity: 1 = active-LOW (resistor LIT->GND mod), 0 = active-HIGH (default)
-#define TFT_BACKLIGHT_INVERTED 0
+#define TFT_BACKLIGHT_INVERTED 1
 
 
 // BME280
