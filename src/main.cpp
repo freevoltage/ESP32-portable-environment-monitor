@@ -56,6 +56,10 @@ void setup() {
     Serial.print("Current time: ");
     Serial.println(rtc.getFormattedTime());
     
+    // Initialize SD card first (before display to avoid SPI bus conflict)
+    digitalWrite(TFT_CS, HIGH);  // Ensure display CS is deselected
+    storage.begin();
+    
     // Initialize display
     display.begin();
     
@@ -63,9 +67,6 @@ void setup() {
     if (!sensor.begin()) {
         display.showError("BME280 sensor not found!");
     }
-    
-    // Initialize SD card
-    storage.begin();
     
     // DEBUG List Files of Storage
     storage.listFiles();
