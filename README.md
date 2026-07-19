@@ -1,7 +1,3 @@
-
-
-
-
 ## Realizations
 
 - GPIO9 is a digital I/O pin. By default, this pin has an internal weak pull-up resistor (WPU) enabled, both at reset and after reset.
