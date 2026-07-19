@@ -5,6 +5,7 @@
 #include <display_manager.h>
 #include <storage_manager.h>
 #include <wifi_manager.h>
+#include <connectivity_service.h>
 #include <data_structures.h>
 
 // RTC memory for boot counter
@@ -16,6 +17,7 @@ SensorManager sensor;
 DisplayManager display;
 StorageManager storage;
 WiFiManager wifiMgr;
+ConnectivityService connectivity(&wifiMgr, &rtc);
 
 void printWakeupReason() {
     // TODO This should be very likely also moved into some module. I think of an sleep_module
@@ -51,7 +53,9 @@ void setup() {
     Serial.println("================================");
     
     printWakeupReason();
-    //syncTime();
+
+    // Sync time via WiFi/NTP
+    connectivity.ensureTimeSync();
 
     Serial.print("Current time: ");
     Serial.println(rtc.getFormattedTime());

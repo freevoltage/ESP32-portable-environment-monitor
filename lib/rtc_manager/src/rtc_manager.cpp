@@ -1,3 +1,4 @@
+#ifndef MOCK
 #include "rtc_manager.h"
 #include <logger.h>
 
@@ -158,3 +159,5 @@ void RTCManager::printRTCFormats()
     
     LOG_INFO("=========================");
 }
+
+#endif // !MOCK

@@ -7,7 +7,7 @@
 #define TFT_CS  5
 #define TFT_RST 6
 #define TFT_DC  7
-#define TFT_LIT 2
+#define TFT_LIT 2  // Backlight: active-LOW (resistor from LIT to GND mod)
 
 
 // BME280

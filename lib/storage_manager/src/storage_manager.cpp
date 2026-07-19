@@ -1,4 +1,5 @@
 // storage.cpp
+#ifndef MOCK
 #include "storage_manager.h"
 #include <logger.h>
 
@@ -930,3 +931,5 @@ bool neverStop(const std::vector<SensorReading> &readings, void *context)
     LOG_DEBUG("");
     return false; // Keep going until end of file
 }
+
+#endif // !MOCK

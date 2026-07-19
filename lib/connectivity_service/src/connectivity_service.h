@@ -1,6 +1,15 @@
 #pragma once
-#include "../hardware/wifi_manager.h"
-#include "../hardware/rtc_manager.h"
+#ifdef MOCK
+    #include <ctime>
+    unsigned long millis();
+    void delay(unsigned long ms);
+    void pinMode(int pin, int mode);
+    void digitalWrite(int pin, int value);
+#else
+    #include <Arduino.h>
+#endif
+#include "wifi_manager.h"
+#include "rtc_manager.h"
 #include "data_structures.h"
 
 class ConnectivityService{

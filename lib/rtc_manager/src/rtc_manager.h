@@ -1,7 +1,13 @@
 // rtc_manager.h
 #pragma once
-#include <Arduino.h>
-#include <ESP32Time.h>
+#ifdef MOCK
+    #include <string>
+    #include <ctime>
+    typedef std::string String;
+#else
+    #include <Arduino.h>
+    #include <ESP32Time.h>
+#endif
 
 class RTCManager {
 public:
@@ -31,7 +37,9 @@ public:
     static constexpr time_t MIN_VALID_TIME = 1609459200; // 2021-01-01 00:00:00
 
 private:
+#ifndef MOCK
     ESP32Time _rtc;
+#endif
     time_t _lastSyncTime;
     bool _initialized;
 };

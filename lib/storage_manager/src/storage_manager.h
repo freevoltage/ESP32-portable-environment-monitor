@@ -4,6 +4,10 @@
 #include <Arduino.h>
 #include <SD.h>
 #include <SPI.h>
+#else
+    #include <string>
+    #include <vector>
+    typedef std::string String;
 #endif
 #include <config.h>
 #include <data_structures.h>

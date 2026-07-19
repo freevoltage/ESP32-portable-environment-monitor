@@ -1,3 +1,4 @@
+#ifndef MOCK
 #include "wifi_manager.h"
 #include <time.h>
 #include <logger.h>
@@ -114,3 +115,5 @@ bool WiFiManager::waitForTimeSync(int maxRetries) {
     
     return false;
 }
+
+#endif // !MOCK

@@ -1,5 +1,6 @@
 #pragma once
 #include "data_structures.h"
+#include <vector>
 
 void assertReadingsEqual(const SensorReading &expected, const SensorReading &actual);
 void assertFloatsEqual(float float1, float float2);

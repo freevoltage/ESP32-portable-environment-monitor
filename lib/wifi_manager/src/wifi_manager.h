@@ -1,6 +1,11 @@
 #pragma once
-#include <Arduino.h>
-#include <WiFi.h>
+#ifdef MOCK
+    #include <string>
+    typedef std::string String;
+#else
+    #include <Arduino.h>
+    #include <WiFi.h>
+#endif
 
 class WiFiManager {
 public:

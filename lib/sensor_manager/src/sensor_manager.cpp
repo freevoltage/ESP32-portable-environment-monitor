@@ -1,3 +1,4 @@
+#ifndef MOCK
 #include "sensor_manager.h"
 #include <config.h>
 #include <Adafruit_BME280.h>
@@ -135,3 +136,5 @@ void SensorManager::printReading(const SensorReading &reading) {
     LOG_INFO("Pressure: %.2f hPa\n", reading.pressure);
     LOG_INFO("=====================\n");
 }
+
+#endif // !MOCK

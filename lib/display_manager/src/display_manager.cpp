@@ -24,8 +24,7 @@ DisplayManager::DisplayManager() :
     //pinMode(_dc, OUTPUT);
     //pinMode(_rst, OUTPUT);
     pinMode(_lit, OUTPUT);
-
-    digitalWrite(_lit, LOW);
+    digitalWrite(_lit, HIGH); // Backlight OFF (inverted: resistor to GND)
 }
 
 DisplayManager::DisplayManager(uint8_t tft_cs, uint8_t tft_dc, uint8_t tft_rst, uint8_t tft_lit) : 
@@ -40,12 +39,8 @@ DisplayManager::DisplayManager(uint8_t tft_cs, uint8_t tft_dc, uint8_t tft_rst, 
     pinMode(_cs, OUTPUT);
     digitalWrite(_cs, HIGH);
 
-    //pinMode(_cs, OUTPUT);
-    //pinMode(_dc, OUTPUT);
-    //pinMode(_rst, OUTPUT);
-
     pinMode(_lit, OUTPUT);
-    digitalWrite(_lit, LOW);
+    digitalWrite(_lit, HIGH); // Backlight OFF (inverted: resistor to GND)
 }
 
 DisplayManager::~DisplayManager()
@@ -75,7 +70,7 @@ bool DisplayManager::begin()
     _tft->setRotation(3);
     clear();
 
-    digitalWrite(_lit, HIGH);
+    digitalWrite(_lit, LOW); // Backlight ON (inverted: LOW = on)
     _initialized = true;
     _isOn = true;
     LOG_INFO("Display initialized");
@@ -103,11 +98,11 @@ void DisplayManager::disconnect()
     _tft->enableSleep(true);
     delay(120);
 
-    // Turn off Backlight
-    digitalWrite(_lit, LOW);
+    // Turn off Backlight (inverted: HIGH = off)
+    digitalWrite(_lit, HIGH);
 
     delay(120);
-    digitalWrite(TFT_LIT, LOW);
+    digitalWrite(TFT_LIT, HIGH);
 
     // Note: Don't call SPI.end() to keep the bus available for the SD card
     _initialized = false;
@@ -127,8 +122,8 @@ void DisplayManager::reconnect()
     delay(120);
     _tft->enableSleep(false); // Display ON
 
-    // Turn on backlight
-    digitalWrite(_lit, HIGH);
+    // Turn on backlight (inverted: LOW = on)
+    digitalWrite(_lit, LOW);
 
     _initialized = true;
     _isOn = true;
@@ -334,8 +329,8 @@ bool DisplayManager::testConnection()
 
 void DisplayManager::setBrightness(uint8_t brightness)
 {
-    // Use PWM to control backlight brightness (0-255)
-    analogWrite(TFT_LIT, brightness);
+    // Use PWM to control backlight brightness (0-255, inverted: 0=full, 255=off)
+    analogWrite(TFT_LIT, 255 - brightness);
 }
 
 void DisplayManager::drawHeader(const char *title)
