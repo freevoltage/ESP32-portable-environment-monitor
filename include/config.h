@@ -12,6 +12,9 @@
 // Backlight polarity: 1 = active-LOW (resistor LIT->GND mod), 0 = active-HIGH (default)
 #define TFT_BACKLIGHT_INVERTED 1
 
+// Display rotation: 0=portrait, 1=landscape, 2=portrait flipped, 3=landscape flipped
+#define TFT_ROTATION 3
+
 
 // BME280
 //#define BME280_ADDRESS 0x77

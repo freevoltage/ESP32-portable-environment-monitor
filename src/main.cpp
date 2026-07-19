@@ -65,6 +65,9 @@ void setup() {
 
     printWakeupReason();
 
+    // Initialize RTC
+    rtc.begin();
+
     // Sync time via WiFi/NTP
     connectivity.ensureTimeSync();
 

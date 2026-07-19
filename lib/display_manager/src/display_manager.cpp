@@ -72,7 +72,7 @@ bool DisplayManager::begin()
     }
 
     _tft->init(240, 240);
-    _tft->setRotation(3);
+    _tft->setRotation(TFT_ROTATION);
     clear();
 
     digitalWrite(_lit, BL_ON);
