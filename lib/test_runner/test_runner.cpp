@@ -74,9 +74,8 @@ void MyCustomTestRunner(UnityTestFunction Func, const char* FuncName, const int 
     // (If passed, Unity.NumberOfTests already accounts for it)
 
     // Print the PlatformIO-friendly result line.
-    // We hardcode the file path as it's for this specific test file.
-    // TODO Use a proper file Path instead of a hardcoded string!
-    Serial.print("test/test_embedded/test_embedded.cpp:");
+    // File path is set per test suite via UnitySetTestFile(__FILE__).
+    Serial.print(Unity.TestFile ? Unity.TestFile : "unknown");
     Serial.print(test_output_line_num); // Line number where assertion failed or test defined
     Serial.print(":");
     Serial.print(test_output_name);     // Name of the test function

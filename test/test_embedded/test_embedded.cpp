@@ -21,9 +21,9 @@ void setup(){
     while(!Serial);
 
     UNITY_BEGIN();
-    //test_storage::run_tests();
-    //test_sensor::run_tests();
-    //test_display::run_tests();
+    test_storage::run_tests();
+    test_sensor::run_tests();
+    test_display::run_tests();
     test_rtc::run_tets();
     UNITY_END();
 }

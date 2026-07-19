@@ -27,7 +27,7 @@ void setup(){
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, HIGH);
 
-    display.begin(TFT_CS, TFT_DC, TFT_RST, TFT_LIT);
+    display.begin();
 }
 
 void loop(){

@@ -57,7 +57,7 @@ void setup() {
     Serial.println(rtc.getFormattedTime());
     
     // Initialize display
-    display.begin(TFT_CS, TFT_DC, TFT_RST, TFT_LIT);
+    display.begin();
     
     // Initialize sensor
     if (!sensor.begin()) {
