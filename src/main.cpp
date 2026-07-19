@@ -7,6 +7,7 @@
 #include <wifi_manager.h>
 #include <connectivity_service.h>
 #include <display_service.h>
+#include <data_service.h>
 #include <data_structures.h>
 
 // RTC memory for boot counter
@@ -20,6 +21,7 @@ StorageManager storage;
 WiFiManager wifiMgr;
 ConnectivityService connectivity(&wifiMgr, &rtc);
 DisplayService displayService(&display, &rtc, &connectivity);
+DataService dataService(&sensor, &storage, &rtc);
 
 // Timing for sensor refresh
 unsigned long lastSensorRead = 0;
@@ -90,11 +92,21 @@ void setup() {
     displayService.showStartupScreen();
     delay(2000);
 
-    // Take first sensor reading
-    SensorReading reading = sensor.getReading();
-    if (reading.isValid) {
+#ifdef DEBUG
+    // Debug: list SD card files and read datalog
+    storage.listFiles();
+    String buffer;
+    if (storage.readFile("/datalog.csv", buffer, DEFAULT_MAX_SIZE)) {
+        Serial.println("File Content");
+        Serial.println(buffer);
+    }
+#endif
+
+    // Take first sensor reading via DataService
+    if (dataService.collectCurrentReading()) {
+        SensorReading reading = dataService.getCurrentReading();
         displayService.showCurrentReading(reading, rtc.getFormattedTime());
-        storage.storeReading(reading);
+        dataService.storeCurrentReading();
     }
 
     lastSensorRead = millis();
@@ -118,10 +130,12 @@ void loop() {
     // Check if it's time for a new sensor reading
     unsigned long now = millis();
     if (now - lastSensorRead >= SENSOR_REFRESH_INTERVAL) {
-        SensorReading reading = sensor.getReading();
-        if (reading.isValid && displayService.needsUpdate(reading)) {
-            displayService.showCurrentReading(reading, rtc.getFormattedTime());
-            storage.storeReading(reading);
+        if (dataService.collectCurrentReading()) {
+            SensorReading reading = dataService.getCurrentReading();
+            if (displayService.needsUpdate(reading)) {
+                displayService.showCurrentReading(reading, rtc.getFormattedTime());
+                dataService.storeCurrentReading();
+            }
         }
         lastSensorRead = now;
     }

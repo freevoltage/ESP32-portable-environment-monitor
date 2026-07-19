@@ -1,5 +1,8 @@
 #pragma once
 
+// Debug mode: uncomment to enable debug output (SD card file listing, etc.)
+// #define DEBUG
+
 // SD Card
 #define SD_CS     0
 
@@ -13,7 +16,7 @@
 #define TFT_BACKLIGHT_INVERTED 1
 
 // Display rotation: 0=portrait, 1=landscape, 2=portrait flipped, 3=landscape flipped
-#define TFT_ROTATION 3
+#define TFT_ROTATION 2
 
 
 // BME280
