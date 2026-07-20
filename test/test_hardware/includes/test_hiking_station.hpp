@@ -16,11 +16,13 @@
 #include "test_utils.h"
 
 // ── Hardware instances ────────────────────────────────────────────────
+// testSensor, testDisplay, testStorage are defined in test_sensor.hpp,
+// test_display.hpp, test_storage.hpp (included before this file).
 WiFiManager testWifi;
 RTCManager testRtc;
-SensorManager testSensor;
-DisplayManager testDisplay;
-StorageManager testStorage;
+extern SensorManager testSensor;
+extern DisplayManager testDisplay;
+extern StorageManager testStorage;
 DisplayService* testDisplayService = nullptr;
 
 // ── Helpers ───────────────────────────────────────────────────────────

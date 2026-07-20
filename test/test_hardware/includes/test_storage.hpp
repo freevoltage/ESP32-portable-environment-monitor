@@ -97,7 +97,7 @@ void test_storage_file_operations()
     TEST_ASSERT_FALSE_MESSAGE(result, "Test file should not exist initially");
 
     // Main data file should exist after initialization
-    result = testStorage.fileExists(SD_FILENAME);
+    result = testStorage.fileExists(DATALOG_FILENAME);
     TEST_ASSERT_TRUE_MESSAGE(result, "Data log file should exist after initialization");
 }
 
@@ -118,7 +118,7 @@ void test_get_all_readings()
     requireSDCard();
 
     // Clear and store known test data
-    testStorage.deleteFile(SD_FILENAME);
+    testStorage.deleteFile(DATALOG_FILENAME);
     testStorage.begin(); // Recreate file
 
     uint16_t testFileSize = 5;
@@ -146,7 +146,7 @@ void test_get_last_n_readings()
 
     // Store 5 readings
     uint16_t dataCount = 5;
-    testStorage.deleteFile(SD_FILENAME);
+    testStorage.deleteFile(DATALOG_FILENAME);
     testStorage.begin();
 
     std::vector<SensorReading> expected = storeTestReadings(dataCount, 1704067200);
@@ -174,7 +174,7 @@ void test_get_last_n_more_than_exists()
     requireSDCard();
 
     // Store only 5 readings
-    testStorage.deleteFile(SD_FILENAME);
+    testStorage.deleteFile(DATALOG_FILENAME);
     testStorage.begin();
     storeTestReadings(5);
 
@@ -201,7 +201,7 @@ void test_get_readings_since_timestamp()
 {
     requireSDCard();
 
-    testStorage.deleteFile(SD_FILENAME);
+    testStorage.deleteFile(DATALOG_FILENAME);
     testStorage.begin();
 
     time_t baseTime = 1704067200;    // 2024-01-01 00:00:00
@@ -228,7 +228,7 @@ void test_get_readings_since_with_max_count()
 {
     requireSDCard();
 
-    testStorage.deleteFile(SD_FILENAME);
+    testStorage.deleteFile(DATALOG_FILENAME);
     testStorage.begin();
 
     time_t baseTime = 1704067200;
@@ -246,7 +246,7 @@ void test_get_readings_since_no_matches()
 {
     requireSDCard();
 
-    testStorage.deleteFile(SD_FILENAME);
+    testStorage.deleteFile(DATALOG_FILENAME);
     testStorage.begin();
 
     time_t baseTime = 1704067200;
@@ -268,7 +268,7 @@ void test_get_readings_since_unlimited()
 {
     requireSDCard();
 
-    testStorage.deleteFile(SD_FILENAME);
+    testStorage.deleteFile(DATALOG_FILENAME);
     testStorage.begin();
 
     time_t baseTime = 1704067200;
@@ -311,7 +311,7 @@ void test_storage_diagnostics()
     TEST_ASSERT_TRUE_MESSAGE(usedSpace >= 0, "Used space should be non-negative");
 
     // Test file size
-    uint32_t fileSize = testStorage.getFileSize(SD_FILENAME);
+    uint32_t fileSize = testStorage.getFileSize(DATALOG_FILENAME);
     TEST_ASSERT_TRUE_MESSAGE(fileSize >= 0, "File size should be non-negative");
 }
 
@@ -320,7 +320,7 @@ void test_data_integrity()
     LOG_DEBUG("TEST DATA INTEGRITY");
     requireSDCard();
 
-    testStorage.deleteFile(SD_FILENAME);
+    testStorage.deleteFile(DATALOG_FILENAME);
     delay(100);
     testStorage.begin();
 
@@ -427,7 +427,7 @@ void test_sd_repeated_init_cycles()
     LOG_INFO("\n=== Testing Repeated SD Init/End Cycles ===");
     
     const int CYCLES = 10;
-    const char* testFile = SD_FILENAME;
+    const char* testFile = DATALOG_FILENAME;
     
     for (int cycle = 0; cycle < CYCLES; cycle++) {
         LOG_INFO("--- Cycle %d/%d ---", cycle + 1, CYCLES);
@@ -482,7 +482,7 @@ void test_sd_multiple_writes_no_restart()
     requireSDCard();
     
     const int WRITES = 10;
-    const char* testFile = SD_FILENAME;
+    const char* testFile = DATALOG_FILENAME;
     
     // Clean start
     testStorage.deleteFile(testFile);
@@ -555,7 +555,7 @@ void test_sd_write_delete_cycle_with_restarts()
     LOG_INFO("\n=== Testing Write-Delete Cycle with SD Restarts ===");
     
     const int CYCLES = 5;
-    const char* testFile = SD_FILENAME;
+    const char* testFile = DATALOG_FILENAME;
     
     for (int cycle = 0; cycle < CYCLES; cycle++) {
         LOG_INFO("\n--- Cycle %d/%d ---", cycle + 1, CYCLES);
@@ -657,7 +657,7 @@ void test_sd_file_handle_cleanup()
     LOG_INFO("\n=== Testing File Handle Cleanup ===");
     requireSDCard();
     
-    const char* testFile = SD_FILENAME;
+    const char* testFile = DATALOG_FILENAME;
     
     // Baseline: How many handles can we open?
     int baselineHandles = 0;
