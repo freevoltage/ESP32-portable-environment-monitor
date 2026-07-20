@@ -7,6 +7,7 @@
 #include "test_sensor.hpp"
 #include "test_display.hpp"
 #include "test_rtc.hpp"
+#include "test_hiking_station.hpp"
 
 void setUp() {
     TEST_CONTEXT.runSetUp();  // Dispatch to active namespace
@@ -25,6 +26,7 @@ void setup(){
     test_sensor::run_tests();
     test_display::run_tests();
     test_rtc::run_tets();
+    test_hiking_station::run_tests();
     UNITY_END();
 }
 
