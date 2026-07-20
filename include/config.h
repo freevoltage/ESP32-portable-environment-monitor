@@ -27,11 +27,22 @@
 #define uS_TO_S_FACTOR 1000000ULL
 #define TIME_TO_SLEEP  5  // Sleep duration in seconds
 
-// User Button
-#define BOOT_BUTTON_PIN 9  // GPIO9 = BOOT button on ESP32-C6
+// Buttons
+#define NAV_BUTTON_PIN 9   // GPIO9 = BOOT button (Navigate)
+#define SEL_BUTTON_PIN 3   // GPIO3 = Select button
 
-// Sensor Read Interval
-#define SENSOR_REFRESH_INTERVAL 5000  // Milliseconds between sensor reads
+// Measurement Interval (for timer wake)
+#define MEASUREMENT_INTERVAL_SEC 1800  // 30 minutes
+
+// Graph Layout Constants
+#define GRAPH_PADDING    10
+#define GRAPH_WIDTH      (240 - 2 * GRAPH_PADDING)
+#define GRAPH_HEIGHT     (240 - 2 * GRAPH_PADDING)
+
+// Data Log
+#define DATALOG_FILENAME "/datalog.csv"
+#define COMFORT_FILENAME "/comfort.csv"
+#define DEFAULT_MAX_SIZE 1000
 
 // WiFi Configuration
 #define WIFI_SSID "TP-Link_0B73"
@@ -44,8 +55,3 @@
 
 // Time sync interval (sync once per day)
 #define TIME_SYNC_INTERVAL_HOURS 24
-
-
-#define DEFAULT_MAX_SIZE 1000
-
-#define SD_FILENAME "/datalog.csv"

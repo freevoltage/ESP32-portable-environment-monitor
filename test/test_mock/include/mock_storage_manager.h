@@ -4,6 +4,7 @@
 #include <algorithm>
 
 static std::vector<SensorReading> mockStorageVector;
+static std::vector<ComfortLog> mockComfortVector;
 static bool mockStorageInitialized = false;
 static bool mockStorageShouldFail = false;
 
@@ -76,6 +77,23 @@ void StorageManager::cleanup() {
     // No-op in mock
 }
 
+bool StorageManager::storeComfortLog(const ComfortLog &log) {
+    if (!isReady()) return false;
+    mockComfortVector.push_back(log);
+    return true;
+}
+
+bool StorageManager::getComfortLogsSince(time_t timestamp, std::vector<ComfortLog> &logs) {
+    if (!isReady()) return false;
+    logs.clear();
+    for (const auto& l : mockComfortVector) {
+        if (l.timestamp >= timestamp) {
+            logs.push_back(l);
+        }
+    }
+    return true;
+}
+
 bool StorageManager::fileExists(const String &filename) const {
     return mockStorageInitialized;
 }
@@ -137,6 +155,7 @@ uint16_t StorageManager::estimateLineCount() {
 extern "C" {
     void resetMockStorage() {
         mockStorageVector.clear();
+        mockComfortVector.clear();
         mockStorageInitialized = false;
         mockStorageShouldFail = false;
     }

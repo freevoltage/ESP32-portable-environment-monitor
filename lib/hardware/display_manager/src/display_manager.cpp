@@ -354,3 +354,84 @@ void DisplayManager::drawSeparator(int y)
 {
     _tft->drawFastHLine(0, y, _tft->width(), ST77XX_WHITE);
 }
+
+void DisplayManager::drawGraph(const char *title, const char *unit,
+                               const std::vector<float> &values,
+                               const std::vector<time_t> &timestamps,
+                               float minVal, float maxVal)
+{
+    if (!isReady() || values.empty())
+        return;
+
+    clear();
+    drawHeader(title);
+
+    int16_t originX = GRAPH_PADDING;
+    int16_t originY = GRAPH_PADDING + GRAPH_HEIGHT;
+    int16_t graphW = GRAPH_WIDTH;
+    int16_t graphH = GRAPH_HEIGHT;
+
+    // Draw axes
+    _tft->drawFastVLine(originX, originY - graphH, graphH, ST77XX_WHITE);
+    _tft->drawFastHLine(originX, originY, graphW, ST77XX_WHITE);
+
+    // Min/Max labels
+    _tft->setTextColor(ST77XX_WHITE);
+    _tft->setTextSize(1);
+    _tft->setCursor(2, originY - graphH);
+    _tft->printf("%.0f", maxVal);
+    _tft->setCursor(2, originY - 8);
+    _tft->printf("%.0f", minVal);
+
+    // Unit label at top right
+    _tft->setCursor(originX + graphW - 20, 5);
+    _tft->print(unit);
+
+    // Draw data points connected by lines
+    uint16_t count = values.size();
+    float range = maxVal - minVal;
+    if (range <= 0) range = 1.0f;
+
+    for (uint16_t i = 0; i < count; i++)
+    {
+        int16_t x = originX + (i * graphW) / (count > 1 ? (count - 1) : 1);
+        float normalized = (values[i] - minVal) / range;
+        if (normalized < 0) normalized = 0;
+        if (normalized > 1) normalized = 1;
+        int16_t y = originY - (int16_t)(normalized * graphH);
+
+        // Draw point
+        _tft->fillCircle(x, y, 2, ST77XX_GREEN);
+
+        // Draw line to previous point
+        if (i > 0)
+        {
+            int16_t prevX = originX + ((i - 1) * graphW) / (count > 1 ? (count - 1) : 1);
+            float prevNorm = (values[i - 1] - minVal) / range;
+            if (prevNorm < 0) prevNorm = 0;
+            if (prevNorm > 1) prevNorm = 1;
+            int16_t prevY = originY - (int16_t)(prevNorm * graphH);
+            _tft->drawLine(prevX, prevY, x, y, ST77XX_GREEN);
+        }
+    }
+
+    // Current value in cyan below graph
+    float current = values.back();
+    _tft->setTextColor(ST77XX_CYAN);
+    _tft->setTextSize(2);
+    _tft->setCursor(originX, originY + 5);
+    _tft->printf("%.1f%s", current, unit);
+
+    // Timestamp of latest reading
+    if (timestamps.size() > 0)
+    {
+        time_t latest = timestamps.back();
+        struct tm *tm_info = localtime(&latest);
+        char timeBuf[6];
+        strftime(timeBuf, sizeof(timeBuf), "%H:%M", tm_info);
+        _tft->setTextColor(ST77XX_YELLOW);
+        _tft->setTextSize(1);
+        _tft->setCursor(originX, originY + 25);
+        _tft->printf("Last: %s", timeBuf);
+    }
+}

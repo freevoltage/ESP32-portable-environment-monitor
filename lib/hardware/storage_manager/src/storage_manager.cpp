@@ -35,14 +35,13 @@ bool StorageManager::begin()
 
     _sd_card_present = true;
 
-    // Ensure file exists with header
-    //* Pls note that when the file already exist, no file is created and createFile returns true
-    //LOG_DEBUG("Creating file: '%s'", _filename.c_str());
-    //result = createFile(_filename);
-    //if(!result){
-    //    return false;
-    //}
-    //LOG_DEBUG("File '%s' exists after create: %s", _filename.c_str(),fileExists(_filename) ? "YES" : "NO");
+    // Fresh start: delete old datalog to start clean
+    if (fileExists(_filename))
+    {
+        LOG_INFO("Fresh start: deleting old datalog");
+        deleteFile(_filename);
+    }
+
     result = createHeaderIfNeeded(_filename);
     if (!result) {
         return false;
@@ -100,24 +99,22 @@ bool StorageManager::storeReading(const SensorReading &reading)
         return false;
     }
 
-    // Write CSV data: Timestamp, Temperature, Humidity, Pressure
-    // Pls note that the Timestamp is written as time_t variable
-    // Example CSV Line:
-    // 1710513045,20.50,55.30,1013.25,
-    dataFile.printf("%lu,%.2f,%.2f,%.2f\n",
+    // Write CSV data: Timestamp, Temperature, Humidity, Pressure, Altitude
+    dataFile.printf("%lu,%.2f,%.2f,%.2f,%.2f\n",
                     reading.timestamp,
                     reading.temperature,
                     reading.humidity,
-                    reading.pressure);
+                    reading.pressure,
+                    reading.altitude);
 
     dataFile.close();
 
-    // LOG_INFO("Data logged to SD card, File: %s", _filename.c_str());
-    LOG_INFO("Logged: %lu, %.2f°C %.0f%% %.0fhPa -> %s",
+    LOG_INFO("Logged: %lu, %.2f°C %.0f%% %.0fhPa %.0fm -> %s",
              reading.timestamp,
              reading.temperature,
              reading.humidity,
              reading.pressure,
+             reading.altitude,
              _filename.c_str());
     return true;
 }
@@ -616,6 +613,97 @@ void StorageManager::cleanup()
     LOG_INFO("Cleanup: would remove readings older than %lu\n", cutoffTime);
 }
 
+bool StorageManager::storeComfortLog(const ComfortLog &log)
+{
+    if (!_initialized)
+    {
+        LOG_ERROR("Storage not initialized");
+        return false;
+    }
+
+    const String comfortFile = COMFORT_FILENAME;
+
+    // Create comfort file with header if it doesn't exist
+    if (!fileExists(comfortFile))
+    {
+        File headerFile = SD.open(comfortFile.c_str(), FILE_WRITE);
+        if (!headerFile)
+        {
+            LOG_ERROR("Failed to create comfort file");
+            return false;
+        }
+        headerFile.println("Timestamp,ComfortLevel");
+        headerFile.flush();
+        headerFile.close();
+    }
+
+    File dataFile = SD.open(comfortFile.c_str(), FILE_APPEND);
+    if (!dataFile)
+    {
+        LOG_ERROR("Failed to open comfort file for writing");
+        return false;
+    }
+
+    dataFile.printf("%lu,%d\n", log.timestamp, static_cast<uint8_t>(log.level));
+    dataFile.close();
+
+    LOG_INFO("Comfort logged: %lu, level=%d", log.timestamp, static_cast<uint8_t>(log.level));
+    return true;
+}
+
+bool StorageManager::getComfortLogsSince(time_t timestamp, std::vector<ComfortLog> &logs)
+{
+    logs.clear();
+
+    if (!_initialized)
+    {
+        LOG_ERROR("Storage not initialized");
+        return false;
+    }
+
+    const String comfortFile = COMFORT_FILENAME;
+
+    if (!fileExists(comfortFile))
+    {
+        return true; // No comfort logs yet, empty is valid
+    }
+
+    File file = SD.open(comfortFile.c_str(), FILE_READ);
+    if (!file)
+    {
+        LOG_ERROR("Failed to open comfort file");
+        return false;
+    }
+
+    // Skip header
+    if (file.available())
+    {
+        file.readStringUntil('\n');
+    }
+
+    while (file.available())
+    {
+        String line = file.readStringUntil('\n');
+        line.trim();
+        if (line.length() == 0) continue;
+
+        ComfortLog log;
+        int level;
+        if (sscanf(line.c_str(), "%lu,%d", &log.timestamp, &level) == 2)
+        {
+            log.level = static_cast<ComfortLevel>(level);
+            if (log.timestamp >= timestamp)
+            {
+                logs.push_back(log);
+            }
+        }
+    }
+
+    file.close();
+    LOG_INFO("Retrieved %d comfort logs since %lu", logs.size(), timestamp);
+    return true;
+}
+
 /* This function is the core reading function helper used whenever a read operation happens.
 - For shouldInclude possibilities are:
     - Include only Recent Readings
@@ -746,8 +834,8 @@ bool StorageManager::createHeaderIfNeeded(const String &filename)
     }
 
     // Write CSV header
-    LOG_INFO("DateTime,Temperature(C),Humidity(%),Pressure(hPa)");
-    dataFile.println("Timestemp,Temperature,Humidity,Pressure");
+    LOG_INFO("DateTime,Temperature(C),Humidity(%),Pressure(hPa),Altitude(m)");
+    dataFile.println("Timestamp,Temperature,Humidity,Pressure,Altitude");
     dataFile.flush();
     dataFile.close();
 
@@ -817,32 +905,40 @@ SensorReading StorageManager::parseReading(const String &line)
     LOG_INFO("Parse: %s", line.c_str());
     SensorReading reading;
 
-    // Example Parse: 1710513045,20.50,55.30,1013.25,
-    //  Convert to C string for safer parsing
     const char *str = line.c_str();
 
-    // Parse using sscanf (much safer on ESP32)
-    int parsed = sscanf(str, "%lu,%f,%f,%f",
+    // Try parsing 5 fields (with altitude) first
+    int parsed = sscanf(str, "%lu,%f,%f,%f,%f",
+                        &reading.timestamp,
+                        &reading.temperature,
+                        &reading.humidity,
+                        &reading.pressure,
+                        &reading.altitude);
+
+    // Fall back to 4 fields (legacy format without altitude)
+    if (parsed < 4) {
+        parsed = sscanf(str, "%lu,%f,%f,%f",
                         &reading.timestamp,
                         &reading.temperature,
                         &reading.humidity,
                         &reading.pressure);
-    // reading.isValid = true; //** I really need this during development. I might want to change this from the SensorData */
+        reading.altitude = 0;
+    }
 
-    // TODO Refactor this into its own function
-    reading.isValid = (parsed == 4) &&
+    reading.isValid = (parsed >= 4) &&
                       (reading.timestamp > 0) &&
-                      (reading.temperature > -50 && reading.temperature < 100) && // Sanity check
+                      (reading.temperature > -50 && reading.temperature < 100) &&
                       (reading.humidity >= 0 && reading.humidity <= 100) &&
                       (reading.pressure > 900 && reading.pressure < 1100);
 
-    LOG_DEBUG("PARSE RESULT: valid=%s, fields=%d | ts=%lu, temp=%.2f°C, hum=%.2f%%, press=%.2fhPa",
+    LOG_DEBUG("PARSE RESULT: valid=%s, fields=%d | ts=%lu, temp=%.2f°C, hum=%.2f%%, press=%.2fhPa, alt=%.0fm",
               reading.isValid ? "YES" : "NO",
               parsed,
               reading.timestamp,
               reading.temperature,
               reading.humidity,
-              reading.pressure);
+              reading.pressure,
+              reading.altitude);
     return reading;
 }
 

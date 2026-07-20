@@ -5,6 +5,7 @@
 #else
     #include <Arduino.h>
 #endif
+#include <vector>
 #include "display_manager.h"
 #include "rtc_manager.h"
 #include "connectivity_service.h"
@@ -27,6 +28,14 @@ class DisplayService{
         bool showHistoricalStats(const TemperatureStats& stats);
         bool showSystemStatus(const String& status);
         bool showErrorScreen(const String& error);
+
+        // Hiking Station UI
+        bool showMenu(DisplayMenu current);
+        bool showComfortUI(ComfortLevel current);
+        bool showGraph(const char* title, const char* unit,
+                       const std::vector<float>& values,
+                       const std::vector<time_t>& timestamps,
+                       float minVal, float maxVal);
 
         // Display Management
         void forceUpdate();

@@ -49,10 +49,10 @@ SensorReading SensorManager::getReading(time_t timestamp) {
         return reading; 
     }
 
-    //time(&reading.timestamp);
     reading.temperature = readTemperature();
     reading.pressure = readPressure();
     reading.humidity = readHumidity();
+    reading.altitude = getAltitude();
     reading.timestamp = timestamp;
     
     validateReading(reading);

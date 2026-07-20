@@ -6,7 +6,6 @@
 #else
     #include <Arduino.h>
 #endif
-// This causes a compilation fail when we are in a MOCK but it seems that time_t is imported with arduino.h
 
 /**
  * @brief The header defines all shared data structures used between the modules
@@ -20,15 +19,16 @@ struct SensorReading {
     float temperature;
     float humidity;
     float pressure;
-    time_t timestamp; // Seconds since Epoch
+    float altitude;    // Meters above sea level
+    time_t timestamp;  // Seconds since Epoch
     bool isValid;
     
     // Default Constructor
-    SensorReading() : temperature(0), humidity(0), pressure(0), timestamp(0), isValid(false) {}
+    SensorReading() : temperature(0), humidity(0), pressure(0), altitude(0), timestamp(0), isValid(false) {}
 
     // Specific Constructor
     SensorReading(float temp, float hum, float press, time_t time) 
-        : temperature(temp), humidity(hum), pressure(press), timestamp(time), isValid(false) {}
+        : temperature(temp), humidity(hum), pressure(press), altitude(0), timestamp(time), isValid(false) {}
 };
 
 struct TemperatureStats {
@@ -72,4 +72,28 @@ enum class ConnectivityStatus {
     SYNC_COMPLETE
 };
 
-//#endif // DATA_STRUCTURES_H
+// Comfort logging for the hiking weather station
+enum class ComfortLevel : uint8_t {
+    TOO_COLD = 0,
+    COLD = 1,
+    COMFORTABLE = 2,
+    WARM = 3,
+    TOO_WARM = 4
+};
+
+struct ComfortLog {
+    time_t timestamp;
+    ComfortLevel level;
+    
+    ComfortLog() : timestamp(0), level(ComfortLevel::COMFORTABLE) {}
+    ComfortLog(time_t ts, ComfortLevel lv) : timestamp(ts), level(lv) {}
+};
+
+// Display menu state for two-button navigation
+enum class DisplayMenu : uint8_t {
+    GRAPH_TEMP,
+    GRAPH_HUMIDITY,
+    GRAPH_ALTITUDE,
+    LOG_COMFORT,
+    SLEEP
+};

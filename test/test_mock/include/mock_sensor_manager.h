@@ -31,6 +31,7 @@ SensorReading SensorManager::getReading(time_t timestamp) {
         return reading;
     }
     reading = mockSensorReading;
+    reading.altitude = getAltitude();
     reading.timestamp = timestamp;
     reading.isValid = true;
     return reading;

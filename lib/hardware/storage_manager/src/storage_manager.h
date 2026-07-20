@@ -18,7 +18,7 @@ class StorageManager
 {
 public:
     //StorageManager(); // This uses the SD_CS definition in config.h
-    StorageManager(const String& filename = SD_FILENAME, uint8_t csPin = SD_CS);
+    StorageManager(const String& filename = DATALOG_FILENAME, uint8_t csPin = SD_CS);
 
     // Core functionality
     bool begin();
@@ -34,6 +34,10 @@ public:
     // Returns the readings since the given timestamp, writes it to the given readings vector by overwriting all of its content.
     bool getReadingsSince(time_t timestamp, std::vector<SensorReading> &readings, uint16_t maxCount = 1000);
     void cleanup(); // Remove reading older than 30 days.
+
+    /* Comfort Log Operations */
+    bool storeComfortLog(const ComfortLog &log);
+    bool getComfortLogsSince(time_t timestamp, std::vector<ComfortLog> &logs);
 
     /* File operations */
     bool fileExists(const String &filename) const;

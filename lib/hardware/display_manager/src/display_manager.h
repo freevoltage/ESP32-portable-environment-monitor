@@ -3,6 +3,7 @@
 #include <Adafruit_ST7789.h>
 #include <data_structures.h>
 #include <config.h>
+#include <vector>
 
 
 class DisplayManager {
@@ -32,10 +33,19 @@ public:
     void showMessage(const char* message);
     void showError(const char* message);
 
+    // Graph Display
+    void drawGraph(const char* title, const char* unit,
+                   const std::vector<float>& values,
+                   const std::vector<time_t>& timestamps,
+                   float minVal, float maxVal);
+
     // Utility Methods
     // TODO Remove the testConnection method
     bool testConnection();
     void setBrightness(uint8_t brightness);
+    Adafruit_ST7789* getTFT() { return _tft; }
+    void drawHeader(const char* title);
+    void drawSeparator(int y);
 
 private:
     Adafruit_ST7789* _tft;
@@ -44,8 +54,6 @@ private:
     bool _initialized;
     bool _isOn;
 
-    void drawHeader(const char* title);
-    void drawSeparator(int y);
     // Internal helper
     
 };
