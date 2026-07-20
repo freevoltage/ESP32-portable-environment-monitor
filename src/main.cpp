@@ -45,6 +45,12 @@ void enterDeepSleep() {
     // Also configure timer wake for periodic measurements
     esp_sleep_enable_timer_wakeup(MEASUREMENT_INTERVAL_SEC * uS_TO_S_FACTOR);
 
+    // Hold backlight pin state during deep sleep (prevents GPIO2 floating -> backlight leakage)
+    // Toggle via HOLD_GPIO_IN_SLEEP in config.h; hardware alternative: pull-down resistor on TFT_LIT
+#ifdef HOLD_GPIO_IN_SLEEP
+    gpio_hold_en(static_cast<gpio_num_t>(TFT_LIT));
+#endif
+
     Serial.printf("Deep sleep. Timer=%ds, EXT1 on GPIO%d+GPIO%d\n",
                   MEASUREMENT_INTERVAL_SEC, NAV_BUTTON_PIN, SEL_BUTTON_PIN);
     Serial.flush();

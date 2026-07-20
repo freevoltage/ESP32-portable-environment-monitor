@@ -44,6 +44,10 @@
 #define COMFORT_FILENAME "/comfort.csv"
 #define DEFAULT_MAX_SIZE 1000
 
+// Hold GPIO output states during deep sleep (prevents backlight leakage on GPIO2)
+// Hardware alternative: pull-down resistor from TFT_LIT to GND on the display board
+#define HOLD_GPIO_IN_SLEEP 1
+
 // WiFi Configuration
 #define WIFI_SSID "TP-Link_0B73"
 #define WIFI_PASSWORD "63392418"
