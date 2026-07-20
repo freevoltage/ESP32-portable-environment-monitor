@@ -644,10 +644,10 @@ bool StorageManager::storeComfortLog(const ComfortLog &log)
         return false;
     }
 
-    dataFile.printf("%lu,%d\n", log.timestamp, static_cast<uint8_t>(log.level));
+    dataFile.printf("%lu,%d\n", static_cast<unsigned long>(log.timestamp), static_cast<int>(log.level));
     dataFile.close();
 
-    LOG_INFO("Comfort logged: %lu, level=%d", log.timestamp, static_cast<uint8_t>(log.level));
+    LOG_INFO("Comfort logged: %lu, level=%d", static_cast<unsigned long>(log.timestamp), static_cast<int>(log.level));
     return true;
 }
 
@@ -688,9 +688,11 @@ bool StorageManager::getComfortLogsSince(time_t timestamp, std::vector<ComfortLo
         if (line.length() == 0) continue;
 
         ComfortLog log;
+        unsigned long ts;
         int level;
-        if (sscanf(line.c_str(), "%lu,%d", &log.timestamp, &level) == 2)
+        if (sscanf(line.c_str(), "%lu,%d", &ts, &level) == 2)
         {
+            log.timestamp = static_cast<time_t>(ts);
             log.level = static_cast<ComfortLevel>(level);
             if (log.timestamp >= timestamp)
             {
@@ -700,7 +702,7 @@ bool StorageManager::getComfortLogsSince(time_t timestamp, std::vector<ComfortLo
     }
 
     file.close();
-    LOG_INFO("Retrieved %d comfort logs since %lu", logs.size(), timestamp);
+    LOG_INFO("Retrieved %d comfort logs since %lu", logs.size(), static_cast<unsigned long>(timestamp));
     return true;
 }
 
