@@ -9,7 +9,7 @@
 
 /**
  * @brief The header defines all shared data structures used between the modules
- * This ensures that a module does not need any dependency to another module just for the 
+ * This ensures that a module does not need any dependency to another module just for the
  * data structure.
  */
 
@@ -22,23 +22,23 @@ struct SensorReading {
     float altitude;    // Meters above sea level
     time_t timestamp;  // Seconds since Epoch
     bool isValid;
-    
+
     // Default Constructor
     SensorReading() : temperature(0), humidity(0), pressure(0), altitude(0), timestamp(0), isValid(false) {}
 
     // Specific Constructor
-    SensorReading(float temp, float hum, float press, time_t time) 
+    SensorReading(float temp, float hum, float press, time_t time)
         : temperature(temp), humidity(hum), pressure(press), altitude(0), timestamp(time), isValid(false) {}
 };
 
 struct TemperatureStats {
     float min;
     float max;
-    
+
     float average;
     int sampleCount;
     bool isValid;
-    
+
     // Default Constructor
     TemperatureStats() : min(999), max(-999), average(0), sampleCount(0), isValid(false) {}
 };
@@ -52,8 +52,18 @@ struct SystemStatus {
     bool wifiOk;
     uint32_t freeMemory;
     uint32_t uptime;
-    
+
     SystemStatus() : sensorOk(false), displayOk(false), storageOk(false), rtcOk(false), wifiOk(false), freeMemory(0), uptime(0) {}
+};
+
+// Battery status from MAX17048 fuel gauge
+struct BatteryStatus {
+    float voltage;       // Volts
+    float percent;       // 0-100%
+    float chargeRate;    // %/hour (positive = charging, negative = discharging)
+    bool isValid;
+
+    BatteryStatus() : voltage(0), percent(0), chargeRate(0), isValid(false) {}
 };
 
 
@@ -84,7 +94,7 @@ enum class ComfortLevel : uint8_t {
 struct ComfortLog {
     time_t timestamp;
     ComfortLevel level;
-    
+
     ComfortLog() : timestamp(0), level(ComfortLevel::COMFORTABLE) {}
     ComfortLog(time_t ts, ComfortLevel lv) : timestamp(ts), level(lv) {}
 };

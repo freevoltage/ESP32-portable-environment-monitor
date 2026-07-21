@@ -64,3 +64,6 @@
 #define OTA_SERVER_PORT 80
 #define OTA_USERNAME "admin"
 #define OTA_PASSWORD "hikingstation"
+
+// Battery Management (MAX17048 fuel gauge on I2C)
+#define NEOPIXEL_I2C_POWER 20   // GPIO20 controls I2C power rail — cut before deep sleep to save ~55uA

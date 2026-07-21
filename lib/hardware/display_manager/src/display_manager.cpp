@@ -570,3 +570,31 @@ void DisplayManager::showOTAProgress(int percent, size_t current, size_t total)
     _tft->setCursor(50, 190);
     _tft->printf("%u / %u KB", (unsigned int)(current / 1024), (unsigned int)(total / 1024));
 }
+
+void DisplayManager::showBatteryInfo(const BatteryStatus& battery)
+{
+    if (!isReady()) return;
+
+    // Small battery info block at bottom of screen
+    int y = 220;
+    _tft->setTextSize(1);
+
+    if (!battery.isValid) {
+        _tft->setTextColor(ST77XX_RED);
+        _tft->setCursor(5, y);
+        _tft->print("BATT: --");
+        return;
+    }
+
+    // Color based on percentage
+    if (battery.percent > 50) {
+        _tft->setTextColor(ST77XX_GREEN);
+    } else if (battery.percent > 20) {
+        _tft->setTextColor(ST77XX_YELLOW);
+    } else {
+        _tft->setTextColor(ST77XX_RED);
+    }
+
+    _tft->setCursor(5, y);
+    _tft->printf("BATT: %.0f%% (%.2fV)", battery.percent, battery.voltage);
+}

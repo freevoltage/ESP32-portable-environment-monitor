@@ -9,6 +9,7 @@
 #include <display_service.h>
 #include <data_service.h>
 #include <data_structures.h>
+#include <battery_manager.h>
 
 // OTA
 #include <WiFi.h>
@@ -28,6 +29,7 @@ WiFiManager wifiMgr;
 ConnectivityService connectivity(&wifiMgr, &rtc);
 DisplayService displayService(&display, &rtc, &connectivity);
 DataService dataService(&sensor, &storage, &rtc);
+BatteryManager battery;
 
 // OTA server
 AsyncWebServer otaServer(OTA_SERVER_PORT);
@@ -44,6 +46,9 @@ void printWakeupReason() {
 void enterDeepSleep() {
     Serial.println("Entering deep sleep...");
     displayService.turnOff();
+
+    // Cut I2C power rail to save ~55uA during sleep
+    battery.disableI2CPower();
 
     // Configure EXT1 wake on both buttons (active LOW)
     esp_sleep_enable_ext1_wakeup(
@@ -138,8 +143,9 @@ void runMeasurementMode() {
     digitalWrite(TFT_CS, HIGH);
     storage.begin();
 
-    // Initialize sensor
+    // Initialize sensor and battery
     sensor.begin();
+    battery.begin();
 
     // Collect and store reading
     if (dataService.collectCurrentReading()) {
@@ -150,6 +156,13 @@ void runMeasurementMode() {
                       reading.pressure, reading.altitude);
     } else {
         Serial.println("[MEASUREMENT] Sensor read failed");
+    }
+
+    // Log battery status
+    BatteryStatus battStatus = battery.getStatus();
+    if (battStatus.isValid) {
+        Serial.printf("[MEASUREMENT] Battery: %.0f%% (%.2fV)\n",
+                      battStatus.percent, battStatus.voltage);
     }
 
     // Sleep immediately — no display, no WiFi
@@ -222,6 +235,7 @@ void runDisplayMode() {
 
     display.begin();
     sensor.begin();
+    battery.begin();
 
     rtc.begin();
     connectivity.ensureTimeSync();
@@ -234,6 +248,11 @@ void runDisplayMode() {
         SensorReading reading = dataService.getCurrentReading();
         dataService.storeCurrentReading();
         displayService.showCurrentReading(reading, rtc.getFormattedTime());
+
+        // Show battery info at bottom of screen
+        BatteryStatus battStatus = battery.getStatus();
+        display.showBatteryInfo(battStatus);
+
         delay(3000);
     }
 
