@@ -1,0 +1,75 @@
+---
+title: SensorManager
+description: API reference for the BME280 sensor manager.
+---
+
+## Location
+
+`lib/hardware/sensor_manager/`
+
+## Methods
+
+### `begin()`
+
+Initialize the BME280 sensor over I2C.
+
+**Returns**: `bool` — `true` if initialization succeeded.
+
+### `isReady()`
+
+Check if the sensor is initialized and ready.
+
+**Returns**: `bool`
+
+### `testConnection()`
+
+Verify I2C communication with the BME280.
+
+**Returns**: `bool` — `true` if sensor responds.
+
+### `readTemperature()`
+
+Read temperature from the BME280.
+
+**Returns**: `float` — Temperature in °C.
+
+### `readHumidity()`
+
+Read relative humidity.
+
+**Returns**: `float` — Humidity in % (0-100).
+
+### `readPressure()`
+
+Read barometric pressure.
+
+**Returns**: `float` — Pressure in hPa.
+
+### `readAltitude()`
+
+Calculate altitude from pressure using `SEALEVELPRESSURE_HPA`.
+
+**Returns**: `float` — Altitude in meters.
+
+### `readAll()`
+
+Read all sensor values at once.
+
+**Returns**: `SensorReading` — Struct with temperature, humidity, pressure, altitude, timestamp, and isValid flag.
+
+## Usage
+
+```cpp
+#include "sensor_manager.h"
+
+SensorManager sensor;
+
+void setup() {
+    sensor.begin();
+}
+
+void loop() {
+    SensorReading reading = sensor.readAll();
+    Serial.println(reading.temperature);
+}
+```

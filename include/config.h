@@ -1,5 +1,8 @@
 #pragma once
 
+// Debug mode: uncomment to enable debug output (SD card file listing, etc.)
+// #define DEBUG
+
 // SD Card
 #define SD_CS     0
 
@@ -7,7 +10,13 @@
 #define TFT_CS  5
 #define TFT_RST 6
 #define TFT_DC  7
-#define TFT_LIT 2
+#define TFT_LIT 2  // Backlight pin
+
+// Backlight polarity: 1 = active-HIGH (HIGH = ON, LOW = OFF), 0 = inverted (LOW = ON)
+#define TFT_BACKLIGHT_INVERTED 1
+
+// Display rotation: 0=portrait, 1=landscape, 2=portrait flipped, 3=landscape flipped
+#define TFT_ROTATION 2
 
 
 // BME280
@@ -17,6 +26,27 @@
 // Deep Sleep Configuration
 #define uS_TO_S_FACTOR 1000000ULL
 #define TIME_TO_SLEEP  5  // Sleep duration in seconds
+
+// Buttons
+#define NAV_BUTTON_PIN 9   // GPIO9 = BOOT button (Navigate)
+#define SEL_BUTTON_PIN 3   // GPIO3 = Select button
+
+// Measurement Interval (for timer wake)
+#define MEASUREMENT_INTERVAL_SEC 1800  // 30 minutes
+
+// Graph Layout Constants
+#define GRAPH_PADDING    10
+#define GRAPH_WIDTH      (240 - 2 * GRAPH_PADDING)
+#define GRAPH_HEIGHT     (240 - 2 * GRAPH_PADDING)
+
+// Data Log
+#define DATALOG_FILENAME "/datalog.csv"
+#define COMFORT_FILENAME "/comfort.csv"
+#define DEFAULT_MAX_SIZE 1000
+
+// Hold GPIO output states during deep sleep (prevents backlight leakage on GPIO2)
+// Hardware alternative: pull-down resistor from TFT_LIT to GND on the display board
+#define HOLD_GPIO_IN_SLEEP 1
 
 // WiFi Configuration
 #define WIFI_SSID "TP-Link_0B73"
@@ -29,8 +59,3 @@
 
 // Time sync interval (sync once per day)
 #define TIME_SYNC_INTERVAL_HOURS 24
-
-
-#define DEFAULT_MAX_SIZE 1000
-
-#define SD_FILENAME "/datalog.csv"

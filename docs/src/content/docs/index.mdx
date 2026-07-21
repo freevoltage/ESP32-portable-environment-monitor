@@ -1,0 +1,34 @@
+---
+title: ESP32 Hiking Weather Station
+description: A portable hiking weather station built with ESP32-C6, BME280 sensor, and ST7789 TFT display.
+template: splash
+hero:
+  tagline: Portable hiking weather station — measure, log, and visualize altitude, temperature, and humidity on the trail.
+  actions:
+    - text: Get Started
+      link: /getting-started/hardware-setup/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/davidwitulla/ESP32_BME280
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Features
+
+<CardGrid stagger>
+	<Card title="BME280 Sensor" icon="star">
+		Temperature, humidity, pressure, and altitude — all from a single I2C sensor.
+	</Card>
+	<Card title="24h Rolling Graphs" icon="chart">
+		Visualize the last 24 hours of data on a 1.54" color TFT display.
+	</Card>
+	<Card title="Silent Logging" icon="document">
+		Measurement mode wakes every 30 minutes, logs to SD card, and goes back to sleep.
+	</Card>
+	<Card title="Deep Sleep" icon="moon">
+		Button-activated display mode with comfort logging and menu navigation.
+	</Card>
+</CardGrid>

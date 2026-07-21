@@ -1,4 +1,5 @@
 #pragma once
+#ifndef MOCK
 #include "data_structures.h"
 
 // This is a utility class only for reading and formatting the date time string.
@@ -14,3 +15,4 @@ private:
     static bool parseComponents(const String& str, int& year, int& month, 
                                int& day, int& hour, int& min, int& sec);
 };
+#endif // !MOCK

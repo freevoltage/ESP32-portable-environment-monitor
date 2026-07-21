@@ -1,0 +1,55 @@
+---
+title: Adding Features
+description: How to extend the hiking weather station with new features.
+---
+
+## Adding a New Sensor
+
+1. Create a new HAL manager in `lib/hardware/new_sensor/`
+2. Implement `begin()`, `readAll()`, and any specific methods
+3. Add the manager to `main.cpp` initialization
+4. Add sensor data to `SensorReading` in `data_structures.h` if needed
+5. Write tests in `test/test_hardware/`
+
+## Adding a New Menu Item
+
+1. Add enum value to `DisplayMenu` in `data_structures.h`
+2. Implement display logic in `DisplayService`
+3. Add navigation case in `main.cpp` button handling
+4. Update menu rendering in `DisplayManager::showMenu()`
+
+## Adding a New Service Method
+
+1. Add method declaration to service header
+2. Implement in service source file
+3. Add mock implementation in `test/test_mock/include/mock_*.h`
+4. Write tests in `test/test_mock/`
+
+## Code Conventions
+
+- Pin definitions go in `include/config.h`
+- Shared types go in `include/data_structures.h`
+- Use `LOG_INFO()` / `LOG_ERROR()` macros from `include/logger.h`
+- Hardware managers go in `lib/hardware/`
+- Services go in `lib/services/`
+- Never call hardware managers directly from `main.cpp` — use services
+
+## Conditional Compilation
+
+Use `#ifdef MOCK` to swap Arduino types for standard C++ in mock builds:
+
+```cpp
+#ifdef MOCK
+    #include <cstdint>
+    #include <ctime>
+#else
+    #include <Arduino.h>
+#endif
+```
+
+## Testing New Features
+
+- Write hardware tests in `test/test_hardware/`
+- Write mock tests in `test/test_mock/`
+- Run `pio test -e mock` for quick iteration (no hardware needed)
+- Run `pio test -e main` for full integration testing

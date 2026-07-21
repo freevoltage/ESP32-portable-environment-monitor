@@ -1,0 +1,74 @@
+---
+title: Testing
+description: How to run tests and the test architecture.
+---
+
+## Test Commands
+
+```sh
+pio test -e main             # Hardware tests (34 tests, on device)
+pio test -e mock             # Mock tests (33 tests, on host)
+pio test -e service          # Service tests (on device)
+```
+
+## Test Environments
+
+| Environment | Platform | What it tests | Tests |
+|------------|----------|---------------|-------|
+| `main` | ESP32-C6 | All hardware + hiking station integration | 34 |
+| `mock` | Host (Mac) | DataService + ConnectivityService mocks | 33 |
+| `service` | ESP32-C6 | DataService with real hardware | 21 |
+
+## Test Architecture
+
+```
+test/
+  test_hardware/              # Hardware integration tests
+    includes/
+      test_sensor.hpp         # BME280 sensor tests
+      test_display.hpp        # Display manager tests
+      test_rtc.hpp            # RTC manager tests
+      test_storage.hpp        # SD card storage tests
+      test_hiking_station.hpp # Full integration tests
+    test_hardware.cpp         # Test entry point
+  test_mock/                  # Mock tests (no hardware)
+    include/
+      test_data_service_mock.hpp
+      test_connectivity_service_mock.hpp
+      mock_*.h                # Mock implementations
+    test_mock.cpp             # Test entry point
+```
+
+## Custom Test Runner
+
+The project uses a custom Unity test runner (`lib/test_runner/`) that outputs results in PlatformIO's expected format:
+
+```
+test/file.hpp:LINE:test_name:PASS
+test/file.hpp:LINE:test_name:FAIL
+```
+
+## Test Fixture
+
+`lib/test_fixture/` provides a `TestContext` singleton for managing setUp/tearDown across test namespaces:
+
+```cpp
+TEST_CONTEXT.setFixtures(setUpFunc, tearDownFunc);
+```
+
+## Running Tests
+
+**On device** (requires ESP32-C6 connected):
+```sh
+pio test -e main
+```
+
+**On host** (no hardware needed):
+```sh
+pio test -e mock
+```
+
+**Verbose output**:
+```sh
+pio test -e mock -v
+```

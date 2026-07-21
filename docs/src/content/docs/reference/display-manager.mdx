@@ -1,0 +1,87 @@
+---
+title: DisplayManager
+description: API reference for the ST7789 TFT display manager.
+---
+
+## Location
+
+`lib/hardware/display_manager/`
+
+## Methods
+
+### `begin()`
+
+Initialize the TFT display, set rotation, clear screen.
+
+### `showReading(SensorReading)`
+
+Display current sensor values (temperature, humidity, pressure, altitude).
+
+### `showTemperatureStats(TemperatureStats)`
+
+Display min, max, and average temperature.
+
+### `showSystemStatus(SystemStatus)`
+
+Display system health overview (sensor, display, storage, RTC, WiFi status).
+
+### `showConnectivityStatus(ConnectivityStatus)`
+
+Display WiFi + NTP status with color-coded labels:
+
+| Status | Color | Label |
+|--------|-------|-------|
+| DISCONNECTED | Red | "WiFi: OFF" |
+| CONNECTING | Yellow | "WiFi: ..." |
+| CONNECTED | Green | "WiFi: ON" |
+| TIME_SYNCING | Yellow | "NTP: ..." |
+| SYNC_COMPLETE | Green | "NTP: OK" |
+
+### `showMessage(String)`
+
+Display a centered text message.
+
+### `showError(String)`
+
+Display a centered error message (red text).
+
+### `drawGraph(float[], int, ...)`
+
+Draw a line graph with data points, labels, and axes.
+
+**Parameters**:
+- `data[]` — Array of float values
+- `count` — Number of data points
+- Additional parameters for labels and scale
+
+### `setBrightness(uint8_t brightness)`
+
+Set backlight brightness (0-255).
+
+**Note**: Polarity is handled by `BL_ON`/`BL_OFF` macros — this is a raw PWM passthrough.
+
+### `drawHeader(String title)`
+
+Draw a header bar at the top of the display.
+
+### `drawSeparator()`
+
+Draw a horizontal separator line.
+
+## Usage
+
+```cpp
+#include "display_manager.h"
+
+DisplayManager display;
+
+void setup() {
+    display.begin();
+    display.setBrightness(255);
+}
+
+void loop() {
+    SensorReading reading = sensor.readAll();
+    display.showReading(reading);
+}
+```

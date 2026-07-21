@@ -1,3 +1,4 @@
+#ifndef MOCK
 #include "utils.h"
 #include <logger.h>
 
@@ -66,3 +67,5 @@ String DateTimeUtils::formatDateTime(time_t timestamp) {
     strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
     return String(buffer);
 }
+
+#endif // !MOCK
