@@ -28,6 +28,7 @@ class DisplayService{
         bool showHistoricalStats(const TemperatureStats& stats);
         bool showSystemStatus(const String& status);
         bool showErrorScreen(const String& error);
+        bool showClock(const String& timeStr, const String& dateStr);
 
         // Hiking Station UI
         bool showMenu(DisplayMenu current);

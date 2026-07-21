@@ -84,6 +84,30 @@ bool DisplayService::showErrorScreen(const String& error) {
     return true;
 }
 
+bool DisplayService::showClock(const String& timeStr, const String& dateStr) {
+    if (!displayManager || !displayManager->isReady()) {
+        LOG_ERROR("Display not ready for clock");
+        return false;
+    }
+
+    displayManager->clear();
+    displayManager->drawHeader("CLOCK");
+
+    Adafruit_ST7789* tft = displayManager->getTFT();
+
+    tft->setTextSize(2);
+    tft->setTextColor(ST77XX_GREEN);
+    tft->setCursor(20, 60);
+    tft->print(timeStr);
+
+    tft->setTextSize(1);
+    tft->setTextColor(ST77XX_WHITE);
+    tft->setCursor(20, 100);
+    tft->print(dateStr);
+
+    return true;
+}
+
 void DisplayService::forceUpdate() {
     displayNeedsUpdate = true;
 }
