@@ -59,3 +59,8 @@
 
 // Time sync interval (sync once per day)
 #define TIME_SYNC_INTERVAL_HOURS 24
+
+// OTA Configuration
+#define OTA_SERVER_PORT 80
+#define OTA_USERNAME "admin"
+#define OTA_PASSWORD "hikingstation"

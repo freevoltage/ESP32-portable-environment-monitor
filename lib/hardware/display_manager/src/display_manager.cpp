@@ -500,3 +500,73 @@ void DisplayManager::drawGraph(const char *title, const char *unit,
         _tft->printf("Last: %s", timeBuf);
     }
 }
+
+void DisplayManager::showOTAMode(const char* ip)
+{
+    if (!isReady())
+        return;
+
+    clear();
+
+    // Title
+    _tft->setTextColor(ST77XX_YELLOW);
+    _tft->setTextSize(2);
+    _tft->setCursor(50, 30);
+    _tft->print("OTA MODE");
+
+    // Separator
+    drawSeparator(60);
+
+    // Instructions
+    _tft->setTextColor(ST77XX_WHITE);
+    _tft->setTextSize(1);
+    _tft->setCursor(20, 80);
+    _tft->print("Open in browser:");
+    _tft->setCursor(20, 100);
+    _tft->setTextColor(ST77XX_CYAN);
+    _tft->printf("http://%s/update", ip);
+
+    // Status
+    _tft->setTextColor(ST77XX_GREEN);
+    _tft->setTextSize(2);
+    _tft->setCursor(30, 150);
+    _tft->print("Waiting for");
+
+    _tft->setCursor(55, 175);
+    _tft->print("upload...");
+
+    // Bottom info
+    _tft->setTextColor(ST77XX_YELLOW);
+    _tft->setTextSize(1);
+    _tft->setCursor(20, 220);
+    _tft->print("Auth: admin / hikingstation");
+}
+
+void DisplayManager::showOTAProgress(int percent, size_t current, size_t total)
+{
+    if (!isReady())
+        return;
+
+    // Clear progress area
+    _tft->fillRect(0, 100, 240, 120, ST77XX_BLACK);
+
+    // Percentage
+    _tft->setTextColor(ST77XX_WHITE);
+    _tft->setTextSize(3);
+    _tft->setCursor(80, 110);
+    _tft->printf("%d%%", percent);
+
+    // Progress bar
+    int barX = 20, barY = 155, barW = 200, barH = 25;
+    _tft->drawRect(barX, barY, barW, barH, ST77XX_WHITE);
+    int fillW = (barW * percent) / 100;
+    if (fillW > 0) {
+        _tft->fillRect(barX + 1, barY + 1, fillW - 2, barH - 2, ST77XX_GREEN);
+    }
+
+    // Bytes info
+    _tft->setTextColor(ST77XX_YELLOW);
+    _tft->setTextSize(1);
+    _tft->setCursor(50, 190);
+    _tft->printf("%u / %u KB", (unsigned int)(current / 1024), (unsigned int)(total / 1024));
+}

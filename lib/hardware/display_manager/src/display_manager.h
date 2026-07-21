@@ -47,6 +47,10 @@ public:
     void drawHeader(const char* title);
     void drawSeparator(int y);
 
+    // OTA Display
+    void showOTAMode(const char* ip);
+    void showOTAProgress(int percent, size_t current, size_t total);
+
 private:
     Adafruit_ST7789* _tft;
 

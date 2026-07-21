@@ -10,6 +10,12 @@
 #include <data_service.h>
 #include <data_structures.h>
 
+// OTA
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <ElegantOTA.h>
+
 // RTC memory persists across deep sleep
 RTC_DATA_ATTR int bootCount = 0;
 
@@ -22,6 +28,9 @@ WiFiManager wifiMgr;
 ConnectivityService connectivity(&wifiMgr, &rtc);
 DisplayService displayService(&display, &rtc, &connectivity);
 DataService dataService(&sensor, &storage, &rtc);
+
+// OTA server
+AsyncWebServer otaServer(OTA_SERVER_PORT);
 
 void printWakeupReason() {
     esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
@@ -55,6 +64,69 @@ void enterDeepSleep() {
                   MEASUREMENT_INTERVAL_SEC, NAV_BUTTON_PIN, SEL_BUTTON_PIN);
     Serial.flush();
     esp_deep_sleep_start();
+}
+
+// ── OTA Mode (menu-triggered, stays awake for firmware upload) ────────────
+
+void runOTAMode() {
+    Serial.println("[OTA] Entering OTA mode");
+
+    // Initialize display
+    digitalWrite(TFT_CS, HIGH);
+    display.begin();
+    display.setBrightness(255);
+
+    // Connect WiFi
+    display.showMessage("Connecting WiFi...");
+    wifiMgr.connect(WIFI_SSID, WIFI_PASSWORD, 30);
+
+    if (!wifiMgr.isConnected()) {
+        display.showMessage("WiFi FAILED!\nRebooting...");
+        delay(2000);
+        ESP.restart();
+    }
+
+    String ip = wifiMgr.getIPAddress();
+    Serial.printf("[OTA] Connected! IP: %s\n", ip.c_str());
+
+    // Show OTA screen
+    display.showOTAMode(ip.c_str());
+
+    // Configure ElegantOTA
+    ElegantOTA.begin(&otaServer, OTA_USERNAME, OTA_PASSWORD);
+
+    ElegantOTA.onStart([]() {
+        display.showMessage("OTA UPDATE\nStarting...");
+    });
+
+    ElegantOTA.onProgress([](size_t current, size_t total) {
+        static unsigned long lastDraw = 0;
+        if (millis() - lastDraw > 500) {
+            lastDraw = millis();
+            int percent = (total > 0) ? (current * 100 / total) : 0;
+            display.showOTAProgress(percent, current, total);
+            Serial.printf("[OTA] Progress: %d%% (%u / %u)\n", percent, (unsigned int)current, (unsigned int)total);
+        }
+    });
+
+    ElegantOTA.onEnd([](bool success) {
+        if (success) {
+            display.showMessage("OTA Complete!\nRebooting...");
+        } else {
+            display.showMessage("OTA FAILED!\nRebooting...");
+        }
+        delay(3000);
+        ESP.restart();
+    });
+
+    otaServer.begin();
+    Serial.println("[OTA] Server started. Waiting for upload...");
+
+    // Stay in OTA loop indefinitely (no deep sleep)
+    while (true) {
+        ElegantOTA.loop();
+        delay(10);
+    }
 }
 
 // ── Measurement Mode (timer wake, display stays OFF) ──────────────────────
@@ -191,7 +263,7 @@ void runDisplayMode() {
         if (navPressed) {
             // Cycle through menu items
             int idx = static_cast<int>(currentMenu);
-            idx = (idx + 1) % 5; // 5 menu items
+            idx = (idx + 1) % 6; // 6 menu items
             currentMenu = static_cast<DisplayMenu>(idx);
         }
 
@@ -242,6 +314,10 @@ void runDisplayMode() {
 
                 case DisplayMenu::SLEEP:
                     inDisplayMode = false;
+                    break;
+
+                case DisplayMenu::OTA:
+                    runOTAMode(); // Never returns
                     break;
             }
         }
