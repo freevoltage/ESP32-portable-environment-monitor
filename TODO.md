@@ -42,7 +42,12 @@ The hiking station redesign is complete. The last remaining items are either you
 - [x] Remove placeholder tests in test/test_native/ and test/test_lib/
 - [x] Fix display_manager::showConnectivityStatus() stub
 
+### Completed features (committed):
+- [x] Battery management (MAX17048 fuel gauge, I2C power control, TFT battery display)
+- [x] OTA updates (ElegantOTA + AsyncWebServer, partition table, TFT progress, auth)
+- [x] BLE time sync (NimBLE-Arduino, 5 configurable sync modes, LittleFS persistence)
+
 ### Future features (require hardware decisions):
-- [] Battery/power management + solar
-- [] Multi-sensor support
-- [] Web dashboard + OTA updates
+- [] Multi-sensor support
+- [] Web dashboard (WiFi status page, live data, config)
+- [] BLE companion phone app (see BLE_INTERFACE.md)
