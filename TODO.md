@@ -11,11 +11,12 @@
 • ensureTimeSync
 • syncTimeIfNeeded
 • > Connection management``
-- [x] The Datetime is currently not initialized in my projects. This needs to be addressed
-- [x] Add an additional "test hardware" enviroment for the pio test -e hardware command. I want to be able to execute this test independently of the main. Also i would like to have an executubale "pio run -t upload -e hardware" which uses all of the basic hardware on the lowest possible level together. With this step I also want to have the "test_embedded" directory renamed into "test_hardware"
-- [] ReWrite the Display Example. The current Exmple is completly outdated and dont look good on the screen. 
-- [] Write an Example which shows the current time (clock) on the display, utilizing the connetivity service for getting the time sync and the display for plotting the data. It should also write the data to the terminal, so we can see if the display is not working .,
-- [] Tell the AI that it should regularly updated PORJECT_STATUS.md. Just in case it needs to compact its memory and may forogot important things. And for me to know here we are
+- [x] The Datetime is currently not initialized in my projects. This needs to be addressed
+- [x] Add an additional "test hardware" enviroment for the pio test -e hardware command. I want to be able to execute this test independently of the main. Also i would like to have an executubale "pio run -t upload -e hardware" which uses all of the basic hardware on the lowest possible level together. With this step I also want to have the "test_embedded" directory renamed into "test_hardware"
+- [x] ReWrite the Display Example. The current Exmple is completly outdated and dont look good on the screen. 
+- [x] Write an Example which shows the current time (clock) on the display, utilizing the connetivity service for getting the time sync and the display for plotting the data. It should also write the data to the terminal, so we can see if the display is not working .
+- [x] Tell the AI that it should regularly updated PORJECT_STATUS.md. Just in case it needs to compact its memory and may forogot important things. And for me to know here we are
+- [x] Fix test runner — missing colon in output format prevented PlatformIO from parsing PASS/FAIL/SKIP results
 - [] I want to have a docusarus (or other framework, pls research alternatives for docusaurus, I like modern ones) wiki for this project. It should be also regulary updated and part of AGENTS.md
 
 ----
@@ -36,10 +37,10 @@ The hiking station redesign is complete. The last remaining items are either you
 - [] Verify button behavior, comfort logging, and graph display
 
 ### Low-priority cleanup (if you want me to work on something):
-- [] Update AGENTS.md with current architecture (it still references old structure)
-- [] storage_manager::cleanup() — marked TODO, not implemented
-- [] Remove placeholder tests in test/test_native/ and test/test_lib/
-- [] Fix display_manager::showConnectivityStatus() stub
+- [x] Update AGENTS.md with current architecture (it still references old structure)
+- [x] storage_manager::cleanup() — marked TODO, not implemented
+- [x] Remove placeholder tests in test/test_native/ and test/test_lib/
+- [x] Fix display_manager::showConnectivityStatus() stub
 
 ### Future features (require hardware decisions):
 - [] Battery/power management + solar

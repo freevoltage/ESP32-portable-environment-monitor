@@ -74,11 +74,13 @@ void MyCustomTestRunner(UnityTestFunction Func, const char* FuncName, const int 
     // (If passed, Unity.NumberOfTests already accounts for it)
 
     // Print the PlatformIO-friendly result line.
-    // File path is set per test suite via UnitySetTestFile(__FILE__).
+    // Format: FILEPATH:LINENUM:TESTNAME:STATUS
+    // PlatformIO regex: (?P<source_file>[^:]+):(?P<source_line>\d+):(?P<name>[^\s]+):(?P<status>PASS|IGNORE|FAIL)(:\s*(?P<message>.+)$)?
     Serial.print(Unity.TestFile ? Unity.TestFile : "unknown");
-    Serial.print(test_output_line_num); // Line number where assertion failed or test defined
     Serial.print(":");
-    Serial.print(test_output_name);     // Name of the test function
+    Serial.print(test_output_line_num);
+    Serial.print(":");
+    Serial.print(test_output_name);
     Serial.print(":");
 
     if (test_ignored_status) {
