@@ -142,11 +142,10 @@ Application (main.cpp)
 2. **Test coverage gaps** — WiFi (0 tests), display (1 standalone test), storage has many tests commented out
 3. **Comfort file not cleaned between test runs** — `/comfort.csv` accumulates across test runs (stale entries from prior tests appear in `test_hiking_comfort_multiple` but don't break it)
 4. **WiFi credentials** — hardcoded in `include/config.h` (should be configurable)
-5. **Flash usage at 83.2%** — NimBLE added ~27% flash; consider removing unused features or optimizing partition layout
+5. **Flash usage at 64.0%** — healthy headroom after partition table optimization
 
 ## Known Issues
 
-- Filename typo: `connectivity_serivce.h` (not `service`) in both `lib/connectivity_service/` and `lib/services/connectivity/`
 - The `env:service` environment references `test/test_service/includes` but may not have all dependencies resolved
 
 ## Platform Quirk

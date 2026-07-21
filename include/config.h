@@ -48,9 +48,10 @@
 // Hardware alternative: pull-down resistor from TFT_LIT to GND on the display board
 #define HOLD_GPIO_IN_SLEEP 1
 
-// WiFi Configuration
-#define WIFI_SSID "TP-Link_0B73"
-#define WIFI_PASSWORD "63392418"
+// WiFi Configuration (compile-time defaults — overridden by LittleFS config if present)
+#define WIFI_DEFAULT_SSID "TP-Link_0B73"
+#define WIFI_DEFAULT_PASSWORD "63392418"
+#define WIFI_CONFIG_FILE "/wifi_config.txt"
 
 // NTP Configuration
 #define NTP_SERVER "pool.ntp.org"

@@ -3,7 +3,7 @@
 #pragma once
 #include "../services/data_service.h"
 #include "display_service.h"
-#include "connectivity_serivce.h"
+#include "connectivity_service.h"
 #include "data_structures.h"
 
 class App {

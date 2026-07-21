@@ -28,7 +28,7 @@ void setup() {
 
     // 2. WiFi + NTP
     Serial.println("[2/5] WiFi + NTP...");
-    if (wifiMgr.connect(WIFI_SSID, WIFI_PASSWORD, 10)) {
+    if (wifiMgr.connect(WIFI_DEFAULT_SSID, WIFI_DEFAULT_PASSWORD, 10)) {
         Serial.printf("  Connected: %s\n", wifiMgr.getIPAddress().c_str());
         wifiMgr.syncTimeNTP(NTP_SERVER, GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC);
         time_t now;

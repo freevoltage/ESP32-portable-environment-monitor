@@ -124,6 +124,15 @@ struct SyncStatus {
                    lastSyncTime(0), syncInProgress(false) {}
 };
 
+// WiFi credentials (loaded from LittleFS, fallback to compile-time defaults)
+struct WiFiConfig {
+    char ssid[33];      // 32 chars + null terminator
+    char password[65];  // 64 chars + null terminator
+    bool isValid;
+
+    WiFiConfig() : ssid{0}, password{0}, isValid(false) {}
+};
+
 // Display menu state for two-button navigation
 enum class DisplayMenu : uint8_t {
     GRAPH_TEMP,

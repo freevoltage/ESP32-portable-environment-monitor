@@ -85,7 +85,8 @@ void runOTAMode() {
 
     // Connect WiFi
     display.showMessage("Connecting WiFi...");
-    wifiMgr.connect(WIFI_SSID, WIFI_PASSWORD, 30);
+    const WiFiConfig& wifiCfg = connectivity.getWiFiConfig();
+    wifiMgr.connect(wifiCfg.ssid, wifiCfg.password, 30);
 
     if (!wifiMgr.isConnected()) {
         display.showMessage("WiFi FAILED!\nRebooting...");
