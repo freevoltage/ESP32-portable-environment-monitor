@@ -1,6 +1,6 @@
 # TODO
 
-## Software Stuff
+## Software Stuff (Tasks for AI)
 - [x] Get the RTC Part to work: Put the ESP32 Into Deep Sleep and keep measuring the time.
 - [x] The next big task is to get the service layer running. That is the data service which collects actual sensor readings, stores current readings, calculates stats, and makes data validation as well as then uses the display service (which is a library on top of the pure hardware display manager) to display the information. I started to implement this with a MOC, to be able to test the service layer logic without the need to interact with hardware. its currently untested and i stopped developing at this point
 
@@ -16,10 +16,11 @@
 - [] ReWrite the Display Example. The current Exmple is completly outdated and dont look good on the screen. 
 - [] Write an Example which shows the current time (clock) on the display, utilizing the connetivity service for getting the time sync and the display for plotting the data. It should also write the data to the terminal, so we can see if the display is not working .,
 - [] Tell the AI that it should regularly updated PORJECT_STATUS.md. Just in case it needs to compact its memory and may forogot important things. And for me to know here we are
+- [] I want to have a docusarus (or other framework, pls research alternatives for docusaurus, I like modern ones) wiki for this project. It should be also regulary updated and part of AGENTS.md
 
 ----
 
-## Hardware Stuff
+## Hardware Stuff (Tasks for Me)
 
 - [] Add a Button to the Breadboard and then program the button to wake up from deep Sleep
 
