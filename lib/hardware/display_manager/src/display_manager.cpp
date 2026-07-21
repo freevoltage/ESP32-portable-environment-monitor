@@ -281,10 +281,74 @@ void DisplayManager::showConnectivityStatus(const ConnectivityStatus &status)
 
     _tft->setTextSize(1);
     _tft->setCursor(5, 20);
-    _tft->setTextColor(ST77XX_WHITE);
 
-    // Add your connectivity status display logic here
-    _tft->println("Status: Connected");
+    // WiFi status
+    _tft->setTextColor(ST77XX_WHITE);
+    _tft->print("WiFi: ");
+    switch (status) {
+        case ConnectivityStatus::DISCONNECTED:
+            _tft->setTextColor(ST77XX_RED);
+            _tft->println("Disconnected");
+            break;
+        case ConnectivityStatus::CONNECTING:
+            _tft->setTextColor(ST77XX_YELLOW);
+            _tft->println("Connecting...");
+            break;
+        case ConnectivityStatus::CONNECTED:
+        case ConnectivityStatus::TIME_SYNCING:
+        case ConnectivityStatus::SYNC_COMPLETE:
+            _tft->setTextColor(ST77XX_GREEN);
+            _tft->println("Connected");
+            break;
+    }
+
+    // NTP status
+    _tft->setTextColor(ST77XX_WHITE);
+    _tft->setCursor(5, 40);
+    _tft->print("NTP:  ");
+    switch (status) {
+        case ConnectivityStatus::DISCONNECTED:
+        case ConnectivityStatus::CONNECTING:
+        case ConnectivityStatus::CONNECTED:
+            _tft->setTextColor(ST77XX_YELLOW);
+            _tft->println("Waiting");
+            break;
+        case ConnectivityStatus::TIME_SYNCING:
+            _tft->setTextColor(ST77XX_YELLOW);
+            _tft->println("Syncing...");
+            break;
+        case ConnectivityStatus::SYNC_COMPLETE:
+            _tft->setTextColor(ST77XX_GREEN);
+            _tft->println("Synced");
+            break;
+    }
+
+    // State label
+    _tft->setTextColor(ST77XX_WHITE);
+    _tft->setCursor(5, 65);
+    _tft->print("State: ");
+    switch (status) {
+        case ConnectivityStatus::DISCONNECTED:
+            _tft->setTextColor(ST77XX_RED);
+            _tft->println("IDLE");
+            break;
+        case ConnectivityStatus::CONNECTING:
+            _tft->setTextColor(ST77XX_YELLOW);
+            _tft->println("CONNECTING");
+            break;
+        case ConnectivityStatus::CONNECTED:
+            _tft->setTextColor(ST77XX_GREEN);
+            _tft->println("CONNECTED");
+            break;
+        case ConnectivityStatus::TIME_SYNCING:
+            _tft->setTextColor(ST77XX_YELLOW);
+            _tft->println("TIME SYNC");
+            break;
+        case ConnectivityStatus::SYNC_COMPLETE:
+            _tft->setTextColor(ST77XX_GREEN);
+            _tft->println("READY");
+            break;
+    }
 }
 
 void DisplayManager::showMessage(const char *message)
@@ -334,8 +398,9 @@ bool DisplayManager::testConnection()
 
 void DisplayManager::setBrightness(uint8_t brightness)
 {
-    // Use PWM to control backlight brightness (0-255)
-    analogWrite(TFT_LIT, TFT_BACKLIGHT_INVERTED ? (255 - brightness) : brightness);
+    // PWM duty cycle: 255 = full brightness (BL_ON level), 0 = off (BL_OFF level)
+    // Polarity is already handled by BL_ON/BL_OFF macros in digitalWrite calls
+    analogWrite(TFT_LIT, brightness);
 }
 
 void DisplayManager::drawHeader(const char *title)

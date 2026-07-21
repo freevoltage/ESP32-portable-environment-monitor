@@ -12,7 +12,7 @@
 #define TFT_DC  7
 #define TFT_LIT 2  // Backlight pin
 
-// Backlight polarity: 1 = active-LOW (resistor LIT->GND mod), 0 = active-HIGH (default)
+// Backlight polarity: 1 = active-HIGH (HIGH = ON, LOW = OFF), 0 = inverted (LOW = ON)
 #define TFT_BACKLIGHT_INVERTED 1
 
 // Display rotation: 0=portrait, 1=landscape, 2=portrait flipped, 3=landscape flipped
