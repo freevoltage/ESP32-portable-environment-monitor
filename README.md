@@ -1,155 +1,136 @@
-## Realizations
+# ESP32 Hiking Weather Station
 
-- GPIO9 is a digital I/O pin. By default, this pin has an internal weak pull-up resistor (WPU) enabled, both at reset and after reset.
-This is documented in the Pin Overview tables. (APPENDIX A: ESP32-C6 Consolidated Pin Overview on page 77, 78)
+A portable hiking weather station built with **Adafruit Feather ESP32-C6**, **BME280 sensor**, and **1.54" ST7789 TFT display**. Reads temperature, humidity, pressure, and altitude — logs data to SD card silently every 30 minutes, then displays 24h rolling graphs on button wake.
 
-So you cant use this IO pin to power down the Display. 
+## Features
 
-According to the Displays datasheet the current consumption of in total is about 30mA.
-So I might not be able to power the display using a single GPIO pin in normal drive mode. A Pin in High Drive mode should be fine, tho.
+- **BME280 sensor** — temperature, humidity, pressure, altitude (I2C)
+- **1.54" color TFT** — 240x240 IPS ST7789 display
+- **SD card logging** — CSV format, sensor data + comfort logs
+- **Two-mode operation** — silent measurement (timer wake) + interactive display (button wake)
+- **Deep sleep** — ~2-3 sec wake time, 30 min intervals
+- **WiFi/NTP sync** — automatic time synchronization on display wake
+- **24h rolling graphs** — visualize temperature, humidity, altitude history
+- **Comfort logging** — 5 levels from "Too cold" to "Too warm"
 
+## Hardware
 
-### What are my possibilities?
-Summarize what is possible to do:
+| Component | Model | Connection |
+|-----------|-------|------------|
+| MCU | Adafruit Feather ESP32-C6 | RISC-V 32-bit, 4MB Flash |
+| Sensor | BME280 | I2C |
+| Display | 1.54" 240x240 IPS ST7789 | SPI |
+| Storage | SD card module | SPI (separate from display) |
+| Button A | Navigate | GPIO9 (active LOW, internal pullup) |
+| Button B | Select | GPIO3 (active LOW, internal pullup) |
 
-#### Using a GPIO Pin to Power the Display 
-- Use a single GPIO Pin in High Current Drive Mode (40mA) to power the entire display. It will automatically turn off when the esp goes to deep Sleep.
+### Pin Mapping
 
-#### Enable Display Voltage with PMOS
-- Use a PMOS Transistor for Enabling/Disabling the Power to the Display. Powered from the 3V Bus of the ESP.
-- The PMOS is driven be a either directly a GPIO Pin or via a NPN Transistor. Using an additional transistor allows that the 
-![|500](documents/1*2-glnnd5Plpy5dWPLnA2dw.webp)
-- Downsite:
-    - Additional Components (1PMOS + 1NPN needed)
+| Signal | GPIO | Notes |
+|--------|------|-------|
+| `SD_CS` | 0 | SD card chip select |
+| `TFT_LIT` | 2 | Backlight (active-HIGH) |
+| `SEL_BUTTON_PIN` | 3 | Select button |
+| `TFT_CS` | 5 | Display chip select |
+| `TFT_RST` | 6 | Display reset |
+| `TFT_DC` | 7 | Display data/command |
+| `NAV_BUTTON_PIN` | 9 | Navigate button (BOOT) |
 
-Could also be implemented with the trick that the GPIO Pin state is held during deep sleep. That way the PMOS Gate could be held HIGH during DeepSleep, keeping the Display OFF.
+Pin definitions live in `include/config.h`.
 
-#### GPIO Hold during Deep Sleep
-- Use a regular GPIO Pin connected to the LIT Pin of the Display and enable **gpio_deep_sleep_hold** 
-  - The Hold generally works and can be used. However the PIN still cant source enough current.
-  - For that an NMOS Transistor would be required to pull the LIT Pin down.
-  - Downsite:
-    - Current Flow between the LIT Pin and GNG during the DeepSleep phase
-    - Additional Components (1 NMOS) needed
+## Quick Start
 
+### Prerequisites
 
-### Figure out another way how to completly disable the 3V voltage line during deep Sleep
-- What I dont really like is that the 3V output of the ESP32 C6 Feather stays at 3V even during deep Sleep.
+- [PlatformIO CLI](https://docs.platformio.org/en/latest/core/installation.html) or VS Code + PlatformIO extension
+- Adafruit Feather ESP32-C6 connected via USB
 
+### Build & Flash
 
-
-### Desolder the Pull Up resistor and solder a Pull Down 
-This is by far the best solution of all of them. Solve the issue right from the origin!
-The Downsite is that manual soldering was required but no additional components and no software hacks needed.
-
-
-
-## Common Problems I encounter
-When trying to compile:
-> Error: This board doesn't support arduino framework!
-
-This happens to me once when I uninstalled the libraries and installed them again
-```shell
-pio pkg uninstall
+```sh
+pio run -e main              # build firmware
+pio run -t upload -e main    # flash (auto-opens serial monitor)
+pio device monitor           # open serial monitor manually
+pio run -t clean             # clean build (run after platform/lib changes)
 ```
 
-The cause is that the official
-```
-davidwitulla@MacBook-Pro-5 ESP32_BME280 % pio boards espressif32 | grep -i c6  
-esp32-c6-devkitc-1                   ESP32C6  160MHz       8MB      320KB   Espressif ESP32-C6-DevKitC-1
-esp32-c6-devkitc-1                   ESP32C6  160MHz       8MB      320KB   Espressif ESP32-C6-DevKitC-1
-esp32-c6-devkitm-1                   ESP32C6  160MHz       4MB      320KB   Espressif ESP32-C6-DevKitM-1
-esp32-c6-devkitm-1                   ESP32C6  160MHz       4MB      320KB   Espressif ESP32-C6-DevKitM-1
-seeed_xiao_esp32c6                   ESP32C6  160MHz       4MB      320KB   Seeed Studio XIAO ESP32C6
-cezerio_dev_esp32c6                  ESP32C6  160MHz       4MB      320KB   cezerio dev ESP32C6
-cezerio_mini_dev_esp32c6             ESP32C6  160MHz       4MB      320KB   cezerio mini dev ESP32C6
-```
-To list all available Adafruit Boards
+### Run Tests
 
-```
-davidwitulla@MacBook-Pro-5 ESP32_BME280 % pio boards espressif32 | grep -i adafruit
-featheresp32                         ESP32    240MHz       4MB      320KB   Adafruit ESP32 Feather
-featheresp32-s2                      ESP32S2  240MHz       4MB      320KB   Adafruit ESP32-S2 Feather Development Board
-adafruit_feather_esp32_v2            ESP32    240MHz       8MB      320KB   Adafruit Feather ESP32 V2
-adafruit_feather_esp32s2             ESP32S2  240MHz       4MB      320KB   Adafruit Feather ESP32-S2
-adafruit_feather_esp32s2_reversetft  ESP32S2  240MHz       4MB      320KB   Adafruit Feather ESP32-S2 Reverse TFT
-adafruit_feather_esp32s2_tft         ESP32S2  240MHz       4MB      320KB   Adafruit Feather ESP32-S2 TFT
-adafruit_feather_esp32s3             ESP32S3  240MHz       4MB      320KB   Adafruit Feather ESP32-S3 2MB PSRAM
-adafruit_feather_esp32s3_nopsram     ESP32S3  240MHz       8MB      320KB   Adafruit Feather ESP32-S3 No PSRAM
-adafruit_feather_esp32s3_reversetft  ESP32S3  240MHz       4MB      320KB   Adafruit Feather ESP32-S3 Reverse TFT
-adafruit_feather_esp32s3_tft         ESP32S3  240MHz       4MB      320KB   Adafruit Feather ESP32-S3 TFT
-adafruit_funhouse_esp32s2            ESP32S2  240MHz       4MB      320KB   Adafruit FunHouse
-adafruit_itsybitsy_esp32             ESP32    240MHz       8MB      320KB   Adafruit ItsyBitsy ESP32
-adafruit_magtag29_esp32s2            ESP32S2  240MHz       4MB      320KB   Adafruit MagTag 2.9
-adafruit_matrixportal_esp32s3        ESP32S3  240MHz       8MB      320KB   Adafruit MatrixPortal ESP32-S3
-adafruit_metro_esp32s2               ESP32S2  240MHz       4MB      320KB   Adafruit Metro ESP32-S2
-adafruit_metro_esp32s3               ESP32S3  240MHz       16MB     320KB   Adafruit Metro ESP32-S3
-adafruit_qtpy_esp32                  ESP32    240MHz       8MB      320KB   Adafruit QT Py ESP32
-adafruit_qtpy_esp32c3                ESP32C3  160MHz       4MB      320KB   Adafruit QT Py ESP32-C3
-adafruit_qtpy_esp32s2                ESP32S2  240MHz       4MB      320KB   Adafruit QT Py ESP32-S2
-adafruit_qtpy_esp32s3_n4r2           ESP32S3  240MHz       4MB      320KB   Adafruit QT Py ESP32-S3 (4M Flash 2M PSRAM)
-adafruit_qtpy_esp32s3_nopsram        ESP32S3  240MHz       8MB      320KB   Adafruit QT Py ESP32-S3 No PSRAM
-adafruit_qualia_s3_rgb666            ESP32S3  240MHz       16MB     320KB   Adafruit Qualia ESP32-S3 RGB666
-adafruit_camera_esp32s3              ESP32S3  240MHz       4MB      320KB   Adafruit pyCamera S
+```sh
+pio test -e main             # 34 hardware tests (on device)
+pio test -e mock             # 33 mock tests (on host, no hardware)
 ```
 
-One working environment I was successfully able to build after re-installing all packages:
-```ini
-[env]
-platform = https://github.com/tasmota/platform-espressif32.git
-board = esp32-c6-devkitc-1
-board_build.variant = adafruit_feather_esp32c6
-framework = arduino
-monitor_speed = 115200
-build_flags = 
-	-D ARDUINO_USB_CDC_ON_BOOT=1
-	-D ARDUINO_USB_MODE=1
-	-D CONFIG_ARDUINO_USB_CDC_ENABLED=1
-	-D ARDUINO_ADAFRUIT_FEATHER_ESP32C6
-```
-This uses a fork of PIO specifically created to add Arduino Framework Support for several ESP32 Microcontrollers.
-
-After installing this it might help to do a full clean up of all the binaries.
+## Architecture
 
 ```
+Application (main.cpp)
+    ├── DataService         → sensor + storage + RTC
+    ├── DisplayService      → menus, graphs, comfort UI
+    └── ConnectivityService → WiFi + NTP
+            │
+        HAL Layer (lib/hardware/)
+            ├── SensorManager    (BME280)
+            ├── DisplayManager   (ST7789)
+            ├── StorageManager   (SD card)
+            ├── RTCManager       (ESP32Time)
+            └── WiFiManager      (WiFi)
+```
+
+`main.cpp` never calls hardware managers directly — all interactions go through the service layer.
+
+## Firmware Modes
+
+**Measurement mode** (timer wake, every 30 min):
+Read sensors → store to SD → deep sleep. Display OFF, WiFi OFF. ~2-3 sec.
+
+**Display mode** (button wake):
+WiFi/NTP sync → show reading → navigate menu → 24h graphs → comfort logging → sleep.
+
+## Project Structure
+
+```
+src/main.cpp                    # Firmware entrypoint
+include/config.h                # Pins, timing, WiFi creds
+include/data_structures.h       # SensorReading, enums, shared types
+
+lib/
+  hardware/                     # HAL — direct hardware access
+    sensor_manager/             # BME280 I2C
+    display_manager/            # ST7789 TFT
+    storage_manager/            # SD card (SPI)
+    rtc_manager/                # ESP32Time
+    wifi_manager/               # WiFi
+  services/                     # Service layer — orchestrates hardware
+    data/                       # DataService
+    display/                    # DisplayService
+    connectivity/               # ConnectivityService
+
+test/
+  test_hardware/                # 34 integration tests (on device)
+  test_mock/                    # 33 mock tests (on host)
+
+docs/                           # Starlight wiki
+```
+
+## Documentation
+
+Full documentation in `docs/` (Starlight/Astro):
+
+```sh
+cd docs && bun run dev
+```
+
+## Platform Note
+
+Uses the [Tasmota fork](https://github.com/tasmota/platform-espressif32) of platform-espressif32 for Arduino framework support on ESP32-C6.
+
+If you see `Error: This board doesn't support arduino framework!`:
+```sh
 pio run -t clean
+pio pkg uninstall && pio pkg install
 ```
 
-WARNING:
-Even after a complete new installation I have multiple SD packages installed
-```shell
-davidwitulla@MacBook-Pro-5 ESP32_BME280 % pio pkg show sd
-Warning! More than one package has been found by sd requirements:
- - arduino-libraries/SD@1.3.0
- - adafruit/SD@0.0.0-alpha+sha.041f788250
- - rei-vilo/SD@0.0.0-alpha+sha.a8a1454af9
- - mbed-jackson-lv/SD@0.0.0+sha.405b46e831df
- - mbed-1529561000/SD@0.0.0+sha.db4599aff06a
-Please specify detailed REQUIREMENTS using package owner and version (shown above) to avoid name 
-conflicts
-UserSideException: Could not find 'sd' package in the PlatormIO Registry
-```
+## License
 
-
-
-
-
-## TODO
-
-Okay today I did a lot of progress. All of the embedded tests (except 1) are working.
-I started to play around to implement a Mock for the hardware modules.
-The idea is that the service modules, work with fake hardware modules, so that they can be tested on the native machine instead. I am also just curious about how mocks work and how to use them. 
-But I came across some difficulties. I am not sure how to implement the MOCK. 
-
-
-What bothers me is
-
-Ich muss ja dann nicht nur einen Test für die hardware schreiben sondern auch einen Test für den MOCK. Oder ist dieser als so trivial anzunehmen, dass der keinen Test braucht? Schließlich ist die Logik ja auf das Minimum reduziert.
-
---> Ich teste also nicht den MOCK
-
-
-1. Für den Data Service brauche ich also die MOCKs für den Sensor, Storage und den RTC.
-2. Wenn ich diese MOCKS habe dann kann ich den Test für den DATA Service schreiben.
-3. Dann kann ich die Implementation des Data Services schreiben.
-
+MIT

@@ -4,12 +4,13 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://davidwitulla.github.io',
+	site: 'https://freevoltage.github.io',
+	base: '/ESP32-portable-environment-monitor',
 	integrations: [
 		starlight({
 			title: 'ESP32 Hiking Weather Station',
 			social: [
-				{ icon: 'github', label: 'GitHub', href: 'https://github.com/davidwitulla/ESP32_BME280' },
+				{ icon: 'github', label: 'GitHub', href: 'https://github.com/freevoltage/ESP32-portable-environment-monitor' },
 			],
 			sidebar: [
 				{
