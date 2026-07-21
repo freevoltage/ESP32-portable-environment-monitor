@@ -32,7 +32,7 @@ Application (main.cpp)
 | Display | 1.54" 240x240 IPS ST7789 | No SD slot (old display's SD wired separately) |
 | Storage | SD card (SPI) | CS=GPIO0, separate from display |
 | Buttons | GPIO9 (Navigate), GPIO3 (Select) | Active LOW, internal pullup |
-| Backlight | Active-LOW, inverted | `TFT_BACKLIGHT_INVERTED = 1` |
+| Backlight | Active-HIGH | `TFT_BACKLIGHT_INVERTED = 1` |
 | Display rotation | `TFT_ROTATION = 2` | |
 
 ## Firmware Modes
@@ -122,18 +122,14 @@ Application (main.cpp)
 
 ## What's Missing / Needs Work
 
-1. **`storage_manager` cleanup()** — marked TODO, not implemented
-2. **Test coverage gaps** — WiFi (0 tests), display (1 standalone test), storage has many tests commented out
-3. **`test/test_native/` and `test/test_lib/`** — placeholder tests with no real content
-4. **`display_manager` stub** — `showConnectivityStatus()` declared but not implemented
-5. **Comfort file not cleaned between test runs** — `/comfort.csv` accumulates across test runs (stale entries from prior tests appear in `test_hiking_comfort_multiple` but don't break it)
-6. **`app.h`** — entirely commented out (planned App class not yet active)
-7. **WiFi credentials** — hardcoded in `include/config.h` (should be configurable)
+1. **Test coverage gaps** — WiFi (0 tests), display (1 standalone test), storage has many tests commented out
+2. **Comfort file not cleaned between test runs** — `/comfort.csv` accumulates across test runs (stale entries from prior tests appear in `test_hiking_comfort_multiple` but don't break it)
+3. **WiFi credentials** — hardcoded in `include/config.h` (should be configurable)
+4. **GitHub Pages deployment** — wiki built, needs deploy workflow
 
 ## Known Issues
 
 - Filename typo: `connectivity_serivce.h` (not `service`) in both `lib/connectivity_service/` and `lib/services/connectivity/`
-- `test/test_mock/` directory referenced by `env:mock` in platformio.ini does not exist yet
 - The `env:service` environment references `test/test_service/includes` but may not have all dependencies resolved
 
 ## Platform Quirk
@@ -158,3 +154,11 @@ pio device monitor           # open serial monitor manually
 - Logging uses macros `LOG_INFO(...)`, `LOG_ERROR(...)`, etc. from `include/logger.h`
 - Conditional compilation: `#ifdef MOCK` swaps Arduino types for standard C++ in mock builds
 - `time_t` on ESP32-C6 is 64-bit — always cast to `unsigned long` when using `%lu` format specifier
+
+## Wiki
+
+Full documentation lives in `docs/` (Starlight/Astro). Run locally:
+
+```sh
+cd docs && bun run dev
+```

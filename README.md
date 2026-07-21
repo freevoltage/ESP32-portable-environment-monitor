@@ -1,77 +1,93 @@
-# ESP32 Weather Station
+# ESP32 Hiking Weather Station
 
-A wearable, water-resistant gadget that measures temperature, air humidity, and pressure using the BME280 IC from Bosch Sensortec. Data is displayed on an OLED display and logged to an SD card. Battery-powered, designed to last at least a few weeks on a single charge.
+A portable hiking weather station built with **Adafruit Feather ESP32-C6**, **BME280 sensor**, and **1.54" ST7789 TFT display**. Reads temperature, humidity, pressure, and altitude — logs data to SD card silently every 30 minutes, then displays 24h rolling graphs on button wake.
+
+## Features
+
+- **BME280 sensor** — temperature, humidity, pressure, altitude (I2C)
+- **1.54" color TFT** — 240x240 IPS ST7789 display
+- **SD card logging** — CSV format, sensor data + comfort logs
+- **Two-mode operation** — silent measurement (timer wake) + interactive display (button wake)
+- **Deep sleep** — ~2-3 sec wake time, 30 min intervals
+- **WiFi/NTP sync** — automatic time synchronization on display wake
+- **24h rolling graphs** — visualize temperature, humidity, altitude history
+- **Comfort logging** — 5 levels from "Too cold" to "Too warm"
 
 ## Hardware
 
-| Component | Interface | Notes |
-|---|---|---|
-| Adafruit Feather ESP32-C6 | — | 4MB Flash, 320KB RAM |
-| BME280 | I2C | Temperature, humidity, pressure |
-| ST7789 240x135 TFT | SPI | Shared SPI bus with SD card |
-| SD Card Module | SPI | CSV data logging |
+| Component | Model | Connection |
+|-----------|-------|------------|
+| MCU | Adafruit Feather ESP32-C6 | RISC-V 32-bit, 4MB Flash |
+| Sensor | BME280 | I2C |
+| Display | 1.54" 240x240 IPS ST7789 | SPI |
+| Storage | SD card module | SPI (separate from display) |
+| Button A | Navigate | GPIO9 (active LOW, internal pullup) |
+| Button B | Select | GPIO3 (active LOW, internal pullup) |
 
 ### Pin Mapping
 
-| Pin | GPIO | Function |
-|---|---|---|
+| Signal | GPIO | Notes |
+|--------|------|-------|
 | `SD_CS` | 0 | SD card chip select |
+| `TFT_LIT` | 2 | Backlight (active-HIGH) |
+| `SEL_BUTTON_PIN` | 3 | Select button |
 | `TFT_CS` | 5 | Display chip select |
 | `TFT_RST` | 6 | Display reset |
 | `TFT_DC` | 7 | Display data/command |
-| `TFT_LIT` | 2 | Display backlight |
+| `NAV_BUTTON_PIN` | 9 | Navigate button (BOOT) |
 
 Pin definitions live in `include/config.h`.
 
 ## Architecture
 
-The project follows a three-layer architecture:
+```
+Application (main.cpp)
+    │
+    ├── DataService        → sensor + storage + RTC orchestration
+    ├── DisplayService     → menus, graphs, comfort UI
+    └── ConnectivityService → WiFi + NTP time sync
+            │
+        HAL Layer (lib/hardware/)
+            ├── SensorManager    (BME280 I2C)
+            ├── DisplayManager   (ST7789 TFT)
+            ├── StorageManager   (SD card SPI)
+            ├── RTCManager       (ESP32Time)
+            └── WiFiManager      (WiFi + NTP)
+```
 
-- **Application Layer** — `src/main.cpp` orchestrates the full cycle: init hardware, read sensor, display, store, sleep
-- **Service Layer** — Coordinates multiple managers (e.g. `DataService` orchestrates sensor + storage + RTC). Not yet fully wired into main.
-- **Hardware Abstraction Layer** — Manager classes that wrap individual peripherals (`SensorManager`, `DisplayManager`, `StorageManager`, `RTCManager`, `WiFiManager`)
-
-Currently `main.cpp` uses the hardware managers directly. The service layer (`DataService`, `ConnectivityService`, `DisplayService`) is implemented but not yet integrated into the main application flow.
+**`main.cpp` never calls hardware managers directly** — all interactions go through the service layer.
 
 ## Project Structure
 
 ```
-src/
-  main.cpp                 # Firmware entrypoint (setup/loop, deep sleep)
-
+src/main.cpp                    # Firmware entrypoint (two-mode state machine)
 include/
-  config.h                 # Pin definitions, WiFi creds, constants
-  data_structures.h        # Shared types (SensorReading, TemperatureStats, enums)
-  logger.h                 # LOG_INFO/LOG_ERROR macros with auto function name
-  utils.h                  # DateTimeUtils (string ↔ timestamp)
-  app.h                    # Planned App class (commented out)
+  config.h                      # Pin definitions, timing, WiFi creds
+  data_structures.h             # SensorReading, ComfortLevel, DisplayMenu, enums
+  logger.h                      # LOG_INFO / LOG_ERROR macros
 
 lib/
-  sensor_manager/          # BME280 I2C sensor driver
-  rtc_manager/             # ESP32Time RTC wrapper
-  display_manager/         # ST7789 TFT display driver
-  storage_manager/         # SD card CSV logging (largest library ~930 lines)
-  wifi_manager/            # WiFi connection + NTP time sync
-
-  data_service/            # Orchestrates sensor/storage/rtc
-  connectivity_service/    # WiFi + NTP orchestration (header only, .cpp empty)
-  display_service/         # Display orchestration (header only, .cpp empty)
-
-  test_runner/             # Custom Unity runner with PlatformIO-compatible output
-  test_fixture/            # setUp/tearDown dispatch for multiple test namespaces
-  utils/                   # DateTimeUtils implementation + test helpers
-
-  services/                # Older copies of service libs (not used by build)
-  hardware/                # Empty subdirs — planned HAL (not implemented)
+  hardware/                     # HAL layer — direct hardware access
+    sensor_manager/             # BME280 I2C
+    rtc_manager/                # ESP32Time RTC
+    display_manager/            # ST7789 240x240 TFT
+    storage_manager/            # SD card (SPI)
+    wifi_manager/               # WiFi connection
+  services/                     # Service layer — orchestrates hardware
+    data/                       # DataService
+    display/                    # DisplayService
+    connectivity/               # ConnectivityService
+  test_runner/                  # Custom Unity test runner
+  test_fixture/                 # setUp/tearDown dispatch
+  utils/                        # DateTimeUtils, I2CScanner
 
 test/
-  test_embedded/           # On-device tests (Unity, runs on ESP32)
-  test_service/            # Service-layer tests (on device)
-  test_native/             # Host-native tests (no hardware)
-  test_lib/                # Library smoke tests
-```
+  test_hardware/                # Hardware integration tests (34 tests)
+  test_mock/                    # Mock tests on host (33 tests)
+  test_service/                 # Service tests on device
 
-**Note:** There are duplicate libraries at two levels — e.g. `lib/data_service/` and `lib/services/data/`. The top-level versions are used by the build. The `lib/services/` copies are older and reference outdated APIs.
+docs/                           # Starlight wiki (documentation site)
+```
 
 ## Getting Started
 
@@ -94,51 +110,89 @@ The upload automatically opens the serial monitor via `scripts/auto_monitor.py`.
 ### PlatformIO Environments
 
 | Environment | Purpose |
-|---|---|
-| `main` | Firmware build and flash (default) |
+|-------------|---------|
+| `main` | Firmware build, flash, and hardware tests |
+| `mock` | Mock tests on host (no hardware needed) |
 | `service` | Service-layer tests on device |
-| `native` | Host-native tests (no hardware needed) |
-| `sd` | SD card continuous write stability test |
-| `sd_read` | Dump all SD card content to serial |
-| `sd_delete` | Delete datalog.csv from SD card |
 | `display` | Display manager standalone example |
-| `mock` | Mock tests (env configured, test dir not yet created) |
+| `clock` | Clock example (DisplayService + WiFi + RTC) |
 
 ## Testing
 
 Tests use the [Unity](https://www.throwtheswitch.org/unity) test framework with a custom runner and fixture system.
 
 ```sh
-pio test -e main         # embedded tests (runs on device)
-pio test -e service      # service tests (on device)
-pio test -e native       # native host tests
+pio test -e main             # hardware tests (34 tests, on device)
+pio test -e mock             # mock tests (33 tests, on host)
+pio test -e service          # service tests (on device)
 ```
 
-**Custom test runner** (`lib/test_runner/`): Overrides Unity's `RUN_TEST` macro to print PlatformIO-compatible result lines (`file:line:name:PASS/FAIL`).
+### Test Environments
 
-**Fixture system** (`lib/test_fixture/`): `TestContext` singleton lets multiple test namespaces register their own `setUp`/`tearDown` functions. Global `setUp()`/`tearDown()` dispatch to the active namespace.
+| Environment | Platform | What it tests | Tests |
+|------------|----------|---------------|-------|
+| `main` | ESP32-C6 | All hardware + hiking station integration | 34 |
+| `mock` | Host (Mac) | DataService + ConnectivityService mocks | 33 |
+| `service` | ESP32-C6 | DataService with real hardware | 21 |
 
-Individual test suites are enabled/disabled by uncommenting `run_tests()` calls in the test runner `.cpp` files.
+### Test Architecture
+
+- **Custom test runner** (`lib/test_runner/`): Overrides Unity's `RUN_TEST` macro to print PlatformIO-compatible result lines (`file:line:name:PASS/FAIL`).
+- **Fixture system** (`lib/test_fixture/`): `TestContext` singleton lets multiple test namespaces register their own `setUp`/`tearDown` functions.
+
+## Firmware Modes
+
+### Measurement Mode (timer wake)
+
+Wakes every 30 minutes via timer:
+1. Read BME280 sensor (temperature, humidity, pressure, altitude)
+2. Store reading to SD card (`/datalog.csv`)
+3. Enter deep sleep immediately
+
+Display OFF, WiFi OFF. Total wake time: ~2-3 seconds.
+
+### Display Mode (button wake via EXT1)
+
+Wake by pressing Navigate (GPIO9) or Select (GPIO3):
+1. Turn on display, connect WiFi, sync time via NTP
+2. Show current sensor reading
+3. Navigate menu: Graph Temp / Graph Humidity / Graph Altitude / Log Comfort / Sleep
+4. 24h rolling graphs using `getReadingsSince()`
+
+## SD Card Files
+
+| File | Format | Content |
+|------|--------|---------|
+| `/datalog.csv` | `epoch,temp,humidity,pressure,altitude` | Sensor readings |
+| `/comfort.csv` | `epoch,level` | Comfort level logs |
+
+## Documentation
+
+Full documentation lives in `docs/` (Starlight/Astro):
+
+```sh
+cd docs && bun run dev       # start dev server
+```
+
+Sections: Getting Started, Architecture, Configuration, Development, API Reference.
 
 ## Hardware Notes
 
 ### GPIO9 Internal Pull-Up
 
-GPIO9 has an internal weak pull-up resistor enabled by default (documented in ESP32-C6 Technical Reference Manual, Appendix A, pages 77-78). This means you cannot use GPIO9 to power-gate the display — it will always source some current.
+GPIO9 has an internal weak pull-up resistor enabled by default (ESP32-C6 Technical Reference Manual, Appendix A, pages 77-78). You cannot use GPIO9 to power-gate the display.
 
-### Display Power
+### Deep Sleep GPIO Hold
 
-The ST7789 display draws ~30mA total. Options for power management:
+During deep sleep, GPIO2 (backlight) is held LOW via `gpio_hold_en()` to prevent backlight leakage. Guarded by `HOLD_GPIO_IN_SLEEP` in `config.h`. Alternative: pull-down resistor from `TFT_LIT` to GND on the display board.
 
-- **GPIO high-drive mode** — A single GPIO in high-current drive mode (40mA) can power the display directly. Automatically cuts power during deep sleep.
-- **PMOS transistor** — Use a PMOS on the 3V rail, driven by a GPIO (or via NPN for level shifting). Can leverage GPIO hold during deep sleep to keep the display off.
-- **Desolder pull-up resistor** — Remove the default pull-up on the display's power pin and solder a pull-down instead. Cleanest solution, no extra components or software hacks.
+### Display Backlight
 
-The 3V output on the ESP32-C6 Feather stays at 3V even during deep sleep, so external switching is needed if you want to fully cut display power.
+Backlight is active-HIGH (`HIGH` = ON, `LOW` = OFF). `TFT_BACKLIGHT_INVERTED = 1` in `config.h`. The `setBrightness()` method is a raw PWM passthrough — polarity is handled by `BL_ON`/`BL_OFF` macros.
 
 ### Platform Fork
 
-This project uses the [Tasmota fork](https://github.com/tasmota/platform-espressif32) of platform-espressif32 (not the official Espressif platform) for Arduino framework support on ESP32-C6.
+This project uses the [Tasmota fork](https://github.com/tasmota/platform-espressif32) of platform-espressif32 for Arduino framework support on ESP32-C6.
 
 If you see `Error: This board doesn't support arduino framework!`:
 ```sh
@@ -146,11 +200,15 @@ pio run -t clean
 pio pkg uninstall && pio pkg install
 ```
 
-## Known Issues
+## Code Style
 
-- Filename typo: `connectivity_serivce.h` (not `service`) in `lib/connectivity_service/` and `lib/services/connectivity/`
-- `lib/hardware/` contains empty subdirectories — planned HAL, not yet implemented
-- `test/test_mock/` referenced by `env:mock` in `platformio.ini` does not exist yet
-- `src/utils.cpp` is a partial duplicate of `lib/utils/utils.cpp` — potential linker conflict
-- `app.h` is entirely commented out (planned App class)
-- WiFi credentials are hardcoded in `include/config.h`
+- Pin definitions in `include/config.h`
+- Shared types in `include/data_structures.h`
+- Logging via `LOG_INFO(...)`, `LOG_ERROR(...)` macros from `include/logger.h`
+- WiFi credentials hardcoded in `include/config.h`
+- `time_t` on ESP32-C6 is 64-bit — always cast to `unsigned long` for `%lu`
+- Conditional compilation: `#ifdef MOCK` swaps Arduino types for standard C++ in mock builds
+
+## License
+
+MIT
