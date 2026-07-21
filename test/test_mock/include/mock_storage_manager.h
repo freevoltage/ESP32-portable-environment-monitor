@@ -73,7 +73,7 @@ bool StorageManager::getReadingsSince(time_t timestamp, std::vector<SensorReadin
     return true;
 }
 
-void StorageManager::cleanup() {
+void StorageManager::cleanup(time_t now, uint32_t period_days) {
     // No-op in mock
 }
 

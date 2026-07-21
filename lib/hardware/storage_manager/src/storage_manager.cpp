@@ -601,16 +601,82 @@ size_t StorageManager::getUsedSpace()
     return getFileSize(_filename);
 }
 
-/* Remove reading older than 30 days */
-void StorageManager::cleanup()
+/* Remove readings older than period_days using RTC timestamps */
+void StorageManager::cleanup(time_t now, uint32_t period_days)
 {
-    // TODO Add adjustable cleanup_period
-    uint32_t cutoffTime = millis() - (30UL * 24UL * 60UL * 60UL * 1000UL);
+    if (!_initialized)
+    {
+        LOG_ERROR("Storage not initialized. Cleanup not possible");
+        return;
+    }
 
-    // The Cleanup procedure would require to rewrite the file to remove old entries
-    // and is therefore not implemented for now
-    // TODO The Cleanup Function is not implemented yet. Needs implementation
-    LOG_INFO("Cleanup: would remove readings older than %lu\n", cutoffTime);
+    if (!fileExists(_filename))
+    {
+        LOG_INFO("No datalog file to clean up");
+        return;
+    }
+
+    time_t cutoff = now - (period_days * 24UL * 60UL * 60UL);
+    String tempFilename = _filename + ".tmp";
+
+    // Open original file for reading
+    File readFile = SD.open(_filename.c_str(), FILE_READ);
+    if (!readFile)
+    {
+        LOG_ERROR("Failed to open datalog for cleanup");
+        return;
+    }
+
+    // Skip header line
+    if (readFile.available())
+        readFile.readStringUntil('\n');
+
+    // Open temp file for writing
+    File writeFile = SD.open(tempFilename.c_str(), FILE_WRITE);
+    if (!writeFile)
+    {
+        LOG_ERROR("Failed to create temp file for cleanup");
+        readFile.close();
+        return;
+    }
+
+    // Write header to temp file
+    writeFile.println("Timestamp,Temperature,Humidity,Pressure,Altitude");
+
+    uint32_t kept = 0;
+    uint32_t removed = 0;
+
+    while (readFile.available())
+    {
+        String line = readFile.readStringUntil('\n');
+        line.trim();
+        if (line.length() == 0)
+            continue;
+
+        // Parse timestamp (first field)
+        time_t timestamp = 0;
+        sscanf(line.c_str(), "%lu", &timestamp);
+
+        if (timestamp >= cutoff)
+        {
+            writeFile.println(line);
+            kept++;
+        }
+        else
+        {
+            removed++;
+        }
+    }
+
+    readFile.close();
+    writeFile.close();
+
+    // Delete original and rename temp
+    deleteFile(_filename);
+    SD.rename(tempFilename.c_str(), _filename.c_str());
+
+    LOG_INFO("Cleanup: kept %lu, removed %lu readings (cutoff %lu days)",
+             kept, removed, period_days);
 }
 
 bool StorageManager::storeComfortLog(const ComfortLog &log)

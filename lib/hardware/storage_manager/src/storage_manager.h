@@ -33,7 +33,7 @@ public:
     bool getLastNReadings(std::vector<SensorReading> &readings, uint16_t maxCount = 10);
     // Returns the readings since the given timestamp, writes it to the given readings vector by overwriting all of its content.
     bool getReadingsSince(time_t timestamp, std::vector<SensorReading> &readings, uint16_t maxCount = 1000);
-    void cleanup(); // Remove reading older than 30 days.
+    void cleanup(time_t now, uint32_t period_days = 30); // Remove readings older than period_days
 
     /* Comfort Log Operations */
     bool storeComfortLog(const ComfortLog &log);
