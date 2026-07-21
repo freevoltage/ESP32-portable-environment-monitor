@@ -54,6 +54,10 @@ public:
     // Battery Display
     void showBatteryInfo(const BatteryStatus& battery);
 
+    // Time Sync Display
+    void showSyncUI(SyncMode currentMode, SyncSource lastSource, time_t lastSyncTime);
+    void showSyncProgress(const char* message);
+
 private:
     Adafruit_ST7789* _tft;
 

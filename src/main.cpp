@@ -10,6 +10,7 @@
 #include <data_service.h>
 #include <data_structures.h>
 #include <battery_manager.h>
+#include <time_sync_service.h>
 
 // OTA
 #include <WiFi.h>
@@ -30,6 +31,7 @@ ConnectivityService connectivity(&wifiMgr, &rtc);
 DisplayService displayService(&display, &rtc, &connectivity);
 DataService dataService(&sensor, &storage, &rtc);
 BatteryManager battery;
+TimeSyncService timeSync;
 
 // OTA server
 AsyncWebServer otaServer(OTA_SERVER_PORT);
@@ -238,7 +240,13 @@ void runDisplayMode() {
     battery.begin();
 
     rtc.begin();
-    connectivity.ensureTimeSync();
+
+    // Initialize time sync service
+    timeSync.begin(&rtc, &connectivity);
+
+    // Sync time (BLE first, then WiFi fallback per configured mode)
+    display.showSyncProgress("Syncing time...");
+    timeSync.sync();
 
     displayService.showStartupScreen();
     delay(1500);
@@ -282,7 +290,7 @@ void runDisplayMode() {
         if (navPressed) {
             // Cycle through menu items
             int idx = static_cast<int>(currentMenu);
-            idx = (idx + 1) % 6; // 6 menu items
+            idx = (idx + 1) % 7; // 7 menu items
             currentMenu = static_cast<DisplayMenu>(idx);
         }
 
@@ -338,6 +346,39 @@ void runDisplayMode() {
                 case DisplayMenu::OTA:
                     runOTAMode(); // Never returns
                     break;
+
+                case DisplayMenu::SYNC_TIME: {
+                    // Sync time sub-menu
+                    bool inSyncMenu = true;
+
+                    while (inSyncMenu) {
+                        SyncStatus syncStatus = timeSync.getStatus();
+                        displayService.showSyncUI(syncStatus.mode, syncStatus.lastSource, syncStatus.lastSyncTime);
+
+                        // Wait for button
+                        while (digitalRead(NAV_BUTTON_PIN) == HIGH &&
+                               digitalRead(SEL_BUTTON_PIN) == HIGH) {
+                            delay(50);
+                        }
+                        delay(200); // Debounce
+
+                        if (digitalRead(NAV_BUTTON_PIN) == LOW) {
+                            // Cycle through sync modes
+                            SyncMode current = timeSync.getMode();
+                            int modeIdx = static_cast<int>(current);
+                            modeIdx = (modeIdx + 1) % 5; // 5 modes
+                            timeSync.setMode(static_cast<SyncMode>(modeIdx));
+                        }
+
+                        if (digitalRead(SEL_BUTTON_PIN) == LOW) {
+                            // Trigger sync
+                            display.showSyncProgress("Syncing...");
+                            timeSync.sync();
+                            delay(1000);
+                        }
+                    }
+                    break;
+                }
             }
         }
     }

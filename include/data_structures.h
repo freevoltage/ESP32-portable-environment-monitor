@@ -99,6 +99,31 @@ struct ComfortLog {
     ComfortLog(time_t ts, ComfortLevel lv) : timestamp(ts), level(lv) {}
 };
 
+// Time sync configuration
+enum class SyncMode : uint8_t {
+    OFF,        // No sync
+    BLE_ONLY,   // Phone BLE only
+    WIFI_ONLY,  // WiFi NTP only
+    BLE_FIRST,  // Try BLE, fallback WiFi
+    WIFI_FIRST  // Try WiFi, fallback BLE
+};
+
+enum class SyncSource : uint8_t {
+    NONE,
+    BLE,
+    WIFI
+};
+
+struct SyncStatus {
+    SyncMode mode;
+    SyncSource lastSource;
+    time_t lastSyncTime;
+    bool syncInProgress;
+
+    SyncStatus() : mode(SyncMode::BLE_FIRST), lastSource(SyncSource::NONE),
+                   lastSyncTime(0), syncInProgress(false) {}
+};
+
 // Display menu state for two-button navigation
 enum class DisplayMenu : uint8_t {
     GRAPH_TEMP,
@@ -106,5 +131,6 @@ enum class DisplayMenu : uint8_t {
     GRAPH_ALTITUDE,
     LOG_COMFORT,
     OTA,
+    SYNC_TIME,
     SLEEP
 };

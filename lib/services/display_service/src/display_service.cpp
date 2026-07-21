@@ -154,8 +154,8 @@ bool DisplayService::showMenu(DisplayMenu current) {
     displayManager->clear();
     displayManager->drawHeader("MENU");
 
-    const char* items[] = {"Graph Temp", "Graph Humidity", "Graph Altitude", "Log Comfort", "OTA", "Sleep"};
-    const int itemCount = 6;
+    const char* items[] = {"Graph Temp", "Graph Humidity", "Graph Altitude", "Log Comfort", "OTA", "Sync Time", "Sleep"};
+    const int itemCount = 7;
 
     for (int i = 0; i < itemCount; i++)
     {
@@ -167,8 +167,8 @@ bool DisplayService::showMenu(DisplayMenu current) {
         {
             displayManager->getTFT()->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
         }
-        displayManager->getTFT()->setTextSize(2);
-        displayManager->getTFT()->setCursor(20, 30 + i * 30);
+        displayManager->getTFT()->setTextSize(1);
+        displayManager->getTFT()->setCursor(10, 22 + i * 28);
         displayManager->getTFT()->print(items[i]);
     }
 
@@ -229,5 +229,16 @@ bool DisplayService::showGraph(const char* title, const char* unit,
 
     displayManager->drawGraph(title, unit, values, timestamps, minVal, maxVal);
     LOG_INFO("Graph displayed: %s", title);
+    return true;
+}
+
+bool DisplayService::showSyncUI(SyncMode currentMode, SyncSource lastSource, time_t lastSyncTime) {
+    if (!displayManager || !displayManager->isReady()) {
+        LOG_ERROR("Display not ready for sync UI");
+        return false;
+    }
+
+    displayManager->showSyncUI(currentMode, lastSource, lastSyncTime);
+    LOG_INFO("Sync UI displayed, mode=%d", static_cast<int>(currentMode));
     return true;
 }

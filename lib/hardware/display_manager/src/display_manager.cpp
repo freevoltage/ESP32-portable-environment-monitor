@@ -598,3 +598,65 @@ void DisplayManager::showBatteryInfo(const BatteryStatus& battery)
     _tft->setCursor(5, y);
     _tft->printf("BATT: %.0f%% (%.2fV)", battery.percent, battery.voltage);
 }
+
+void DisplayManager::showSyncUI(SyncMode currentMode, SyncSource lastSource, time_t lastSyncTime)
+{
+    if (!isReady()) return;
+
+    clear();
+    drawHeader("TIME SYNC");
+
+    // Current mode
+    _tft->setTextColor(ST77XX_WHITE);
+    _tft->setTextSize(2);
+    _tft->setCursor(10, 35);
+    _tft->print("Mode:");
+
+    // Mode value (highlighted in cyan)
+    _tft->setTextColor(ST77XX_CYAN);
+    _tft->setCursor(10, 60);
+    const char* modeNames[] = {"OFF", "BLE", "WiFi", "BLE+WiFi", "WiFi+BLE"};
+    _tft->print(modeNames[static_cast<int>(currentMode)]);
+
+    // Last sync info
+    _tft->setTextSize(1);
+    _tft->setTextColor(ST77XX_WHITE);
+    _tft->setCursor(10, 100);
+    _tft->print("Last sync:");
+
+    if (lastSource == SyncSource::NONE || lastSyncTime == 0) {
+        _tft->setTextColor(ST77XX_YELLOW);
+        _tft->setCursor(10, 115);
+        _tft->print("Never");
+    } else {
+        _tft->setTextColor(lastSource == SyncSource::BLE ? ST77XX_GREEN : ST77XX_BLUE);
+        _tft->setCursor(10, 115);
+        const char* srcName = (lastSource == SyncSource::BLE) ? "BLE" : "WiFi";
+        _tft->printf("%s @ %lu", srcName, (unsigned long)lastSyncTime);
+    }
+
+    // Button hints
+    _tft->setTextColor(ST77XX_YELLOW);
+    _tft->setTextSize(1);
+    _tft->setCursor(5, 225);
+    _tft->print("A=Mode B=Sync");
+}
+
+void DisplayManager::showSyncProgress(const char* message)
+{
+    if (!isReady()) return;
+
+    // Clear bottom area for progress
+    _tft->fillRect(0, 140, 240, 80, ST77XX_BLACK);
+
+    _tft->setTextColor(ST77XX_YELLOW);
+    _tft->setTextSize(2);
+    _tft->setCursor(20, 150);
+    _tft->print(message);
+
+    // Animated dots
+    _tft->setTextColor(ST77XX_WHITE);
+    _tft->setTextSize(1);
+    _tft->setCursor(20, 175);
+    _tft->print("Please wait...");
+}

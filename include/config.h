@@ -67,3 +67,8 @@
 
 // Battery Management (MAX17048 fuel gauge on I2C)
 #define NEOPIXEL_I2C_POWER 20   // GPIO20 controls I2C power rail — cut before deep sleep to save ~55uA
+
+// BLE Time Sync Configuration
+#define BLE_DEVICE_NAME          "HikingStation"
+#define BLE_SYNC_TIMEOUT_MS      30000   // 30s to wait for phone BLE time write
+#define TIME_SYNC_CONFIG_FILE    "/sync_config.txt"  // Persisted sync mode on LittleFS
