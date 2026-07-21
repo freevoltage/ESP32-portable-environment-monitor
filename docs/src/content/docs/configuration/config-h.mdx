@@ -1,0 +1,76 @@
+---
+title: config.h Reference
+description: All configuration options in include/config.h.
+---
+
+## Pin Definitions
+
+| Define | Value | Description |
+|--------|-------|-------------|
+| `SD_CS` | `0` | SD card chip select |
+| `TFT_LIT` | `2` | Backlight pin |
+| `TFT_CS` | `5` | Display chip select |
+| `TFT_RST` | `6` | Display reset |
+| `TFT_DC` | `7` | Display data/command |
+| `NAV_BUTTON_PIN` | `9` | Navigate button (BOOT) |
+| `SEL_BUTTON_PIN` | `3` | Select button |
+
+## Display
+
+| Define | Value | Description |
+|--------|-------|-------------|
+| `TFT_BACKLIGHT_INVERTED` | `1` | Backlight polarity: 1 = active-HIGH |
+| `TFT_ROTATION` | `2` | Display rotation (0-3) |
+
+## Sensor
+
+| Define | Value | Description |
+|--------|-------|-------------|
+| `SEALEVELPRESSURE_HPA` | `1013.25` | Sea level pressure for altitude calculation |
+
+## Timing
+
+| Define | Value | Description |
+|--------|-------|-------------|
+| `uS_TO_S_FACTOR` | `1000000ULL` | Microseconds to seconds conversion |
+| `TIME_TO_SLEEP` | `5` | Deep sleep duration in seconds (test mode) |
+| `MEASUREMENT_INTERVAL_SEC` | `1800` | Measurement interval (30 minutes) |
+| `TIME_SYNC_INTERVAL_HOURS` | `24` | NTP sync interval |
+
+## Graph Layout
+
+| Define | Value | Description |
+|--------|-------|-------------|
+| `GRAPH_PADDING` | `10` | Graph padding in pixels |
+| `GRAPH_WIDTH` | `220` | `240 - 2 * GRAPH_PADDING` |
+| `GRAPH_HEIGHT` | `220` | `240 - 2 * GRAPH_PADDING` |
+
+## Data Files
+
+| Define | Value | Description |
+|--------|-------|-------------|
+| `DATALOG_FILENAME` | `"/datalog.csv"` | Sensor data log |
+| `COMFORT_FILENAME` | `"/comfort.csv"` | Comfort level log |
+| `DEFAULT_MAX_SIZE` | `1000` | Max entries per file |
+
+## Deep Sleep
+
+| Define | Value | Description |
+|--------|-------|-------------|
+| `HOLD_GPIO_IN_SLEEP` | `1` | Hold GPIO states during deep sleep |
+
+## WiFi & NTP
+
+| Define | Value | Description |
+|--------|-------|-------------|
+| `WIFI_SSID` | `"TP-Link_0B73"` | WiFi network name |
+| `WIFI_PASSWORD` | `"63392418"` | WiFi password |
+| `NTP_SERVER` | `"pool.ntp.org"` | NTP server |
+| `GMT_OFFSET_SEC` | `3600` | GMT+1 offset |
+| `DAYLIGHT_OFFSET_SEC` | `3600` | DST offset |
+
+## Debug
+
+| Define | Value | Description |
+|--------|-------|-------------|
+| `DEBUG` | commented out | Enable debug output |

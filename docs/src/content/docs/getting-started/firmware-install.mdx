@@ -1,0 +1,54 @@
+---
+title: Firmware Install
+description: Build and flash the firmware to your ESP32-C6.
+---
+
+## Prerequisites
+
+- [PlatformIO CLI](https://platformio.org/install/cli) or VS Code with PlatformIO extension
+- USB cable connected to the ESP32-C6
+
+## Build
+
+```sh
+pio run -e main
+```
+
+## Upload
+
+```sh
+pio run -t upload -e main
+```
+
+This automatically opens the serial monitor after upload via `scripts/auto_monitor.py`.
+
+## Serial Monitor
+
+```sh
+pio device monitor
+```
+
+## Clean Build
+
+If you change platform or library settings:
+
+```sh
+pio run -t clean
+pio run -e main
+```
+
+## Platform Quirk
+
+This project uses the **Tasmota fork** of `platform-espressif32` for Arduino framework support on ESP32-C6. If you see `Error: This board doesn't support arduino framework!`:
+
+```sh
+pio run -t clean
+pio pkg uninstall && pio pkg install
+```
+
+## Build Output
+
+```
+RAM:   [=         ]  11.3% (used 36884 bytes from 327680 bytes)
+Flash: [=====     ]  52.0% (used 681760 bytes from 1310720 bytes)
+```

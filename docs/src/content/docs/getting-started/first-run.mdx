@@ -1,0 +1,57 @@
+---
+title: First Run
+description: What to expect when you first boot the hiking weather station.
+---
+
+## Boot Sequence
+
+1. **Serial output** — Sensor initialization, SD card mount, WiFi connection
+2. **Display** — Brief backlight flash during test cycle
+3. **Measurement mode** — Reads sensors, stores to SD, enters deep sleep
+
+## Two Modes
+
+The station operates in two modes:
+
+### Measurement Mode (automatic)
+
+Wakes every 30 minutes via timer:
+1. Read BME280 sensor (temperature, humidity, pressure, altitude)
+2. Store reading to SD card (`/datalog.csv`)
+3. Enter deep sleep immediately
+
+This mode has the display OFF and WiFi OFF. Total wake time: ~2-3 seconds.
+
+### Display Mode (button press)
+
+Wake by pressing **Navigate** (GPIO9) or **Select** (GPIO3):
+1. Turn on display backlight
+2. Connect to WiFi, sync time via NTP
+3. Show current sensor reading
+4. Navigate menu: Graph Temp / Graph Humidity / Graph Altitude / Log Comfort / Sleep
+
+## Menu Navigation
+
+- **Navigate button** (GPIO9): Cycle through menu items
+- **Select button** (GPIO3): Select current item
+
+### Menu Items
+
+| Item | Description |
+|------|-------------|
+| Graph Temp | 24h rolling temperature graph |
+| Graph Humidity | 24h rolling humidity graph |
+| Graph Altitude | 24h rolling altitude graph |
+| Log Comfort | Log comfort level (Too cold → Too warm) |
+| Sleep | Enter deep sleep |
+
+## SD Card Files
+
+| File | Content |
+|------|---------|
+| `/datalog.csv` | Sensor readings: `epoch,temp,humidity,pressure,altitude` |
+| `/comfort.csv` | Comfort logs: `epoch,level` |
+
+## Serial Output
+
+Connect via `pio device monitor` to see sensor readings, WiFi status, and debug output.

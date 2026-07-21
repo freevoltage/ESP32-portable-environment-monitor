@@ -17,7 +17,7 @@
 - [x] Write an Example which shows the current time (clock) on the display, utilizing the connetivity service for getting the time sync and the display for plotting the data. It should also write the data to the terminal, so we can see if the display is not working .
 - [x] Tell the AI that it should regularly updated PORJECT_STATUS.md. Just in case it needs to compact its memory and may forogot important things. And for me to know here we are
 - [x] Fix test runner — missing colon in output format prevented PlatformIO from parsing PASS/FAIL/SKIP results
-- [] I want to have a docusarus (or other framework, pls research alternatives for docusaurus, I like modern ones) wiki for this project. It should be also regulary updated and part of AGENTS.md
+- [x] I want to have a docusarus (or other framework, pls research alternatives for docusaurus, I like modern ones) wiki for this project. It should be also regulary updated and part of AGENTS.md
 
 ----
 

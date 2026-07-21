@@ -1,0 +1,54 @@
+---
+title: Examples
+description: PlatformIO examples for display and clock functionality.
+---
+
+## Display Example
+
+**Location**: `lib/hardware/display_manager/example/example_display/`
+
+Exercises all 10 DisplayManager methods:
+
+```sh
+pio run -t upload -e display
+```
+
+**What it shows**:
+- Current sensor reading
+- Temperature statistics (min/max/avg)
+- System status overview
+- Connectivity status (5 states)
+- Text messages and errors
+- 24h rolling graph
+- Brightness control
+- Header and separator drawing
+
+## Clock Example
+
+**Location**: `lib/services/display_service/example/example_clock/`
+
+Service-layer example using `DisplayService.showClock()`:
+
+```sh
+pio run -t upload -e clock
+```
+
+**What it shows**:
+- Current time and date on TFT
+- Uses ConnectivityService for WiFi + NTP sync
+- Uses RTCManager for time
+- Also writes time to terminal for debugging
+
+## Running Examples
+
+Each example is a separate PlatformIO environment. Build and upload:
+
+```sh
+pio run -t upload -e display    # Display example
+pio run -t upload -e clock      # Clock example
+```
+
+Open serial monitor to see terminal output:
+```sh
+pio device monitor
+```

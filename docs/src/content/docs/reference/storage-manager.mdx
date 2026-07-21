@@ -1,0 +1,84 @@
+---
+title: StorageManager
+description: API reference for the SD card storage manager.
+---
+
+## Location
+
+`lib/hardware/storage_manager/`
+
+## CSV Formats
+
+- **`/datalog.csv`**: `epoch,temp,humidity,pressure,altitude`
+- **`/comfort.csv`**: `epoch,level`
+
+## Methods
+
+### `begin()`
+
+Mount the SD card and initialize SPI.
+
+**Returns**: `bool` — `true` if SD card mounted successfully.
+
+### `storeReading(SensorReading)`
+
+Append a sensor reading to `/datalog.csv`.
+
+**Parameters**:
+- `reading` — SensorReading with timestamp
+
+### `getReadingsSince(time_t since)`
+
+Get all sensor readings from a given time (typically last 24 hours).
+
+**Parameters**:
+- `since` — Unix timestamp to start from
+
+**Returns**: `std::vector<SensorReading>` — Readings since the given time.
+
+### `storeComfortLog(ComfortLog)`
+
+Append a comfort log entry to `/comfort.csv`.
+
+**Parameters**:
+- `log` — ComfortLog with timestamp and level
+
+### `getComfortLogsSince(time_t since)`
+
+Get comfort logs from a given time.
+
+**Parameters**:
+- `since` — Unix timestamp to start from
+
+**Returns**: `std::vector<ComfortLog>` — Logs since the given time.
+
+### `cleanup(time_t now, uint32_t period_days)`
+
+Remove entries older than `period_days` days.
+
+**Parameters**:
+- `now` — Current time
+- `period_days` — Retention period (default: 30 days)
+
+**Implementation**: Rewrites the file keeping only recent entries.
+
+## Usage
+
+```cpp
+#include "storage_manager.h"
+
+StorageManager storage;
+
+void setup() {
+    storage.begin();
+}
+
+void logData() {
+    SensorReading reading = sensor.readAll();
+    storage.storeReading(reading);
+
+    // Get last 24h of readings
+    time_t now = rtc.getTime();
+    auto readings = storage.getReadingsSince(now - 86400);
+}
+```

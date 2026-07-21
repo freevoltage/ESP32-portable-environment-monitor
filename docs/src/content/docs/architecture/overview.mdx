@@ -1,0 +1,74 @@
+---
+title: System Overview
+description: Architecture of the ESP32 hiking weather station.
+---
+
+## Architecture Diagram
+
+```
+┌─────────────────────────────────────────────┐
+│              Application (main.cpp)         │
+│         Two-mode state machine              │
+│    Measurement mode ↔ Display mode          │
+├─────────────────────────────────────────────┤
+│              Service Layer                  │
+│  ┌──────────┬──────────┬──────────────────┐ │
+│  │ DataService │ DisplayService │ ConnectivityService │
+│  └──────────┴──────────┴──────────────────┘ │
+├─────────────────────────────────────────────┤
+│              HAL Layer                      │
+│  ┌──────────┬──────────┬──────────┬────────┐│
+│  │SensorMgr │DisplayMgr│StorageMgr│ WiFiMgr││
+│  │ RTCMgr   │          │          │        ││
+│  └──────────┴──────────┴──────────┴────────┘│
+└─────────────────────────────────────────────┘
+```
+
+`main.cpp` **never calls hardware managers directly** — all interactions go through the service layer.
+
+## Directory Structure
+
+```
+src/main.cpp                    # Firmware entrypoint
+include/
+  config.h                      # Pin definitions, timing, WiFi creds
+  data_structures.h             # SensorReading, enums, shared types
+  logger.h                      # LOG_INFO / LOG_ERROR macros
+
+lib/
+  hardware/                     # HAL layer — direct hardware access
+    sensor_manager/             # BME280 I2C
+    rtc_manager/                # ESP32Time RTC
+    display_manager/            # ST7789 240x240 TFT
+    storage_manager/            # SD card (SPI)
+    wifi_manager/               # WiFi connection
+  services/                     # Service layer — orchestrates hardware
+    data/                       # DataService
+    display/                    # DisplayService
+    connectivity/               # ConnectivityService
+  test_runner/                  # Custom Unity test runner
+  test_fixture/                 # setUp/tearDown dispatch
+  utils/                        # DateTimeUtils, I2CScanner
+```
+
+## Firmware Modes
+
+### Measurement Mode (timer wake)
+
+- Display OFF, WiFi OFF
+- Read sensors → store to SD → sleep
+- ~2-3 seconds total, wakes every 30 minutes
+
+### Display Mode (button wake via EXT1)
+
+- Turn on display → WiFi/NTP sync → show reading
+- Navigate menu → graphs, comfort logging, sleep
+- EXT1 wake on both buttons: `(1ULL << GPIO9) | (1ULL << GPIO3)`
+
+## Test Environments
+
+| Environment | Platform | What it tests |
+|------------|----------|---------------|
+| `main` | ESP32-C6 | All hardware + integration (34 tests) |
+| `mock` | Host (Mac) | DataService + ConnectivityService mocks (33 tests) |
+| `service` | ESP32-C6 | DataService with real hardware |

@@ -1,0 +1,88 @@
+---
+title: Hardware Layer
+description: HAL managers for sensor, display, RTC, storage, and WiFi.
+---
+
+The HAL layer provides direct hardware access. Each manager is a self-contained library under `lib/hardware/`.
+
+## Sensor Manager
+
+**Location**: `lib/hardware/sensor_manager/`
+
+BME280 temperature, humidity, pressure, and altitude sensor via I2C.
+
+| Method | Description |
+|--------|-------------|
+| `begin()` | Initialize I2C and configure BME280 |
+| `isReady()` | Check if sensor is initialized |
+| `testConnection()` | Verify I2C communication |
+| `readTemperature()` | Temperature in °C |
+| `readHumidity()` | Humidity in % |
+| `readPressure()` | Pressure in hPa |
+| `readAltitude()` | Altitude in meters (uses `SEALEVELPRESSURE_HPA`) |
+| `readAll()` | Returns `SensorReading` with all values |
+
+## Display Manager
+
+**Location**: `lib/hardware/display_manager/`
+
+ST7789 240x240 TFT display with GFX-based graph drawing.
+
+| Method | Description |
+|--------|-------------|
+| `begin()` | Initialize TFT, set rotation, clear screen |
+| `showReading(SensorReading)` | Display current sensor values |
+| `showTemperatureStats(TemperatureStats)` | Min/max/avg temperature |
+| `showSystemStatus(SystemStatus)` | System health overview |
+| `showConnectivityStatus(ConnectivityStatus)` | WiFi + NTP status (5 states) |
+| `showMessage(String)` | Display a text message |
+| `showError(String)` | Display an error message |
+| `drawGraph(float[], int, ...)` | Draw a line graph with labels |
+| `setBrightness(uint8)` | Set backlight brightness (0-255) |
+| `drawHeader(String)` | Draw a header bar |
+| `drawSeparator()` | Draw a horizontal separator line |
+
+## RTC Manager
+
+**Location**: `lib/hardware/rtc_manager/`
+
+ESP32Time RTC for timekeeping during deep sleep.
+
+| Method | Description |
+|--------|-------------|
+| `begin()` | Initialize RTC |
+| `getTime()` | Get current `time_t` |
+| `getEpoch()` | Get epoch seconds |
+| `setTime(time_t)` | Set RTC time |
+
+## Storage Manager
+
+**Location**: `lib/hardware/storage_manager/`
+
+SD card storage for sensor logs and comfort logs.
+
+| Method | Description |
+|--------|-------------|
+| `begin()` | Mount SD card |
+| `storeReading(SensorReading)` | Append to `/datalog.csv` |
+| `getReadingsSince(time_t)` | Get readings from last 24h |
+| `storeComfortLog(ComfortLog)` | Append to `/comfort.csv` |
+| `getComfortLogsSince(time_t)` | Get comfort logs since time |
+| `cleanup(time_t, uint32_t)` | Remove old entries (file rewrite) |
+
+**CSV Format**:
+- `/datalog.csv`: `epoch,temp,humidity,pressure,altitude`
+- `/comfort.csv`: `epoch,level`
+
+## WiFi Manager
+
+**Location**: `lib/hardware/wifi_manager/`
+
+WiFi connection management.
+
+| Method | Description |
+|--------|-------------|
+| `connect()` | Connect to configured WiFi |
+| `disconnect()` | Disconnect from WiFi |
+| `isConnected()` | Check connection status |
+| `syncTime(server)` | Sync time via NTP |

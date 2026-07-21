@@ -1,0 +1,65 @@
+---
+title: Deep Sleep & Power
+description: Deep sleep modes, GPIO hold, and power management.
+---
+
+## Overview
+
+The ESP32-C6 supports deep sleep to minimize power consumption. The hiking station uses two wake sources:
+
+1. **Timer wake** — measurement mode (every 30 minutes)
+2. **EXT1 wake** — display mode (button press)
+
+## Measurement Mode
+
+Timer wake every `MEASUREMENT_INTERVAL_SEC` (1800 = 30 minutes):
+
+```
+Wake → Read sensors → Store to SD → Deep sleep
+```
+
+- Display OFF
+- WiFi OFF
+- Total wake time: ~2-3 seconds
+- Uses `esp_sleep_enable_timer_wakeup()`
+
+## Display Mode
+
+Button wake via EXT1:
+
+```
+Wake → Display on → WiFi/NTP sync → Menu → Deep sleep
+```
+
+- Display ON
+- WiFi ON (for NTP sync)
+- Uses `esp_sleep_enable_ext1_wakeup()` with both buttons
+
+**EXT1 Configuration**:
+```cpp
+esp_sleep_enable_ext1_wakeup(
+    (1ULL << NAV_BUTTON_PIN) | (1ULL << SEL_BUTTON_PIN),
+    ESP_EXT1_WAKEUP_ANY_LOW
+);
+```
+
+## GPIO Hold
+
+During deep sleep, GPIO2 (backlight) is held LOW to prevent leakage:
+
+```cpp
+gpio_hold_en(GPIO_NUM_2);  // Hold backlight OFF
+```
+
+This is guarded by `#define HOLD_GPIO_IN_SLEEP 1` in `config.h`.
+
+**Alternative**: Hardware pull-down resistor from `TFT_LIT` to GND on the display board.
+
+## Power Budget
+
+| Mode | Display | WiFi | Duration |
+|------|---------|------|----------|
+| Measurement | OFF | OFF | ~2-3 sec |
+| Display | ON | ON | Until sleep |
+
+The majority of time is spent in deep sleep (~30 minutes between measurements).

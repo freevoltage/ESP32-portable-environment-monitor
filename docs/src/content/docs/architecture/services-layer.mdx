@@ -1,0 +1,87 @@
+---
+title: Services Layer
+description: Service layer that orchestrates hardware managers.
+---
+
+The service layer sits between `main.cpp` and the HAL. It orchestrates multiple hardware managers to implement higher-level workflows.
+
+## Data Service
+
+**Location**: `lib/services/data/` (232 lines)
+
+Orchestrates sensor, storage, and RTC to collect and persist readings.
+
+| Method | Description |
+|--------|-------------|
+| `begin()` | Initialize all dependencies |
+| `collectReading()` | Read sensor, store to SD, return reading |
+| `getRecentReadings()` | Get last 24h of readings from SD |
+| `calculateStats(readings)` | Compute min/max/avg from readings |
+| `getComfortLevel(reading)` | Determine comfort level from temperature |
+| `logComfort(level)` | Store comfort log with timestamp |
+
+**Responsibilities**:
+- Sensor data collection and validation
+- SD card storage orchestration
+- Temperature statistics calculation
+- Comfort level determination
+
+## Display Service
+
+**Location**: `lib/services/display/` (~120 lines)
+
+Manages all display output — menus, graphs, comfort UI.
+
+| Method | Description |
+|--------|-------------|
+| `begin()` | Initialize display manager |
+| `showStartup()` | Boot screen with sensor status |
+| `showReading(SensorReading)` | Current sensor values |
+| `showGraph(data, label)` | 24h rolling graph |
+| `showMenu(DisplayMenu)` | Menu with current selection highlighted |
+| `showComfortUI()` | Comfort level selection screen |
+| `showClock()` | Display current time and date |
+| `setBrightness(uint8)` | Adjust backlight |
+
+**Menu System**:
+- Two-button navigation (Navigate + Select)
+- 5 menu items: Graph Temp / Graph Humidity / Graph Altitude / Log Comfort / Sleep
+
+## Connectivity Service
+
+**Location**: `lib/services/connectivity/` (116 lines)
+
+WiFi connection and NTP time synchronization.
+
+| Method | Description |
+|--------|-------------|
+| `begin()` | Initialize WiFi manager |
+| `connect()` | Connect to WiFi network |
+| `disconnect()` | Disconnect from WiFi |
+| `syncTime()` | Sync RTC via NTP |
+| `ensureTimeSync()` | Sync if needed (once per day) |
+| `getStatus()` | Return `ConnectivityStatus` |
+
+**State Machine**:
+```
+DISCONNECTED → CONNECTING → CONNECTED → TIME_SYNCING → SYNC_COMPLETE
+```
+
+## How Services Interact
+
+```
+main.cpp
+  │
+  ├── DataService.collectReading()
+  │     ├── SensorManager.readAll()
+  │     └── StorageManager.storeReading()
+  │
+  ├── DisplayService.showGraph()
+  │     ├── DataService.getRecentReadings()
+  │     └── DisplayManager.drawGraph()
+  │
+  └── ConnectivityService.syncTime()
+        └── WiFiManager.syncTime()
+```
+
+Services never call each other directly — `main.cpp` orchestrates the workflow.

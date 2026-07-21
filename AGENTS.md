@@ -70,4 +70,13 @@ Headers use `#ifdef MOCK` to swap Arduino types for standard C++ types when runn
 ## Known Issues
 
 - The `env:service` environment references `test/test_service/includes` but may not have all dependencies resolved
-- `display_manager` has a `showConnectivityStatus()` method that was a stub (being fixed)
+
+## Wiki
+
+Full documentation lives in `docs/` (Starlight/Astro). Run locally:
+
+```sh
+cd docs && bun run dev
+```
+
+Wiki should be updated when adding new features, changing configuration, or modifying the architecture.
