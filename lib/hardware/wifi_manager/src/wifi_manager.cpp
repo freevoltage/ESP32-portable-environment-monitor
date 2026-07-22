@@ -17,7 +17,7 @@ bool WiFiManager::connect(const char* ssid, const char* password, int timeoutSec
     
     while (WiFi.status() != WL_CONNECTED && attempts < maxAttempts) {
         delay(500);
-        LOG_INFO(".");
+        LOG_INFO("%s", (attempts % 2 == 0) ? "." : "..");
         attempts++;
     }
     

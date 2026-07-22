@@ -138,7 +138,6 @@ enum class DisplayMenu : uint8_t {
     GRAPH_TEMP,
     GRAPH_HUMIDITY,
     GRAPH_ALTITUDE,
-    LOG_COMFORT,
     OTA,
     SYNC_TIME,
     SLEEP

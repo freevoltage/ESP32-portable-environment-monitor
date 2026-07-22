@@ -113,8 +113,8 @@ void runOTAMode() {
     display.begin();
     display.setBrightness(255);
 
-    // Connect WiFi
-    display.showMessage("Connecting WiFi...");
+    // Connect WiFi (OTA always requires WiFi)
+    display.showMessage("WiFi required\nfor OTA...");
     const WiFiConfig& wifiCfg = connectivity.getWiFiConfig();
     wifiMgr.connect(wifiCfg.ssid, wifiCfg.password, 30);
 
@@ -442,7 +442,7 @@ bool enterMenu(bool& aborted) {
 
         if (btn == 1) {
             int idx = static_cast<int>(currentMenu);
-            idx = (idx + 1) % 7;
+            idx = (idx + 1) % 6;
             currentMenu = static_cast<DisplayMenu>(idx);
         }
 
@@ -453,50 +453,6 @@ bool enterMenu(bool& aborted) {
                 case DisplayMenu::GRAPH_ALTITUDE:
                     showGraphForMenu(currentMenu);
                     break;
-
-                case DisplayMenu::LOG_COMFORT: {
-                    // Check if already logged today
-                    time_t now = rtc.getEpochTime();
-                    struct tm* ti = localtime(&now);
-                    time_t startOfDay = now - (ti->tm_hour * 3600 + ti->tm_min * 60 + ti->tm_sec);
-
-                    std::vector<ComfortLog> todayLogs;
-                    storage.getComfortLogsSince(startOfDay, todayLogs);
-
-                    if (!todayLogs.empty()) {
-                        display.clear();
-                        display.showMessage("Already logged\ntoday!");
-                        delay(1500);
-                    } else {
-                        ComfortLevel comfortLevel = ComfortLevel::COMFORTABLE;
-                        bool selecting = true;
-
-                        while (selecting) {
-                            displayService.showComfortUI(comfortLevel);
-
-                            int cbtn = waitForButton();
-
-                            if (cbtn == 3) { selecting = false; }        // Abort → menu
-                            if (cbtn == 1) {                              // Cycle level
-                                int cl = static_cast<int>(comfortLevel);
-                                cl = (cl + 1) % 5;
-                                comfortLevel = static_cast<ComfortLevel>(cl);
-                            }
-                            if (cbtn == 2) {                              // Log it
-                                ComfortLog log;
-                                log.timestamp = rtc.getEpochTime();
-                                log.level = comfortLevel;
-                                storage.storeComfortLog(log);
-
-                                display.clear();
-                                display.showMessage("LOGGED!");
-                                delay(1500);
-                                selecting = false;
-                            }
-                        }
-                    }
-                    break;
-                }
 
                 case DisplayMenu::SLEEP:
                     inMenu = false;

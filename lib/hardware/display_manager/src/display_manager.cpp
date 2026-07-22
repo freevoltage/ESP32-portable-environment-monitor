@@ -660,7 +660,7 @@ void DisplayManager::showDashboard(const SensorReading& reading, const char* tim
 
     // ── Battery bar ─────────────────────────────────────────────────
     if (battery.isValid) {
-        int barY = 190;
+        int barY = 210;
         int barWidth = 80;
         int barHeight = 10;
 
