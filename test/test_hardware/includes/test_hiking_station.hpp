@@ -432,7 +432,7 @@ namespace test_hiking_station {
         Serial.println("\n[HIKING] NTP time sync (one-time)...");
         testRtc.begin();
 
-        if (testWifi.connect(WIFI_SSID, WIFI_PASSWORD, 10)) {
+        if (testWifi.connect(WIFI_DEFAULT_SSID, WIFI_DEFAULT_PASSWORD, 10)) {
             Serial.printf("  WiFi connected: %s\n", testWifi.getIPAddress().c_str());
 
             if (testWifi.syncTimeNTP(NTP_SERVER, GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC)) {

@@ -10,7 +10,6 @@ ConnectivityService::ConnectivityService(WiFiManager* wifi, RTCManager* rtc)
     : wiFiManager(wifi), rtcManager(rtc),
       status(ConnectivityStatus::DISCONNECTED),
       lastSyncAttempt(0) {
-    loadWiFiConfig();
 }
 
 bool ConnectivityService::connect(int timeoutMs) {
@@ -23,6 +22,8 @@ bool ConnectivityService::connect(int timeoutMs) {
         LOG_INFO("Already connected");
         return true;
     }
+
+    loadWiFiConfig();
 
     status = ConnectivityStatus::CONNECTING;
     LOG_INFO("Connecting to WiFi...");

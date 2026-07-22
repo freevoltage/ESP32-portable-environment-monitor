@@ -10,7 +10,7 @@ bool BatteryManager::begin() {
     LOG_INFO("BatteryManager begin()");
 
     enableI2CPower();
-    delay(50); // Let I2C rail stabilize
+    delay(200); // Let I2C rail and MAX17048 ADC stabilize after power-on
 
     _initialized = _fuelGauge.begin(&Wire);
     if (!_initialized) {
@@ -19,6 +19,9 @@ bool BatteryManager::begin() {
     }
 
     LOG_INFO("MAX17048 initialized, chip ID: 0x%02X", _fuelGauge.getChipID());
+
+    // Wait for first valid ADC conversion
+    delay(100);
     return true;
 }
 
@@ -41,6 +44,12 @@ BatteryStatus BatteryManager::getStatus() {
     // Validate readings
     if (isnan(status.voltage) || isnan(status.percent)) {
         LOG_ERROR("Battery gauge read failed");
+        return status;
+    }
+
+    // Sanity check: a real LiPo always reads > 0V. 0V means no battery or gauge not ready.
+    if (status.voltage < 1.0f) {
+        LOG_WARN("Battery voltage too low (%.2fV) — no battery or gauge not ready", status.voltage);
         return status;
     }
 

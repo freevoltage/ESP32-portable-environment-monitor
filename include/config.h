@@ -28,7 +28,7 @@
 #define TIME_TO_SLEEP  5  // Sleep duration in seconds
 
 // Buttons
-#define NAV_BUTTON_PIN 9   // GPIO9 = BOOT button (Navigate)
+#define NAV_BUTTON_PIN 8   // GPIO8 = dedicated SMD button (Navigate) — NOT an RTC GPIO, so no EXT1 wake
 #define SEL_BUTTON_PIN 3   // GPIO3 = Select button
 
 // Measurement Interval (for timer wake)

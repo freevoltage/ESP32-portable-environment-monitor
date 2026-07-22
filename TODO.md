@@ -21,6 +21,7 @@
 - [] Update the Docu/Wiki
 - [] Update the Readme
 - [] Update Project Status
+- [] For Debuggiong Reasons I had the idea that the device is writing the log data on the sd card and or even to a file on my computer or both!?. I have no idea how to implement this, but this seems like a good idea for me.
 
 ----
 

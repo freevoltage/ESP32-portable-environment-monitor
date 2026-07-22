@@ -12,6 +12,10 @@
 #include <battery_manager.h>
 #include <time_sync_service.h>
 
+// ESP-IDF sleep API
+#include "driver/gpio.h"
+#include "esp_sleep.h"
+
 // OTA
 #include <WiFi.h>
 #include <AsyncTCP.h>
@@ -45,6 +49,31 @@ void printWakeupReason() {
     }
 }
 
+// Detect EXT1 button wake using multiple fallback methods.
+// On ESP32-C6 (Tasmota), esp_sleep_get_wakeup_cause() may return UNDEFINED
+// even for valid EXT1 or timer wakes.
+esp_sleep_wakeup_cause_t detectWakeupCause() {
+    esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+    if (cause != ESP_SLEEP_WAKEUP_UNDEFINED) return cause;
+
+    // Fallback 1: check EXT1 status register directly
+    uint64_t ext1Status = esp_sleep_get_ext1_wakeup_status();
+    if (ext1Status != 0) {
+        Serial.printf("[WAKE] EXT1 status register: 0x%llX\n", ext1Status);
+        return ESP_SLEEP_WAKEUP_EXT1;
+    }
+
+    // Fallback 2: read raw GPIO before pinMode reconfigures the pin.
+    // After EXT1 wake, the pad state still reflects the trigger level briefly.
+    if (bootCount > 1) {
+        bool selBtnLow = (gpio_get_level(static_cast<gpio_num_t>(SEL_BUTTON_PIN)) == 0);
+        Serial.printf("[WAKE] Raw GPIO%d = %s\n", SEL_BUTTON_PIN, selBtnLow ? "LOW" : "HIGH");
+        if (selBtnLow) return ESP_SLEEP_WAKEUP_EXT1;
+    }
+
+    return ESP_SLEEP_WAKEUP_UNDEFINED;
+}
+
 void enterDeepSleep() {
     Serial.println("Entering deep sleep...");
     displayService.turnOff();
@@ -52,11 +81,12 @@ void enterDeepSleep() {
     // Cut I2C power rail to save ~55uA during sleep
     battery.disableI2CPower();
 
-    // Configure EXT1 wake on both buttons (active LOW)
-    esp_sleep_enable_ext1_wakeup(
-        (1ULL << NAV_BUTTON_PIN) | (1ULL << SEL_BUTTON_PIN),
+    // Configure EXT1 wake on Select button only (GPIO3 = valid RTC GPIO on ESP32-C6)
+    // Note: GPIO8/GPIO9 are NOT RTC GPIOs — only GPIO0-7 support EXT1 wakeup
+    ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(
+        (1ULL << SEL_BUTTON_PIN),
         ESP_EXT1_WAKEUP_ANY_LOW
-    );
+    ));
 
     // Also configure timer wake for periodic measurements
     esp_sleep_enable_timer_wakeup(MEASUREMENT_INTERVAL_SEC * uS_TO_S_FACTOR);
@@ -67,8 +97,8 @@ void enterDeepSleep() {
     gpio_hold_en(static_cast<gpio_num_t>(TFT_LIT));
 #endif
 
-    Serial.printf("Deep sleep. Timer=%ds, EXT1 on GPIO%d+GPIO%d\n",
-                  MEASUREMENT_INTERVAL_SEC, NAV_BUTTON_PIN, SEL_BUTTON_PIN);
+    Serial.printf("Deep sleep. Timer=%ds, EXT1 on GPIO%d\n",
+                  MEASUREMENT_INTERVAL_SEC, SEL_BUTTON_PIN);
     Serial.flush();
     esp_deep_sleep_start();
 }
@@ -401,11 +431,7 @@ void setup() {
     Serial.printf("\n=== Boot #%d ===\n", bootCount);
     printWakeupReason();
 
-    // Configure button pins for EXT1 wake
-    pinMode(NAV_BUTTON_PIN, INPUT_PULLUP);
-    pinMode(SEL_BUTTON_PIN, INPUT_PULLUP);
-
-    esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+    esp_sleep_wakeup_cause_t cause = detectWakeupCause();
 
     if (cause == ESP_SLEEP_WAKEUP_EXT1) {
         // Button wake → full display mode
