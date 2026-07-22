@@ -35,13 +35,6 @@ bool StorageManager::begin()
 
     _sd_card_present = true;
 
-    // Fresh start: delete old datalog to start clean
-    if (fileExists(_filename))
-    {
-        LOG_INFO("Fresh start: deleting old datalog");
-        deleteFile(_filename);
-    }
-
     result = createHeaderIfNeeded(_filename);
     if (!result) {
         return false;

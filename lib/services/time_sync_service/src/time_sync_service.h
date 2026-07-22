@@ -3,6 +3,7 @@
 #ifdef MOCK
     #include <cstdint>
     #include <ctime>
+    #include <functional>
     typedef std::string String;
 #else
     #include <Arduino.h>
@@ -18,6 +19,9 @@ class ConnectivityService;
 
 class TimeSyncService {
 public:
+    // Progress callback: called with status messages during sync (e.g. "BLE 7s left")
+    typedef void (*ProgressCallback)(const char* message);
+
     TimeSyncService();
     ~TimeSyncService();
 
@@ -25,8 +29,8 @@ public:
     void stop();
 
     // Sync operations
-    bool sync();
-    bool syncBLE();
+    bool sync(ProgressCallback progress = nullptr);
+    bool syncBLE(ProgressCallback progress = nullptr);
     bool syncWiFi();
 
     // Mode management

@@ -277,7 +277,9 @@ void runDisplayMode() {
 
     // Sync time (BLE first, then WiFi fallback per configured mode)
     display.showSyncProgress("Syncing time...");
-    timeSync.sync();
+    timeSync.sync([](const char* msg) {
+        display.showSyncProgress(msg);
+    });
 
     displayService.showStartupScreen();
     delay(1500);
@@ -422,6 +424,9 @@ void runDisplayMode() {
 void setup() {
     Serial.begin(115200);
     while (!Serial);
+
+    // Release GPIO hold from deep sleep (ESP32-C6 doesn't auto-release)
+    gpio_hold_dis(static_cast<gpio_num_t>(TFT_LIT));
 
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, HIGH);

@@ -71,5 +71,5 @@
 
 // BLE Time Sync Configuration
 #define BLE_DEVICE_NAME          "HikingStation"
-#define BLE_SYNC_TIMEOUT_MS      30000   // 30s to wait for phone BLE time write
+#define BLE_SYNC_TIMEOUT_MS      10000   // 10s to wait for phone BLE time write
 #define TIME_SYNC_CONFIG_FILE    "/sync_config.txt"  // Persisted sync mode on LittleFS

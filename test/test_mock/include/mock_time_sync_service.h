@@ -36,7 +36,7 @@ void TimeSyncService::stop() {
     _initialized = false;
 }
 
-bool TimeSyncService::sync() {
+bool TimeSyncService::sync(ProgressCallback progress) {
     if (!_initialized) return false;
 
     mockTimeSyncInProgress = true;
@@ -50,7 +50,7 @@ bool TimeSyncService::sync() {
             return false;
 
         case SyncMode::BLE_ONLY:
-            success = syncBLE();
+            success = syncBLE(progress);
             break;
 
         case SyncMode::WIFI_ONLY:
@@ -58,13 +58,13 @@ bool TimeSyncService::sync() {
             break;
 
         case SyncMode::BLE_FIRST:
-            success = syncBLE();
+            success = syncBLE(progress);
             if (!success) success = syncWiFi();
             break;
 
         case SyncMode::WIFI_FIRST:
             success = syncWiFi();
-            if (!success) success = syncBLE();
+            if (!success) success = syncBLE(progress);
             break;
     }
 
@@ -73,11 +73,13 @@ bool TimeSyncService::sync() {
     return success;
 }
 
-bool TimeSyncService::syncBLE() {
+bool TimeSyncService::syncBLE(ProgressCallback progress) {
     if (mockBLESyncShouldFail || mockTimeSyncShouldFail) {
         setSyncResult(SyncSource::BLE, false);
         return false;
     }
+
+    if (progress) progress("BLE OK");
 
     // Simulate receiving a time value
     _pendingBLETime = 1721566800; // Fixed test epoch

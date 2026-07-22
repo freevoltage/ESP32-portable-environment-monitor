@@ -94,7 +94,7 @@ void TimeSyncService::stop() {
 
 // ---- Sync Operations ----
 
-bool TimeSyncService::sync() {
+bool TimeSyncService::sync(ProgressCallback progress) {
     if (!_initialized) {
         LOG_ERROR("TimeSyncService not initialized");
         return false;
@@ -110,7 +110,7 @@ bool TimeSyncService::sync() {
             return false;
 
         case SyncMode::BLE_ONLY:
-            success = syncBLE();
+            success = syncBLE(progress);
             if (!success) {
                 LOG_WARN("BLE sync failed, mode is BLE_ONLY so no fallback");
             }
@@ -124,9 +124,10 @@ bool TimeSyncService::sync() {
             break;
 
         case SyncMode::BLE_FIRST:
-            success = syncBLE();
+            success = syncBLE(progress);
             if (!success) {
                 LOG_INFO("BLE failed, falling back to WiFi");
+                if (progress) progress("WiFi fallback...");
                 success = syncWiFi();
             }
             break;
@@ -135,7 +136,7 @@ bool TimeSyncService::sync() {
             success = syncWiFi();
             if (!success) {
                 LOG_INFO("WiFi failed, falling back to BLE");
-                success = syncBLE();
+                success = syncBLE(progress);
             }
             break;
     }
@@ -144,7 +145,7 @@ bool TimeSyncService::sync() {
     return success;
 }
 
-bool TimeSyncService::syncBLE() {
+bool TimeSyncService::syncBLE(ProgressCallback progress) {
     LOG_INFO("Starting BLE time sync...");
 
     _bleTimeReceived = false;
@@ -154,7 +155,19 @@ bool TimeSyncService::syncBLE() {
 
     // Wait for phone to write time
     unsigned long start = millis();
+    int lastReported = -1;
     while (!_bleTimeReceived && (millis() - start < BLE_SYNC_TIMEOUT_MS)) {
+        // Show countdown every second
+        if (progress) {
+            int elapsed = (millis() - start) / 1000;
+            if (elapsed != lastReported) {
+                lastReported = elapsed;
+                int remaining = (BLE_SYNC_TIMEOUT_MS / 1000) - elapsed;
+                char buf[32];
+                snprintf(buf, sizeof(buf), "BLE %ds...", remaining);
+                progress(buf);
+            }
+        }
         delay(100);
     }
 
@@ -250,11 +263,8 @@ void TimeSyncService::stopBLE() {
 
     LOG_INFO("Stopping BLE");
     NimBLEDevice::stopAdvertising();
-    NimBLEDevice::deinit(true);
 
-    _bleActive = false;
-
-    // Clean up callbacks
+    // Clean up callbacks BEFORE deinit — deinit(true) causes double-free on ESP32-C6
     if (g_writeCallback) {
         delete g_writeCallback;
         g_writeCallback = nullptr;
@@ -264,6 +274,11 @@ void TimeSyncService::stopBLE() {
         g_serverCallback = nullptr;
     }
 
+    // Use deinit(false) — deinit(true) causes heap corruption on Tasmota ESP32-C6.
+    // Memory is reclaimed by deep sleep reset anyway.
+    NimBLEDevice::deinit(false);
+
+    _bleActive = false;
     _bleServer = nullptr;
     _bleService = nullptr;
     _bleCharTime = nullptr;
