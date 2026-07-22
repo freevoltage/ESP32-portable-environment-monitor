@@ -26,11 +26,19 @@
 - [x] Add abort possibility in the OTA Menu (Button B exit, 120s timeout)
 - [x] Add a Dashboard which shows current Temperature, Humidity, Altitude, Time, with sub-menus "Menu" and "Log Comfort"
 - [x] Remove auto-sync from button wake (device responds instantly, sync on-demand from menu only)
+- [x] Both buttons (A+B) = abort any operation, always returns to Dashboard
+- [x] Add "Sleep" item to Dashboard
+- [x] Comfort log protection: one log per day max (shows "Already logged today!")
 - [x] Abbort possibilty in the "OTA" Menuswxe
 - [x] Add a Dashboard which shows current Temperature, Hummidity, Altidude, Time, and with the Sub Menus "Menu, and LOG Comfort". help me with the User interface. I would like to work on it in a graphical way or at least some form of markup language or graphical user description. Put this descrption into the
 - [ ] ADd to the Documentation and the Code: BRESS BOTH BUTTONS AT ONCE to ABBORT ANY OPERATION (like sync or so. PRESSING BOTH BUTTONS WILL always return to the dashboard. )
 - [ ] Also add the Menu Item "SLeep" to the Dashboard. 
 - [ ] It shouldnt be possible to log Multiple Sleep Entries during the Day or at least I want to discuss it how we could possible implement this. or protect the sleep comfort log from getting crowded with wrong and accidental logs. 
+- [ ] Remove the "log comfort" item from the menu. Pls build the menu according to the readme   
+- [ ] I want to add some On the devise sleep configurations. At least the time interval, but i am also open for more on the devise configs, like auto ntp sync time intervals
+- [ ] For Some reason the device is not able to connect to the Wifi anymore even tho i am in the correct network
+- [ ] During the Wifi Connection in the terminal. the output should alternate between "." and ".." so I can see that its still trying to connect. WHen its just "." i dont know if its stuck or still working
+- [ ] The Abbort Operating during the "Connecting WiFi" does not work. Is this more complicated to implement? Does this need architectural re work?
 ----
 
 ## Hardware Stuff (Tasks for Me)

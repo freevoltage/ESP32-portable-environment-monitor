@@ -167,8 +167,10 @@ void runOTAMode() {
     while (true) {
         ElegantOTA.loop();
 
-        // Check for abort button (B)
-        if (digitalRead(SEL_BUTTON_PIN) == LOW) {
+        // Check for abort: Button B alone or both buttons together
+        bool navLow = (digitalRead(NAV_BUTTON_PIN) == LOW);
+        bool selLow = (digitalRead(SEL_BUTTON_PIN) == LOW);
+        if (selLow || (navLow && selLow)) {
             Serial.println("[OTA] Aborted by user");
             display.showMessage("OTA Aborted.\nGoing to sleep...");
             delay(1500);
@@ -234,14 +236,17 @@ void runMeasurementMode() {
 
 // ── Display Mode (button wake, full UI) ───────────────────────────────────
 
-bool enterMenu();  // Forward declaration
+bool enterMenu(bool& aborted);  // Forward declaration
 
-// Wait for any button press and return which one: 1=NAV(A), 2=SEL(B)
+// Wait for any button press and return which one: 1=NAV(A), 2=SEL(B), 3=BOTH (abort)
 int waitForButton() {
     int pressed = 0;
     while (pressed == 0) {
-        if (digitalRead(NAV_BUTTON_PIN) == LOW) pressed = 1;
-        if (digitalRead(SEL_BUTTON_PIN) == LOW) pressed = 2;
+        bool navLow = (digitalRead(NAV_BUTTON_PIN) == LOW);
+        bool selLow = (digitalRead(SEL_BUTTON_PIN) == LOW);
+        if (navLow && selLow) pressed = 3;      // Both = abort
+        else if (navLow) pressed = 1;
+        else if (selLow) pressed = 2;
         delay(10);
     }
     delay(100); // Debounce after capture
@@ -350,8 +355,8 @@ void runDisplayMode() {
     pinMode(SEL_BUTTON_PIN, INPUT_PULLUP);
 
     // ── Dashboard loop ──────────────────────────────────────────────
-    // Dashboard shows current readings + two quick actions:
-    //   0 = Log Comfort, 1 = Menu (full menu)
+    // Dashboard shows current readings + three quick actions:
+    //   0 = Log Comfort, 1 = Menu (full menu), 2 = Sleep
     int dashItem = 0;
     bool inDisplayMode = true;
 
@@ -361,56 +366,79 @@ void runDisplayMode() {
         int btn = waitForButton();
 
         if (btn == 1) {
-            dashItem = (dashItem + 1) % 2;
+            dashItem = (dashItem + 1) % 3;
         }
 
         if (btn == 2) {
             if (dashItem == 0) {
                 // ── Log Comfort ──────────────────────────────────────
-                ComfortLevel comfortLevel = ComfortLevel::COMFORTABLE;
-                bool selecting = true;
+                // Check if already logged today
+                time_t now = rtc.getEpochTime();
+                struct tm* ti = localtime(&now);
+                time_t startOfDay = now - (ti->tm_hour * 3600 + ti->tm_min * 60 + ti->tm_sec);
 
-                while (selecting) {
-                    displayService.showComfortUI(comfortLevel);
+                std::vector<ComfortLog> todayLogs;
+                storage.getComfortLogsSince(startOfDay, todayLogs);
 
-                    int btn = waitForButton();
+                if (!todayLogs.empty()) {
+                    display.clear();
+                    display.showMessage("Already logged\ntoday!");
+                    delay(1500);
+                } else {
+                    ComfortLevel comfortLevel = ComfortLevel::COMFORTABLE;
+                    bool selecting = true;
 
-                    if (btn == 1) {
-                        int cl = static_cast<int>(comfortLevel);
-                        cl = (cl + 1) % 5;
-                        comfortLevel = static_cast<ComfortLevel>(cl);
-                    }
+                    while (selecting) {
+                        displayService.showComfortUI(comfortLevel);
 
-                    if (btn == 2) {
-                        ComfortLog log;
-                        log.timestamp = rtc.getEpochTime();
-                        log.level = comfortLevel;
-                        storage.storeComfortLog(log);
+                        int cbtn = waitForButton();
 
-                        display.clear();
-                        display.showMessage("LOGGED!");
-                        delay(1500);
-                        selecting = false;
+                        if (cbtn == 3) { selecting = false; }           // Abort → dashboard
+                        if (cbtn == 1) {                                 // Cycle level
+                            int cl = static_cast<int>(comfortLevel);
+                            cl = (cl + 1) % 5;
+                            comfortLevel = static_cast<ComfortLevel>(cl);
+                        }
+                        if (cbtn == 2) {                                 // Log it
+                            ComfortLog log;
+                            log.timestamp = rtc.getEpochTime();
+                            log.level = comfortLevel;
+                            storage.storeComfortLog(log);
+
+                            display.clear();
+                            display.showMessage("LOGGED!");
+                            delay(1500);
+                            selecting = false;
+                        }
                     }
                 }
-            } else {
+            } else if (dashItem == 1) {
                 // ── Full Menu ────────────────────────────────────────
-                inDisplayMode = enterMenu();
+                bool aborted = false;
+                inDisplayMode = enterMenu(aborted);
+                // aborted → back to dashboard (inDisplayMode stays true)
+            } else {
+                // ── Sleep ────────────────────────────────────────────
+                inDisplayMode = false;
             }
         }
+        // btn == 3 (both) at dashboard level → do nothing, stay here
     }
 }
 
 // ── Full Menu (reached from dashboard) ───────────────────────────────────
 
-bool enterMenu() {
+bool enterMenu(bool& aborted) {
     DisplayMenu currentMenu = DisplayMenu::GRAPH_TEMP;
     bool inMenu = true;
+    aborted = false;
 
     while (inMenu) {
         displayService.showMenu(currentMenu);
 
         int btn = waitForButton();
+
+        if (btn == 3) { aborted = true; break; }  // Both → back to dashboard
 
         if (btn == 1) {
             int idx = static_cast<int>(currentMenu);
@@ -427,30 +455,44 @@ bool enterMenu() {
                     break;
 
                 case DisplayMenu::LOG_COMFORT: {
-                    ComfortLevel comfortLevel = ComfortLevel::COMFORTABLE;
-                    bool selecting = true;
+                    // Check if already logged today
+                    time_t now = rtc.getEpochTime();
+                    struct tm* ti = localtime(&now);
+                    time_t startOfDay = now - (ti->tm_hour * 3600 + ti->tm_min * 60 + ti->tm_sec);
 
-                    while (selecting) {
-                        displayService.showComfortUI(comfortLevel);
+                    std::vector<ComfortLog> todayLogs;
+                    storage.getComfortLogsSince(startOfDay, todayLogs);
 
-                        int btn = waitForButton();
+                    if (!todayLogs.empty()) {
+                        display.clear();
+                        display.showMessage("Already logged\ntoday!");
+                        delay(1500);
+                    } else {
+                        ComfortLevel comfortLevel = ComfortLevel::COMFORTABLE;
+                        bool selecting = true;
 
-                        if (btn == 1) {
-                            int cl = static_cast<int>(comfortLevel);
-                            cl = (cl + 1) % 5;
-                            comfortLevel = static_cast<ComfortLevel>(cl);
-                        }
+                        while (selecting) {
+                            displayService.showComfortUI(comfortLevel);
 
-                        if (btn == 2) {
-                            ComfortLog log;
-                            log.timestamp = rtc.getEpochTime();
-                            log.level = comfortLevel;
-                            storage.storeComfortLog(log);
+                            int cbtn = waitForButton();
 
-                            display.clear();
-                            display.showMessage("LOGGED!");
-                            delay(1500);
-                            selecting = false;
+                            if (cbtn == 3) { selecting = false; }        // Abort → menu
+                            if (cbtn == 1) {                              // Cycle level
+                                int cl = static_cast<int>(comfortLevel);
+                                cl = (cl + 1) % 5;
+                                comfortLevel = static_cast<ComfortLevel>(cl);
+                            }
+                            if (cbtn == 2) {                              // Log it
+                                ComfortLog log;
+                                log.timestamp = rtc.getEpochTime();
+                                log.level = comfortLevel;
+                                storage.storeComfortLog(log);
+
+                                display.clear();
+                                display.showMessage("LOGGED!");
+                                delay(1500);
+                                selecting = false;
+                            }
                         }
                     }
                     break;
@@ -474,25 +516,23 @@ bool enterMenu() {
                         SyncStatus syncStatus = timeSync.getStatus();
                         displayService.showSyncSubMenu(syncItem, syncStatus.mode, syncStatus.lastSource, syncStatus.lastSyncTime);
 
-                        int btn = waitForButton();
+                        int sbtn = waitForButton();
 
-                        if (btn == 1) {
-                            // A = Navigate: cycle through menu items
+                        if (sbtn == 3) { inSyncMenu = false; break; }   // Abort → menu
+
+                        if (sbtn == 1) {
                             syncItem = (syncItem + 1) % 3;
                         }
 
-                        if (btn == 2) {
-                            // B = Select: act on highlighted item
+                        if (sbtn == 2) {
                             switch (syncItem) {
                                 case SYNC_MODE: {
-                                    // Toggle sync mode
                                     SyncMode current = timeSync.getMode();
                                     int modeIdx = (static_cast<int>(current) + 1) % 5;
                                     timeSync.setMode(static_cast<SyncMode>(modeIdx));
                                     break;
                                 }
                                 case SYNC_NOW: {
-                                    // Trigger sync
                                     display.showSyncProgress("Syncing...");
                                     timeSync.sync([](const char* msg) {
                                         display.showSyncProgress(msg);
@@ -513,8 +553,9 @@ bool enterMenu() {
         }
     }
 
+    if (aborted) return true;   // Back to dashboard
     Serial.println("[DISPLAY] User selected sleep");
-    return false; // Exit display mode → deep sleep
+    return false;               // Deep sleep
 }
 
 // ── Setup / Loop ──────────────────────────────────────────────────────────

@@ -642,8 +642,8 @@ void DisplayManager::showDashboard(const SensorReading& reading, const char* tim
     drawSeparator(115);
 
     // ── Menu items ──────────────────────────────────────────────────
-    const char* items[] = {"Log Comfort", "Menu"};
-    const int itemCount = 2;
+    const char* items[] = {"Log Comfort", "Menu", "Sleep"};
+    const int itemCount = 3;
 
     for (int i = 0; i < itemCount; i++) {
         if (i == selectedItem)
@@ -685,7 +685,7 @@ void DisplayManager::showDashboard(const SensorReading& reading, const char* tim
     _tft->setTextSize(1);
     _tft->setTextColor(ST77XX_YELLOW);
     _tft->setCursor(5, 225);
-    _tft->print("A=Navigate B=Select");
+    _tft->print("A=Nav B=Sel A+B=Back");
 }
 
 void DisplayManager::showSyncUI(SyncMode currentMode, SyncSource lastSource, time_t lastSyncTime)

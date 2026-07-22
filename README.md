@@ -107,16 +107,30 @@ Show dashboard → navigate → menu → 24h graphs → comfort logging → slee
 ├──────────────────────────────┤
 │ > Log Comfort                │  ← Selectable item
 │   Menu                       │  ← Selectable item
+│   Sleep                      │  ← Selectable item
 ├──────────────────────────────┤
 │ ████████░░ 78% 4.02V        │  ← Battery bar
-│ A=Navigate  B=Select        │  ← Footer
+│ A=Nav B=Sel A+B=Back        │  ← Footer
 └──────────────────────────────┘
 ```
 
-**Button A** cycles between "Log Comfort" and "Menu".
-**Button B** selects the highlighted item:
-- **Log Comfort** → comfort logging screen (5 levels, log to SD)
-- **Menu** → full menu with all options
+**Button A** cycles between items. **Button B** selects. **Both buttons** = abort back to Dashboard.
+
+| Action | Button B |
+|--------|----------|
+| **Log Comfort** | Comfort logging (5 levels, one log per day max) |
+| **Menu** | Full menu with all options |
+| **Sleep** | Enter deep sleep |
+
+### Navigation Rules
+
+| Input | Action |
+|-------|--------|
+| **Button A** | Navigate (cycle items) |
+| **Button B** | Select (activate highlighted item) |
+| **Both A+B** | **Abort** — always returns to Dashboard |
+
+Both-buttons abort works from **every screen**: comfort logging, sync sub-menu, graphs, and the full menu. In OTA mode, both buttons also abort (go to sleep).
 
 ### Full Menu
 
@@ -133,10 +147,11 @@ Show dashboard → navigate → menu → 24h graphs → comfort logging → slee
 │   Sleep                      │
 ├──────────────────────────────┤
 │ A=Navigate  B=Select        │
+│ A+B=Back to Dashboard       │
 └──────────────────────────────┘
 ```
 
-**Button A** cycles through items. **Button B** selects.
+**Button A** cycles through items. **Button B** selects. **Both buttons** returns to Dashboard.
 
 | Item | Action |
 |------|--------|

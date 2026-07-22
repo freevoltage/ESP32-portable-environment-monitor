@@ -10,7 +10,15 @@ The hiking station uses a **two-button navigation** system on a 240x240 TFT disp
 - **Button A (GPIO8)** — Navigate: cycles through menu items
 - **Button B (GPIO3)** — Select: activates the highlighted item
 
-This pattern is consistent across every screen.
+### Universal Rules
+
+| Input | Action |
+|-------|--------|
+| **Button A** | Navigate (cycle through items) |
+| **Button B** | Select (activate highlighted item) |
+| **Both A+B** | **Abort** — always returns to the Dashboard |
+
+Both-buttons abort works from **every screen**: comfort logging, sync sub-menu, graphs, and the full menu. In OTA mode, both buttons also abort (go to sleep).
 
 ## Flow
 
@@ -19,25 +27,19 @@ Power-on / Button Wake
         │
         ▼
    ┌─────────┐
-   │Dashboard│  ← Default screen
+   │Dashboard│  ← Default screen (3 items)
    └────┬────┘
         │
    B: Log Comfort ──→ Comfort Logging ──→ back to Dashboard
-   B: Menu ─────────→ Full Menu
-                         │
-                    A: Navigate
-                    B: Select
-                         │
-              ┌──────────┼──────────┐
-              │          │          │
-         Graph Temp  Log Comfort  Sync Time
-         Graph Hum   OTA         Sleep
-         Graph Alt               ──→ Deep Sleep
+   B: Menu ─────────→ Full Menu ────────→ A+B = back to Dashboard
+   B: Sleep ────────→ Deep Sleep
+        │
+   A+B: Abort ──────→ stay at Dashboard (no-op at top level)
 ```
 
 ## Dashboard
 
-The first screen shown on button wake. Displays current sensor readings and provides quick access to the two most common actions.
+The first screen shown on button wake. Displays current sensor readings and provides quick access to three actions.
 
 ```
 ┌──────────────────────────────┐
@@ -51,20 +53,22 @@ The first screen shown on button wake. Displays current sensor readings and prov
 ├──────────────────────────────┤
 │ > Log Comfort                │  ← Selectable item
 │   Menu                       │  ← Selectable item
+│   Sleep                      │  ← Selectable item
 ├──────────────────────────────┤
 │ ████████░░ 78% 4.02V        │  ← Battery bar
-│ A=Navigate  B=Select        │  ← Footer
+│ A=Nav B=Sel A+B=Back        │  ← Footer
 └──────────────────────────────┘
 ```
 
 | Action | Button B |
 |--------|----------|
-| **Log Comfort** | Opens comfort logging (5 levels, saves to SD) |
+| **Log Comfort** | Opens comfort logging (5 levels, saves to SD) — one log per day max |
 | **Menu** | Opens the full menu with all options |
+| **Sleep** | Enter deep sleep immediately |
 
 ## Full Menu
 
-Accessed from the Dashboard → Menu.
+Accessed from the Dashboard → Menu. Press **both buttons** to return to the Dashboard.
 
 ```
 ┌──────────────────────────────┐
@@ -79,6 +83,7 @@ Accessed from the Dashboard → Menu.
 │   Sleep                      │
 ├──────────────────────────────┤
 │ A=Navigate  B=Select        │
+│ A+B=Back to Dashboard       │
 └──────────────────────────────┘
 ```
 
@@ -87,7 +92,7 @@ Accessed from the Dashboard → Menu.
 | **Graph Temperature** | 24h rolling temperature graph |
 | **Graph Humidity** | 24h rolling humidity graph |
 | **Graph Altitude** | 24h rolling altitude graph |
-| **Log Comfort** | Log comfort level to SD card |
+| **Log Comfort** | Log comfort level to SD card (one per day) |
 | **OTA** | WiFi firmware update mode |
 | **Sync Time** | Time sync sub-menu |
 | **Sleep** | Enter deep sleep |
@@ -111,6 +116,7 @@ Shows the last 24 hours of data for the selected sensor. Data is read from the S
 │ 12:00         14:32         │  ← Time axis
 │                              │
 │ Any button → back to menu   │
+│ A+B → back to dashboard     │
 └──────────────────────────────┘
 ```
 
@@ -130,6 +136,7 @@ Accessed from Full Menu → Sync Time.
 │ BLE @ 1721654532             │
 │                              │
 │ A=Navigate  B=Select        │
+│ A+B = back to menu          │
 └──────────────────────────────┘
 ```
 
@@ -162,17 +169,23 @@ WiFi firmware update mode. Upload a new firmware binary via web browser.
 │       upload...              │
 │                              │
 │ Auth: admin / hikingstation  │
-│ B=Exit  Timeout=120s         │
+│ B=Exit  A+B=Exit  120s      │
 └──────────────────────────────┘
 ```
 
-- **Button B** exits OTA immediately
+- **Button B** or **both buttons** exits OTA immediately
 - **120-second timeout** auto-exits if no upload starts
 - After exit, the device enters deep sleep
 
 ## Comfort Logging
 
 Quick-access from Dashboard or Full Menu. Logs how you feel to the SD card.
+
+### One Log Per Day
+
+To prevent accidental or duplicate entries, **only one comfort log is allowed per calendar day**. If you've already logged today, the device shows "Already logged today!" and returns to the previous screen.
+
+### Log Screen
 
 ```
 ┌──────────────────────────────┐
@@ -187,7 +200,7 @@ Quick-access from Dashboard or Full Menu. Logs how you feel to the SD card.
 │   Comfortable →             │
 │   Warm → Too warm           │
 ├──────────────────────────────┤
-│ A=Cycle  B=Log              │
+│ A=Cycle  B=Log  A+B=Back    │
 └──────────────────────────────┘
 ```
 
@@ -200,6 +213,7 @@ Quick-access from Dashboard or Full Menu. Logs how you feel to the SD card.
 | **Too warm** | Uncomfortably warm |
 
 Button B logs the current selection and returns to the previous screen.
+Button A+B aborts without logging and returns to the Dashboard.
 
 ## Battery Indicator
 
