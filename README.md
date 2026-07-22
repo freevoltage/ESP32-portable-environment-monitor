@@ -213,10 +213,21 @@ docs/                           # Starlight wiki
 
 ## Documentation
 
-Full documentation in `docs/` (Starlight/Astro):
+Full documentation in `docs/` (Starlight/Astro). Auto-deploys to GitHub Pages on push.
+
+### Local Development
 
 ```sh
-cd docs && bun run dev
+cd docs
+bun install        # first time only
+bun run dev        # start dev server (http://localhost:4321/ESP32-portable-environment-monitor/)
+```
+
+### Build & Preview
+
+```sh
+bun run build      # build static site to dist/
+bun run preview    # preview the built site locally
 ```
 
 ## Platform Note

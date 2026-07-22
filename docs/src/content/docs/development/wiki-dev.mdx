@@ -1,0 +1,119 @@
+---
+title: Wiki Development
+description: How to run, build, and edit the project documentation locally.
+---
+
+## Prerequisites
+
+- [Bun](https://bun.sh/) installed (`brew install bun` on macOS)
+- Node.js not required — Bun handles everything
+
+## Quick Start
+
+```sh
+cd docs
+bun install        # install dependencies (first time only)
+bun run dev        # start dev server
+```
+
+Open **http://localhost:4321/ESP32-portable-environment-monitor/** in your browser.
+
+The dev server watches for changes — edit any `.mdx` file and the page hot-reloads instantly.
+
+## Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `bun run dev` | Start dev server with hot reload |
+| `bun run build` | Build static site to `dist/` |
+| `bun run preview` | Preview the built site locally |
+| `bun run astro` | Run Astro CLI directly |
+
+## Project Structure
+
+```
+docs/
+├── astro.config.mjs              # Starlight config + sidebar
+├── package.json
+├── src/content/docs/
+│   ├── index.mdx                 # Home page
+│   ├── getting-started/          # Setup guides
+│   ├── user-interface/           # Screen layouts & navigation
+│   ├── architecture/             # System design
+│   ├── configuration/            # config.h, deep sleep
+│   ├── development/              # Testing, examples, adding features
+│   └── reference/                # API reference (auto-generated)
+```
+
+## Editing Pages
+
+All content is in `src/content/docs/` as `.mdx` files (MDX = Markdown + JSX).
+
+### Frontmatter
+
+Every page needs a title and description:
+
+```mdx
+---
+title: Page Title
+description: Short description for search engines.
+---
+
+# Page Content
+
+Your markdown here...
+```
+
+### Adding a New Page
+
+1. Create a `.mdx` file in the appropriate directory
+2. Add it to the sidebar in `astro.config.mjs`:
+
+```js
+sidebar: [
+  {
+    label: 'Section Name',
+    items: [
+      { label: 'Page Title', slug: 'directory/page-name' },
+    ],
+  },
+],
+```
+
+### Adding Images
+
+Place images in `src/assets/` and reference them with relative paths:
+
+```mdx
+![Alt text](../../../../assets/image.png)
+```
+
+## Deployment
+
+Documentation auto-deploys to **GitHub Pages** via GitHub Actions when you push to the `dev` or `main` branch.
+
+- **URL**: https://freevoltage.github.io/ESP32-portable-environment-monitor/
+- **Workflow**: `.github/workflows/deploy-docs.yml`
+- **Build time**: ~1-2 minutes
+
+No manual deployment needed — just push and wait for the green checkmark.
+
+## Troubleshooting
+
+### `bun install` fails
+
+```sh
+rm -rf node_modules bun.lock
+bun install
+```
+
+### Dev server shows old content
+
+```sh
+bun run build    # clean rebuild
+bun run dev      # restart dev server
+```
+
+### Build errors
+
+Check that all sidebar slugs in `astro.config.mjs` match actual file paths (without `.mdx` extension).

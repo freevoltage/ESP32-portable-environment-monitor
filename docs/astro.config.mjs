@@ -49,6 +49,7 @@ export default defineConfig({
 						{ label: 'Testing', slug: 'development/testing' },
 						{ label: 'Examples', slug: 'development/examples' },
 						{ label: 'Adding Features', slug: 'development/adding-features' },
+						{ label: 'Wiki Development', slug: 'development/wiki-dev' },
 					],
 				},
 				{
