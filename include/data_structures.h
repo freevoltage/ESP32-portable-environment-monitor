@@ -133,11 +133,20 @@ struct WiFiConfig {
     WiFiConfig() : ssid{0}, password{0}, isValid(false) {}
 };
 
+// Device settings (persisted to LittleFS /settings.txt)
+struct DeviceSettings {
+    uint16_t measurementIntervalSec;  // 60, 300, 900, 1800, 3600
+    uint16_t ntpSyncIntervalHours;    // 1, 6, 12, 24
+
+    DeviceSettings() : measurementIntervalSec(1800), ntpSyncIntervalHours(24) {}
+};
+
 // Display menu state for two-button navigation
 enum class DisplayMenu : uint8_t {
     GRAPH_TEMP,
     GRAPH_HUMIDITY,
     GRAPH_ALTITUDE,
+    SETTINGS,
     OTA,
     SYNC_TIME,
     SLEEP

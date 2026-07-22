@@ -11,6 +11,7 @@
 #include <data_structures.h>
 #include <battery_manager.h>
 #include <time_sync_service.h>
+#include <settings_manager.h>
 
 // ESP-IDF sleep API
 #include "driver/gpio.h"
@@ -36,6 +37,7 @@ DisplayService displayService(&display, &rtc, &connectivity);
 DataService dataService(&sensor, &storage, &rtc);
 BatteryManager battery;
 TimeSyncService timeSync;
+SettingsManager settings;
 
 // OTA server
 AsyncWebServer otaServer(OTA_SERVER_PORT);
@@ -89,7 +91,8 @@ void enterDeepSleep() {
     ));
 
     // Also configure timer wake for periodic measurements
-    esp_sleep_enable_timer_wakeup(MEASUREMENT_INTERVAL_SEC * uS_TO_S_FACTOR);
+    uint16_t sleepSec = settings.getSettings().measurementIntervalSec;
+    esp_sleep_enable_timer_wakeup(sleepSec * uS_TO_S_FACTOR);
 
     // Hold backlight pin state during deep sleep (prevents GPIO2 floating -> backlight leakage)
     // Toggle via HOLD_GPIO_IN_SLEEP in config.h; hardware alternative: pull-down resistor on TFT_LIT
@@ -98,7 +101,7 @@ void enterDeepSleep() {
 #endif
 
     Serial.printf("Deep sleep. Timer=%ds, EXT1 on GPIO%d\n",
-                  MEASUREMENT_INTERVAL_SEC, SEL_BUTTON_PIN);
+                  sleepSec, SEL_BUTTON_PIN);
     Serial.flush();
     esp_deep_sleep_start();
 }
@@ -114,9 +117,11 @@ void runOTAMode() {
     display.setBrightness(255);
 
     // Connect WiFi (OTA always requires WiFi)
-    display.showMessage("WiFi required\nfor OTA...");
+    display.showMessage("WiFi required\nfor OTA...\nB = Cancel");
     const WiFiConfig& wifiCfg = connectivity.getWiFiConfig();
-    wifiMgr.connect(wifiCfg.ssid, wifiCfg.password, 30);
+    wifiMgr.connect(wifiCfg.ssid, wifiCfg.password, 30, []() -> bool {
+        return digitalRead(SEL_BUTTON_PIN) == LOW;
+    });
 
     if (!wifiMgr.isConnected()) {
         display.showMessage("WiFi FAILED!\nRebooting...");
@@ -237,6 +242,7 @@ void runMeasurementMode() {
 // ── Display Mode (button wake, full UI) ───────────────────────────────────
 
 bool enterMenu(bool& aborted);  // Forward declaration
+void enterSettingsSubMenu();    // Forward declaration
 
 // Wait for any button press and return which one: 1=NAV(A), 2=SEL(B), 3=BOTH (abort)
 int waitForButton() {
@@ -361,7 +367,8 @@ void runDisplayMode() {
     bool inDisplayMode = true;
 
     while (inDisplayMode) {
-        displayService.showDashboard(reading, rtc.getFormattedTime(), dashItem, battStatus);
+        displayService.showDashboard(reading, rtc.getFormattedTime(), dashItem, battStatus,
+                                     wifiMgr.isConnected(), timeSync.getStatus().lastSource);
 
         int btn = waitForButton();
 
@@ -428,6 +435,31 @@ void runDisplayMode() {
 
 // ── Full Menu (reached from dashboard) ───────────────────────────────────
 
+void enterSettingsSubMenu() {
+    const char* items[] = {"Sleep", "NTP Sync", "Back"};
+    int selected = 0;
+    bool inSettings = true;
+
+    while (inSettings) {
+        displayService.showSettingsSubMenu(selected, settings.getSettings());
+
+        int btn = waitForButton();
+        if (btn == 3) break;  // Both = abort
+
+        if (btn == 1) {
+            selected = (selected + 1) % 3;
+        }
+
+        if (btn == 2) {
+            switch (selected) {
+                case 0: settings.cycleMeasurementInterval(); break;
+                case 1: settings.cycleNTPSyncInterval(); break;
+                case 2: inSettings = false; break;
+            }
+        }
+    }
+}
+
 bool enterMenu(bool& aborted) {
     DisplayMenu currentMenu = DisplayMenu::GRAPH_TEMP;
     bool inMenu = true;
@@ -442,7 +474,7 @@ bool enterMenu(bool& aborted) {
 
         if (btn == 1) {
             int idx = static_cast<int>(currentMenu);
-            idx = (idx + 1) % 6;
+            idx = (idx + 1) % 7;
             currentMenu = static_cast<DisplayMenu>(idx);
         }
 
@@ -452,6 +484,10 @@ bool enterMenu(bool& aborted) {
                 case DisplayMenu::GRAPH_HUMIDITY:
                 case DisplayMenu::GRAPH_ALTITUDE:
                     showGraphForMenu(currentMenu);
+                    break;
+
+                case DisplayMenu::SETTINGS:
+                    enterSettingsSubMenu();
                     break;
 
                 case DisplayMenu::SLEEP:
@@ -526,6 +562,9 @@ void setup() {
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, HIGH);
     delay(500);
+
+    // Load device settings from LittleFS
+    settings.begin();
 
     ++bootCount;
     Serial.printf("\n=== Boot #%d ===\n", bootCount);

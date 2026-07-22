@@ -38,7 +38,7 @@ class ConnectivityService{
         unsigned long getTimeSyncLastSync() const;
 
         // Connection Management
-        bool connect(int timeoutMs = 10000);
+        bool connect(int timeoutMs = 10000, WiFiManager::AbortCallback abort = nullptr);
         void disconnect();
         bool isConnected() const;
 

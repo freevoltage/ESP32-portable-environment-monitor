@@ -602,12 +602,21 @@ void DisplayManager::showBatteryInfo(const BatteryStatus& battery)
 }
 
 void DisplayManager::showDashboard(const SensorReading& reading, const char* timeStr,
-                                   int selectedItem, const BatteryStatus& battery)
+                                   int selectedItem, const BatteryStatus& battery,
+                                   bool wifiConnected, SyncSource lastSyncSource)
 {
     if (!isReady()) return;
 
     clear();
     drawHeader("HIKING STATION");
+
+    // ── Connectivity indicator (top right) ───────────────────────────
+    _tft->setTextSize(1);
+    if (wifiConnected) {
+        _tft->setTextColor(ST77XX_GREEN);
+        _tft->setCursor(200, 5);
+        _tft->print("WiFi");
+    }
 
     // ── Sensor data (large, top third) ──────────────────────────────
     // Temperature
@@ -679,6 +688,14 @@ void DisplayManager::showDashboard(const SensorReading& reading, const char* tim
         _tft->setTextColor(color);
         _tft->setCursor(90, barY);
         _tft->printf("%.0f%% %.2fV", battery.percent, battery.voltage);
+    }
+
+    // ── Last sync source (next to battery bar) ──────────────────────
+    if (lastSyncSource != SyncSource::NONE) {
+        _tft->setTextSize(1);
+        _tft->setTextColor(ST77XX_WHITE);
+        _tft->setCursor(150, 210);
+        _tft->print(lastSyncSource == SyncSource::WIFI ? "Last:WiFi" : "Last:BLE");
     }
 
     // ── Footer ──────────────────────────────────────────────────────
@@ -802,4 +819,65 @@ void DisplayManager::showSyncProgress(const char* message)
     _tft->setTextSize(1);
     _tft->setCursor(20, 175);
     _tft->print("Please wait...");
+}
+
+void DisplayManager::showSettingsSubMenu(int selectedItem, const DeviceSettings& settings)
+{
+    if (!isReady()) return;
+
+    clear();
+    drawHeader("SETTINGS");
+
+    // Measurement interval
+    _tft->setTextSize(2);
+    _tft->setTextColor(selectedItem == 0 ? ST77XX_BLACK : ST77XX_WHITE,
+                       selectedItem == 0 ? ST77XX_CYAN : ST77XX_BLACK);
+    _tft->setCursor(10, 30);
+    _tft->printf("%s Sleep", selectedItem == 0 ? "> " : "  ");
+
+    // Show current value
+    _tft->setTextColor(selectedItem == 0 ? ST77XX_CYAN : ST77XX_YELLOW);
+    _tft->setCursor(10, 55);
+    const char* intervalStr;
+    switch (settings.measurementIntervalSec) {
+        case 60:    intervalStr = "1min"; break;
+        case 300:   intervalStr = "5min"; break;
+        case 900:   intervalStr = "15min"; break;
+        case 1800:  intervalStr = "30min"; break;
+        case 3600:  intervalStr = "1hr"; break;
+        default:    intervalStr = "30min"; break;
+    }
+    _tft->printf("  %s", intervalStr);
+
+    // NTP sync interval
+    _tft->setTextSize(2);
+    _tft->setTextColor(selectedItem == 1 ? ST77XX_BLACK : ST77XX_WHITE,
+                       selectedItem == 1 ? ST77XX_CYAN : ST77XX_BLACK);
+    _tft->setCursor(10, 90);
+    _tft->printf("%s NTP Sync", selectedItem == 1 ? "> " : "  ");
+
+    _tft->setTextColor(selectedItem == 1 ? ST77XX_CYAN : ST77XX_YELLOW);
+    _tft->setCursor(10, 115);
+    const char* ntpStr;
+    switch (settings.ntpSyncIntervalHours) {
+        case 1:  ntpStr = "1hr"; break;
+        case 6:  ntpStr = "6hr"; break;
+        case 12: ntpStr = "12hr"; break;
+        case 24: ntpStr = "24hr"; break;
+        default: ntpStr = "24hr"; break;
+    }
+    _tft->printf("  %s", ntpStr);
+
+    // Back
+    _tft->setTextSize(2);
+    _tft->setTextColor(selectedItem == 2 ? ST77XX_BLACK : ST77XX_WHITE,
+                       selectedItem == 2 ? ST77XX_CYAN : ST77XX_BLACK);
+    _tft->setCursor(10, 150);
+    _tft->printf("%s Back", selectedItem == 2 ? "> " : "  ");
+
+    // Button hints
+    _tft->setTextColor(ST77XX_YELLOW);
+    _tft->setTextSize(1);
+    _tft->setCursor(5, 225);
+    _tft->print("A=Navigate B=Change");
 }

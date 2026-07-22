@@ -146,13 +146,15 @@ void DisplayService::turnOn() {
 }
 
 bool DisplayService::showDashboard(const SensorReading& reading, const String& timeStr,
-                                   int selectedItem, const BatteryStatus& battery) {
+                                   int selectedItem, const BatteryStatus& battery,
+                                   bool wifiConnected, SyncSource lastSyncSource) {
     if (!displayManager || !displayManager->isReady()) {
         LOG_ERROR("Display not ready for dashboard");
         return false;
     }
 
-    displayManager->showDashboard(reading, timeStr.c_str(), selectedItem, battery);
+    displayManager->showDashboard(reading, timeStr.c_str(), selectedItem, battery,
+                                   wifiConnected, lastSyncSource);
     return true;
 }
 
@@ -165,8 +167,8 @@ bool DisplayService::showMenu(DisplayMenu current) {
     displayManager->clear();
     displayManager->drawHeader("MENU");
 
-    const char* items[] = {"Graph Temp", "Graph Humidity", "Graph Altitude", "OTA", "Sync Time", "Sleep"};
-    const int itemCount = 6;
+    const char* items[] = {"Graph Temp", "Graph Humidity", "Graph Altitude", "Settings", "OTA", "Sync Time", "Sleep"};
+    const int itemCount = 7;
 
     for (int i = 0; i < itemCount; i++)
     {
@@ -261,5 +263,15 @@ bool DisplayService::showSyncSubMenu(int selectedItem, SyncMode currentMode, Syn
     }
 
     displayManager->showSyncSubMenu(selectedItem, currentMode, lastSource, lastSyncTime);
+    return true;
+}
+
+bool DisplayService::showSettingsSubMenu(int selectedItem, const DeviceSettings& settings) {
+    if (!displayManager || !displayManager->isReady()) {
+        LOG_ERROR("Display not ready for settings sub-menu");
+        return false;
+    }
+
+    displayManager->showSettingsSubMenu(selectedItem, settings);
     return true;
 }
