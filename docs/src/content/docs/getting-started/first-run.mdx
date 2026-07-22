@@ -1,57 +1,154 @@
 ---
 title: First Run
-description: What to expect when you first boot the hiking weather station.
+description: What to expect when you flash and power on the hiking weather station.
 ---
 
-## Boot Sequence
+## First Boot (Flash + Reset)
 
-1. **Serial output** — Sensor initialization, SD card mount, WiFi connection
-2. **Display** — Brief backlight flash during test cycle
-3. **Measurement mode** — Reads sensors, stores to SD, enters deep sleep
+When you flash with `pio run -t upload -e main`, the serial monitor auto-opens.
 
-## Two Modes
+The ESP32-C6 resets — this is **not** a button press, so **measurement mode** runs:
 
-The station operates in two modes:
+### Serial Output
 
-### Measurement Mode (automatic)
+```
+=== Boot #1 ===
+Wakeup: Reset (0)
+[MEASUREMENT] Timer wake — reading sensors, display OFF
+[MEASUREMENT] Stored: 23.5°C 65% 1013hPa 142m
+[MEASUREMENT] Battery: 85% (4.15V)
+Entering deep sleep...
+Deep sleep. Timer=1800s, EXT1 on GPIO9+GPIO3
+```
 
-Wakes every 30 minutes via timer:
-1. Read BME280 sensor (temperature, humidity, pressure, altitude)
-2. Store reading to SD card (`/datalog.csv`)
-3. Enter deep sleep immediately
+### What Happens
 
-This mode has the display OFF and WiFi OFF. Total wake time: ~2-3 seconds.
+1. Built-in LED turns on for 500ms (visual heartbeat)
+2. WiFi config loads from LittleFS — on first boot, `/wifi_config.txt` doesn't exist, so defaults (`TP-Link_0B73`) are used
+3. SD card initializes (CS=GPIO5 held HIGH to avoid SPI conflict with display)
+4. BME280 sensor initializes (I2C) — reads temperature, humidity, pressure, calculates altitude
+5. MAX17048 battery gauge initializes (I2C) — reads voltage and percentage
+6. Reading stored to `/datalog.csv` on SD card
+7. Battery status logged to Serial
+8. **Display stays OFF, WiFi stays OFF**
+9. Deep sleep — configured for:
+   - **Timer wake** after 1800s (30 min) — periodic silent measurements
+   - **EXT1 wake** on GPIO9 + GPIO3 — either button wakes the device
+   - GPIO2 (backlight) held LOW to prevent leakage
 
-### Display Mode (button press)
+**Total wake time: ~2-3 seconds.** This is the normal operating mode — the device silently measures every 30 minutes.
 
-Wake by pressing **Navigate** (GPIO9) or **Select** (GPIO3):
-1. Turn on display backlight
-2. Connect to WiFi, sync time via NTP
-3. Show current sensor reading
-4. Navigate menu: Graph Temp / Graph Humidity / Graph Altitude / Log Comfort / Sleep
+## Timer Wake (Every 30 Minutes)
 
-## Menu Navigation
+Identical to first boot, but serial shows `Wakeup: Timer` instead of `Reset`. No display, no WiFi. The device takes a reading, stores it, and goes back to sleep.
 
-- **Navigate button** (GPIO9): Cycle through menu items
-- **Select button** (GPIO3): Select current item
+## Button Wake (Interactive Display Mode)
+
+Press **Navigate** (GPIO9) or **Select** (GPIO3) to wake into display mode. This is the full interactive UI.
+
+### Boot Sequence
+
+1. **Serial** — `=== Boot #N ===` + `Wakeup: Button`
+2. **Hardware init** — SD card, display (ST7789), sensor, battery, RTC all initialize
+3. **Time sync** — display shows "Syncing time..." progress screen:
+   - Default mode is `BLE_FIRST` — tries phone sync first, falls back to WiFi NTP
+   - BLE: device advertises as "HikingStation" for 30 seconds
+   - If phone writes a 4-byte epoch → time set, BLE stops
+   - If no phone connects → falls back to WiFi NTP
+   - Sync mode is configurable and persisted to LittleFS
+4. **Startup screen** — "Booting..." briefly, then system status
+5. **Current reading** — live BME280 reading with current time + battery info (color-coded: green >50%, yellow 20-50%, red <20%)
+6. **3 second pause** on the current reading
+
+### Menu Navigation
+
+Two-button navigation on a 240x240 TFT:
+
+- **Button A (GPIO9, Navigate)** — cycles through menu items
+- **Button B (GPIO3, Select)** — selects the highlighted item
+
+The menu renders at textSize(1) to fit all 7 items. Highlighted item shows cyan background; others are white on black.
 
 ### Menu Items
 
-| Item | Description |
+| Item | What It Does |
 |------|-------------|
-| Graph Temp | 24h rolling temperature graph |
-| Graph Humidity | 24h rolling humidity graph |
-| Graph Altitude | 24h rolling altitude graph |
-| Log Comfort | Log comfort level (Too cold → Too warm) |
-| Sleep | Enter deep sleep |
+| **Graph Temp** | 24h rolling temperature graph from SD card data. Press any button to return. |
+| **Graph Humidity** | 24h rolling humidity graph. Press any button to return. |
+| **Graph Altitude** | 24h rolling altitude graph. Press any button to return. |
+| **Log Comfort** | Sub-menu: cycle through Too cold / Cold / Comfortable / Warm / Too warm. Button B logs to `/comfort.csv`, shows "LOGGED!". |
+| **OTA** | Connects WiFi, shows IP on display, starts ElegantOTA web server on port 80. Visit `http://<ip>/update` in browser. Auth: `admin` / `hikingstation`. Shows progress bar on TFT. Device reboots after upload. **Never returns to menu.** |
+| **Sync Time** | Sub-menu showing current sync mode + last sync time/source. Button A cycles modes (OFF / BLE / WiFi / BLE+WiFi / WiFi+BLE). Button B triggers manual sync. |
+| **Sleep** | Exits menu, enters deep sleep (same config as measurement mode). |
+
+### Graph Behavior
+
+When you select a graph item:
+- Loads up to 240 readings from the last 24 hours from SD card
+- Plots the 24h rolling graph on the TFT
+- If no data exists yet, shows "No data yet" error for 2 seconds
+- Press any button to return to menu
+
+### OTA Mode
+
+When you select OTA:
+1. Connects to WiFi using stored credentials
+2. Shows IP address on display (e.g., "192.168.1.42")
+3. Starts ElegantOTA web server on port 80
+4. Open `http://<ip>/update` in any browser
+5. Upload the `.bin` firmware file
+6. Progress bar shows on TFT (updates every 500ms)
+7. After upload completes, device reboots automatically
+
+**This mode never returns to the menu.** If WiFi fails, device reboots after 2 seconds.
+
+### Sync Time Sub-Menu
+
+| Mode | Behavior |
+|------|----------|
+| OFF | No time synchronization |
+| BLE | Phone BLE only |
+| WiFi | WiFi NTP only |
+| BLE+WiFi | Try BLE first, fallback WiFi |
+| WiFi+BLE | Try WiFi first, fallback BLE |
+
+Default: `BLE_FIRST` (BLE+WiFi). Mode is persisted to LittleFS (`/sync_config.txt`) and survives reboots.
+
+## Deep Sleep Behavior
+
+When the device enters deep sleep (from menu "Sleep" or end of measurement mode):
+
+1. Display turns off
+2. I2C power rail cut (GPIO20) — saves ~55uA
+3. EXT1 wake configured on both buttons (active LOW)
+4. Timer wake configured for next measurement interval
+5. GPIO2 (backlight) held LOW during sleep — prevents floating pin leakage
+
+The device can be woken by:
+- **Any button press** → display mode
+- **Timer expiry** (30 min) → measurement mode
 
 ## SD Card Files
 
-| File | Content |
-|------|---------|
-| `/datalog.csv` | Sensor readings: `epoch,temp,humidity,pressure,altitude` |
-| `/comfort.csv` | Comfort logs: `epoch,level` |
+| File | Format | Content |
+|------|--------|---------|
+| `/datalog.csv` | `epoch,temp,humidity,pressure,altitude` | Sensor readings, one per line |
+| `/comfort.csv` | `epoch,level` | Comfort logs (0=Too cold → 4=Too warm) |
+
+## LittleFS Config Files
+
+| File | Format | Content |
+|------|--------|---------|
+| `/wifi_config.txt` | `ssid=...\npassword=...\n` | WiFi credentials (falls back to defaults if missing) |
+| `/sync_config.txt` | `mode=N` | Sync mode (0-4, default 3=BLE_FIRST) |
 
 ## Serial Output
 
-Connect via `pio device monitor` to see sensor readings, WiFi status, and debug output.
+Connect via `pio device monitor` to see all debug output at 115200 baud. Key messages:
+
+- `=== Boot #N ===` — boot count (persists across deep sleep)
+- `Wakeup: Timer` / `Wakeup: Button` / `Wakeup: Reset` — wake reason
+- `[MEASUREMENT]` — silent measurement mode output
+- `[DISPLAY]` — interactive mode output
+- `[OTA]` — OTA server status and progress
+- `BLE advertising started: HikingStation` — BLE sync active

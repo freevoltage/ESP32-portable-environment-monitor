@@ -28,7 +28,7 @@
 #define TIME_TO_SLEEP  5  // Sleep duration in seconds
 
 // Buttons
-#define NAV_BUTTON_PIN 9   // GPIO9 = BOOT button (Navigate)
+#define NAV_BUTTON_PIN 8   // GPIO8 = dedicated SMD button (Navigate) — NOT an RTC GPIO, so no EXT1 wake
 #define SEL_BUTTON_PIN 3   // GPIO3 = Select button
 
 // Measurement Interval (for timer wake)
@@ -48,9 +48,10 @@
 // Hardware alternative: pull-down resistor from TFT_LIT to GND on the display board
 #define HOLD_GPIO_IN_SLEEP 1
 
-// WiFi Configuration
-#define WIFI_SSID "TP-Link_0B73"
-#define WIFI_PASSWORD "63392418"
+// WiFi Configuration (compile-time defaults — overridden by LittleFS config if present)
+#define WIFI_DEFAULT_SSID "TP-Link_0B73"
+#define WIFI_DEFAULT_PASSWORD "63392418"
+#define WIFI_CONFIG_FILE "/wifi_config.txt"
 
 // NTP Configuration
 #define NTP_SERVER "pool.ntp.org"
@@ -59,3 +60,16 @@
 
 // Time sync interval (sync once per day)
 #define TIME_SYNC_INTERVAL_HOURS 24
+
+// OTA Configuration
+#define OTA_SERVER_PORT 80
+#define OTA_USERNAME "admin"
+#define OTA_PASSWORD "hikingstation"
+
+// Battery Management (MAX17048 fuel gauge on I2C)
+#define NEOPIXEL_I2C_POWER 20   // GPIO20 controls I2C power rail — cut before deep sleep to save ~55uA
+
+// BLE Time Sync Configuration
+#define BLE_DEVICE_NAME          "HikingStation"
+#define BLE_SYNC_TIMEOUT_MS      10000   // 10s to wait for phone BLE time write
+#define TIME_SYNC_CONFIG_FILE    "/sync_config.txt"  // Persisted sync mode on LittleFS

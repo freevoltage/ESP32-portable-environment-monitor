@@ -21,6 +21,9 @@ class ConnectivityService{
         unsigned long lastSyncAttempt = 0;
         const unsigned long SYNC_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
 
+        WiFiConfig _wifiConfig;
+        void loadWiFiConfig();
+
     public:
 
         ConnectivityService(WiFiManager* wifi, RTCManager* rtc);
@@ -38,4 +41,7 @@ class ConnectivityService{
         bool connect(int timeoutMs = 10000);
         void disconnect();
         bool isConnected() const;
+
+        // WiFi Config
+        const WiFiConfig& getWiFiConfig() const;
 };

@@ -37,6 +37,7 @@ class DisplayService{
                        const std::vector<float>& values,
                        const std::vector<time_t>& timestamps,
                        float minVal, float maxVal);
+        bool showSyncUI(SyncMode currentMode, SyncSource lastSource, time_t lastSyncTime);
 
         // Display Management
         void forceUpdate();

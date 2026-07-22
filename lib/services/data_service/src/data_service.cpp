@@ -146,10 +146,8 @@ bool DataService::isReadingValid(const SensorReading& reading) {
 
     // Validate timestamp (must be reasonable)
     if (reading.timestamp < RTCManager::MIN_VALID_TIME) {
-                LOG_WARN("Invalid timestamp: %ld (min: %ld)", 
-                 (long)reading.timestamp, 
-                 (long)RTCManager::MIN_VALID_TIME);
-        return false;
+                LOG_WARN("Timestamp before NTP/BLE sync: %ld (sensor data still valid)", 
+                 (long)reading.timestamp);
     }
 
     return true;

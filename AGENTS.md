@@ -62,7 +62,6 @@ Headers use `#ifdef MOCK` to swap Arduino types for standard C++ types when runn
 
 ## Known Issues
 
-- Filename typo: `connectivity_serivce.h` (not `service`) in both `lib/connectivity_service/` and `lib/services/connectivity/`
 - `lib/hardware/` contains empty subdirectories (display, rtc, sensor, storage, wifi) -- not yet implemented
 - `test/test_mock/` directory referenced by `env:mock` in platformio.ini does not exist yet
 - The `env:service` environment references `test/test_service/includes` but may not have all dependencies resolved

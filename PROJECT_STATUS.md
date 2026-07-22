@@ -1,10 +1,10 @@
 # Project Status — ESP32 Hiking Weather Station
 
-Last updated: 2026-07-20
+Last updated: 2026-07-21
 
 ## Overview
 
-PlatformIO embedded C++ project for **Adafruit Feather ESP32-C6**. Portable hiking weather station that reads BME280 sensor, stores data to SD card, syncs time via WiFi/NTP, and displays 24h rolling graphs on a 1.54" ST7789 TFT. Two-mode operation: silent measurement mode (timer wake) and interactive display mode (button wake). Uses Unity test framework.
+PlatformIO embedded C++ project for **Adafruit Feather ESP32-C6**. Portable hiking weather station that reads BME280 sensor, stores data to SD card, syncs time via WiFi/NTP or BLE phone sync, and displays 24h rolling graphs on a 1.54" ST7789 TFT. Two-mode operation: silent measurement mode (timer wake) and interactive display mode (button wake). Uses Unity test framework.
 
 ## Architecture
 
@@ -12,7 +12,8 @@ PlatformIO embedded C++ project for **Adafruit Feather ESP32-C6**. Portable hiki
 Application (main.cpp)
     ├── DataService        → orchestrates sensor/storage/rtc
     ├── DisplayService     → manages display output (menu, graphs, comfort UI)
-    └── ConnectivityService → WiFi + NTP time sync
+    ├── ConnectivityService → WiFi + NTP time sync
+    └── TimeSyncService    → BLE phone sync + WiFi fallback (NimBLE)
             │
         Service Layer (lib/services/)
             │
@@ -34,6 +35,8 @@ Application (main.cpp)
 | Buttons | GPIO9 (Navigate), GPIO3 (Select) | Active LOW, internal pullup |
 | Backlight | Active-HIGH | `TFT_BACKLIGHT_INVERTED = 1` |
 | Display rotation | `TFT_ROTATION = 2` | |
+| Battery | MAX17048 (I2C) | Fuel gauge, I2C power on GPIO20 |
+| RTC | ESP32Time (internal RTC) | Synced via BLE or WiFi/NTP |
 
 ## Firmware Modes
 
@@ -43,10 +46,12 @@ Application (main.cpp)
 - ~2-3 seconds total, wakes every 30 minutes (`MEASUREMENT_INTERVAL_SEC = 1800`)
 
 ### Display Mode (button wake via EXT1)
-- Turn on display → WiFi/NTP sync → show current reading
-- Navigate menu: Graph Temp / Graph Humidity / Graph Altitude / Log Comfort / Sleep
+- Turn on display → auto time sync (per configured mode) → show current reading
+- Navigate menu: Graph Temp / Graph Humidity / Graph Altitude / Log Comfort / OTA / Sync Time / Sleep
 - 24h rolling graph using `getReadingsSince()`
 - Comfort logging: 5 levels (Too cold → Too warm) → `/comfort.csv`
+- OTA mode: ElegantOTA web server on port 8080, TFT progress bar, auth required
+- Sync Time: cycle modes (OFF/BLE/WiFi/BLE+WiFi/WiFi+BLE), trigger manual sync
 - EXT1 wake on both buttons: `(1ULL << GPIO9) | (1ULL << GPIO3)`, `ESP_EXT1_WAKEUP_ANY_LOW`
 
 ## Shared Data Structures (`include/data_structures.h`)
@@ -54,9 +59,13 @@ Application (main.cpp)
 - `SensorReading` — temp, humidity, pressure, altitude, timestamp, isValid
 - `TemperatureStats` — min, max, average, sampleCount, isValid
 - `SystemStatus` — sensor/display/storage/rtc/wifi ok, freeMemory, uptime
+- `BatteryStatus` — percentage, voltage, charging, isLow
 - `ComfortLevel` — enum class : uint8_t (TOO_COLD=0..TOO_WARM=4)
 - `ComfortLog` — timestamp + ComfortLevel
-- `DisplayMenu` — enum class : uint8_t (GRAPH_TEMP..SLEEP)
+- `DisplayMenu` — enum class : uint8_t (GRAPH_TEMP..SLEEP) [7 items]
+- `SyncMode` — enum class : uint8_t (OFF=0, BLE=1, WIFI=2, BLE_FIRST=3, WIFI_FIRST=4)
+- `SyncSource` — enum class : uint8_t (NONE=0, BLE=1, WIFI=2)
+- `SyncStatus` — source, timestamp, success, errorMessage
 - `SystemMode`, `ConnectivityStatus` — state machine enums
 
 ## Fully Working (tested on hardware + native)
@@ -70,14 +79,16 @@ Application (main.cpp)
 | `rtc_manager`     | `lib/hardware/rtc_manager/`     | Complete (ESP32Time)        | 11 embedded        |
 | `display_manager` | `lib/hardware/display_manager/` | Complete (240x240 ST7789)   | 1 embedded         |
 | `wifi_manager`    | `lib/hardware/wifi_manager/`    | Complete (WiFi + NTP)       | 0 tests            |
+| `battery_manager` | `lib/hardware/battery_manager/` | Complete (MAX17048)         | 0 tests            |
 
 ### Service Layer (`lib/services/`)
 
 | Module                 | Location                            | Status                    | Tests                     |
 | ---------------------- | ----------------------------------- | ------------------------- | ------------------------- |
 | `data_service`         | `lib/services/data/`                | Complete (232 lines)      | 21 native mock + 21 on-device |
-| `display_service`      | `lib/services/display/`             | Complete (~120 lines)     | Tested on hardware (menu, graph, comfort UI) |
+| `display_service`      | `lib/services/display/`             | Complete (~140 lines)     | Tested on hardware (7-item menu, graph, comfort UI) |
 | `connectivity_service` | `lib/services/connectivity/`        | Complete (116 lines)      | 12 native mock            |
+| `time_sync_service`    | `lib/services/time_sync_service/`   | Complete (BLE+WiFi)       | — (needs hardware test)   |
 
 ### Infrastructure
 
@@ -107,29 +118,34 @@ Application (main.cpp)
 5. `test_hiking_comfort_single` — Comfort log store + retrieve preserves level
 6. `test_hiking_comfort_multiple` — Multiple comfort logs + timestamp filtering
 7. `test_hiking_display_graph` — Graph renders 10 data points on TFT
-8. `test_hiking_display_menu` — Menu renders all 5 items
+8. `test_hiking_display_menu` — Menu renders all 7 items
 9. `test_hiking_display_comfort_ui` — Comfort UI renders all 5 levels
 10. `test_hiking_full_workflow` — End-to-end: sensor → SD → display graph
 11. `test_hiking_comfort_workflow` — End-to-end: sensor → comfort log → query
 12. `test_hiking_timing` — Sensor + store + read <100ms
 
-## Recent Changes (2026-07-20)
+## Recent Changes (2026-07-21)
 
-- **Hiking station redesign complete** — `main.cpp` rewritten as two-mode state machine (measurement vs display)
-- **Comfort log bug fixed** — `time_t` on ESP32-C6 is 64-bit (`__int_least64_t`), but `%lu` expects 32-bit `unsigned long`. Fixed by explicit casts in `storeComfortLog()` and `getComfortLogsSince()`
-- **Git branch `dev`** — 20 commits ahead of `origin/dev` (19 diverged)
-- Latest commits: `9eadf56` (comfort log fix), `0e28d8c` (hardware test compilation), `e99bef6` (integration test suite), `33ca951` (main app build prep)
+- **BLE time sync service added** — `TimeSyncService` library with NimBLE-Arduino, 5 configurable sync modes (OFF/BLE/WiFi/BLE+WiFi/WiFi+BLE), LittleFS persistence
+- **OTA updates** — ElegantOTA + AsyncWebServer on port 8080, partition table updated (ota_4mb.csv), TFT progress bar, auth (admin/hikingstation)
+- **Battery management** — MAX17048 fuel gauge library, I2C power control (GPIO20), TFT battery display with color-coded alerts
+- **Menu expanded** to 7 items: Graph Temp / Graph Humidity / Graph Altitude / Log Comfort / OTA / Sync Time / Sleep
+- **Display mode auto-sync** — time sync runs on wake per configured mode, no manual step needed
+- **`setBrightness()` bug fixed** — was inverting PWM value; fixed to raw passthrough
+- **Test runner format bug fixed** — missing colon between file path and line number
+- **Starlight wiki** — 16 pages, GitHub Pages auto-deploy workflow
+- **External RTC removed** — user confirmed removing RV-3028-C7 from PCB; ESP32 internal RTC + BLE/WiFi sync sufficient
 
 ## What's Missing / Needs Work
 
-1. **Test coverage gaps** — WiFi (0 tests), display (1 standalone test), storage has many tests commented out
-2. **Comfort file not cleaned between test runs** — `/comfort.csv` accumulates across test runs (stale entries from prior tests appear in `test_hiking_comfort_multiple` but don't break it)
-3. **WiFi credentials** — hardcoded in `include/config.h` (should be configurable)
-4. **GitHub Pages deployment** — wiki built, needs deploy workflow
+1. **TimeSyncService needs hardware test** — compiled but not yet tested on device
+2. **Test coverage gaps** — WiFi (0 tests), display (1 standalone test), storage has many tests commented out
+3. **Comfort file not cleaned between test runs** — `/comfort.csv` accumulates across test runs (stale entries from prior tests appear in `test_hiking_comfort_multiple` but don't break it)
+4. **WiFi credentials** — hardcoded in `include/config.h` (should be configurable)
+5. **Flash usage at 64.0%** — healthy headroom after partition table optimization
 
 ## Known Issues
 
-- Filename typo: `connectivity_serivce.h` (not `service`) in both `lib/connectivity_service/` and `lib/services/connectivity/`
 - The `env:service` environment references `test/test_service/includes` but may not have all dependencies resolved
 
 ## Platform Quirk
@@ -139,11 +155,11 @@ Uses the **Tasmota fork** of platform-espressif32 for Arduino framework support 
 ## Build Commands
 
 ```sh
-pio run -e main              # build firmware (52% flash, 11% RAM)
+pio run -e main              # build firmware (83% flash, 13% RAM)
 pio run -t upload -e main    # upload + auto-opens serial monitor
 pio run -t clean             # full clean before rebuilding
-pio test -e main             # run all hardware tests on device
-pio test -e mock             # run mock tests on host
+pio test -e main             # run all hardware tests on device (34 tests)
+pio test -e mock             # run mock tests on host (33 tests)
 pio device monitor           # open serial monitor manually
 ```
 

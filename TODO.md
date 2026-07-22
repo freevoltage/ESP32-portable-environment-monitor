@@ -18,6 +18,10 @@
 - [x] Tell the AI that it should regularly updated PORJECT_STATUS.md. Just in case it needs to compact its memory and may forogot important things. And for me to know here we are
 - [x] Fix test runner — missing colon in output format prevented PlatformIO from parsing PASS/FAIL/SKIP results
 - [x] I want to have a docusarus (or other framework, pls research alternatives for docusaurus, I like modern ones) wiki for this project. It should be also regulary updated and part of AGENTS.md
+- [] Update the Docu/Wiki
+- [] Update the Readme
+- [] Update Project Status
+- [] For Debuggiong Reasons I had the idea that the device is writing the log data on the sd card and or even to a file on my computer or both!?. I have no idea how to implement this, but this seems like a good idea for me.
 
 ----
 
@@ -42,7 +46,12 @@ The hiking station redesign is complete. The last remaining items are either you
 - [x] Remove placeholder tests in test/test_native/ and test/test_lib/
 - [x] Fix display_manager::showConnectivityStatus() stub
 
+### Completed features (committed):
+- [x] Battery management (MAX17048 fuel gauge, I2C power control, TFT battery display)
+- [x] OTA updates (ElegantOTA + AsyncWebServer, partition table, TFT progress, auth)
+- [x] BLE time sync (NimBLE-Arduino, 5 configurable sync modes, LittleFS persistence)
+
 ### Future features (require hardware decisions):
-- [] Battery/power management + solar
-- [] Multi-sensor support
-- [] Web dashboard + OTA updates
+- [] Multi-sensor support
+- [] Web dashboard (WiFi status page, live data, config)
+- [] BLE companion phone app (see BLE_INTERFACE.md)

@@ -8,4 +8,7 @@ sdkconifg.*
 
 *.code-workspace
 .venv
-.vscode
+.vscode.serena/
+
+.serena/
+docs/.vscode/

@@ -47,6 +47,17 @@ public:
     void drawHeader(const char* title);
     void drawSeparator(int y);
 
+    // OTA Display
+    void showOTAMode(const char* ip);
+    void showOTAProgress(int percent, size_t current, size_t total);
+
+    // Battery Display
+    void showBatteryInfo(const BatteryStatus& battery);
+
+    // Time Sync Display
+    void showSyncUI(SyncMode currentMode, SyncSource lastSource, time_t lastSyncTime);
+    void showSyncProgress(const char* message);
+
 private:
     Adafruit_ST7789* _tft;
 

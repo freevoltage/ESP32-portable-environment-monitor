@@ -500,3 +500,163 @@ void DisplayManager::drawGraph(const char *title, const char *unit,
         _tft->printf("Last: %s", timeBuf);
     }
 }
+
+void DisplayManager::showOTAMode(const char* ip)
+{
+    if (!isReady())
+        return;
+
+    clear();
+
+    // Title
+    _tft->setTextColor(ST77XX_YELLOW);
+    _tft->setTextSize(2);
+    _tft->setCursor(50, 30);
+    _tft->print("OTA MODE");
+
+    // Separator
+    drawSeparator(60);
+
+    // Instructions
+    _tft->setTextColor(ST77XX_WHITE);
+    _tft->setTextSize(1);
+    _tft->setCursor(20, 80);
+    _tft->print("Open in browser:");
+    _tft->setCursor(20, 100);
+    _tft->setTextColor(ST77XX_CYAN);
+    _tft->printf("http://%s/update", ip);
+
+    // Status
+    _tft->setTextColor(ST77XX_GREEN);
+    _tft->setTextSize(2);
+    _tft->setCursor(30, 150);
+    _tft->print("Waiting for");
+
+    _tft->setCursor(55, 175);
+    _tft->print("upload...");
+
+    // Bottom info
+    _tft->setTextColor(ST77XX_YELLOW);
+    _tft->setTextSize(1);
+    _tft->setCursor(20, 220);
+    _tft->print("Auth: admin / hikingstation");
+}
+
+void DisplayManager::showOTAProgress(int percent, size_t current, size_t total)
+{
+    if (!isReady())
+        return;
+
+    // Clear progress area
+    _tft->fillRect(0, 100, 240, 120, ST77XX_BLACK);
+
+    // Percentage
+    _tft->setTextColor(ST77XX_WHITE);
+    _tft->setTextSize(3);
+    _tft->setCursor(80, 110);
+    _tft->printf("%d%%", percent);
+
+    // Progress bar
+    int barX = 20, barY = 155, barW = 200, barH = 25;
+    _tft->drawRect(barX, barY, barW, barH, ST77XX_WHITE);
+    int fillW = (barW * percent) / 100;
+    if (fillW > 0) {
+        _tft->fillRect(barX + 1, barY + 1, fillW - 2, barH - 2, ST77XX_GREEN);
+    }
+
+    // Bytes info
+    _tft->setTextColor(ST77XX_YELLOW);
+    _tft->setTextSize(1);
+    _tft->setCursor(50, 190);
+    _tft->printf("%u / %u KB", (unsigned int)(current / 1024), (unsigned int)(total / 1024));
+}
+
+void DisplayManager::showBatteryInfo(const BatteryStatus& battery)
+{
+    if (!isReady()) return;
+
+    // Small battery info block at bottom of screen
+    int y = 220;
+    _tft->setTextSize(1);
+
+    if (!battery.isValid) {
+        _tft->setTextColor(ST77XX_RED);
+        _tft->setCursor(5, y);
+        _tft->print("BATT: --");
+        return;
+    }
+
+    // Color based on percentage
+    if (battery.percent > 50) {
+        _tft->setTextColor(ST77XX_GREEN);
+    } else if (battery.percent > 20) {
+        _tft->setTextColor(ST77XX_YELLOW);
+    } else {
+        _tft->setTextColor(ST77XX_RED);
+    }
+
+    _tft->setCursor(5, y);
+    _tft->printf("BATT: %.0f%% (%.2fV)", battery.percent, battery.voltage);
+}
+
+void DisplayManager::showSyncUI(SyncMode currentMode, SyncSource lastSource, time_t lastSyncTime)
+{
+    if (!isReady()) return;
+
+    clear();
+    drawHeader("TIME SYNC");
+
+    // Current mode
+    _tft->setTextColor(ST77XX_WHITE);
+    _tft->setTextSize(2);
+    _tft->setCursor(10, 35);
+    _tft->print("Mode:");
+
+    // Mode value (highlighted in cyan)
+    _tft->setTextColor(ST77XX_CYAN);
+    _tft->setCursor(10, 60);
+    const char* modeNames[] = {"OFF", "BLE", "WiFi", "BLE+WiFi", "WiFi+BLE"};
+    _tft->print(modeNames[static_cast<int>(currentMode)]);
+
+    // Last sync info
+    _tft->setTextSize(1);
+    _tft->setTextColor(ST77XX_WHITE);
+    _tft->setCursor(10, 100);
+    _tft->print("Last sync:");
+
+    if (lastSource == SyncSource::NONE || lastSyncTime == 0) {
+        _tft->setTextColor(ST77XX_YELLOW);
+        _tft->setCursor(10, 115);
+        _tft->print("Never");
+    } else {
+        _tft->setTextColor(lastSource == SyncSource::BLE ? ST77XX_GREEN : ST77XX_BLUE);
+        _tft->setCursor(10, 115);
+        const char* srcName = (lastSource == SyncSource::BLE) ? "BLE" : "WiFi";
+        _tft->printf("%s @ %lu", srcName, (unsigned long)lastSyncTime);
+    }
+
+    // Button hints
+    _tft->setTextColor(ST77XX_YELLOW);
+    _tft->setTextSize(1);
+    _tft->setCursor(5, 225);
+    _tft->print("A=Mode B=Sync");
+}
+
+void DisplayManager::showSyncProgress(const char* message)
+{
+    if (!isReady()) return;
+
+    // Clear bottom area for progress
+    _tft->fillRect(0, 140, 240, 80, ST77XX_BLACK);
+
+    _tft->setTextColor(ST77XX_YELLOW);
+    _tft->setTextSize(2);
+    _tft->setCursor(20, 150);
+    _tft->print(message);
+
+    // Animated dots
+    _tft->setTextColor(ST77XX_WHITE);
+    _tft->setTextSize(1);
+    _tft->setCursor(20, 175);
+    _tft->print("Please wait...");
+}
