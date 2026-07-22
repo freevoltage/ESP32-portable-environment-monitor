@@ -26,8 +26,11 @@
 - [x] Add abort possibility in the OTA Menu (Button B exit, 120s timeout)
 - [x] Add a Dashboard which shows current Temperature, Humidity, Altitude, Time, with sub-menus "Menu" and "Log Comfort"
 - [x] Remove auto-sync from button wake (device responds instantly, sync on-demand from menu only)
-- [] Abbort possibilty in the "OTA" Menuswxe
-- [] Add a Dashboard which shows current Temperature, Hummidity, Altidude, Time, and with the Sub Menus "Menu, and LOG Comfort". help me with the User interface. I would like to work on it in a graphical way or at least some form of markup language or graphical user description. Put this descrption into the
+- [x] Abbort possibilty in the "OTA" Menuswxe
+- [x] Add a Dashboard which shows current Temperature, Hummidity, Altidude, Time, and with the Sub Menus "Menu, and LOG Comfort". help me with the User interface. I would like to work on it in a graphical way or at least some form of markup language or graphical user description. Put this descrption into the
+- [ ] ADd to the Documentation and the Code: BRESS BOTH BUTTONS AT ONCE to ABBORT ANY OPERATION (like sync or so. PRESSING BOTH BUTTONS WILL always return to the dashboard. )
+- [ ] Also add the Menu Item "SLeep" to the Dashboard. 
+- [ ] It shouldnt be possible to log Multiple Sleep Entries during the Day or at least I want to discuss it how we could possible implement this. or protect the sleep comfort log from getting crowded with wrong and accidental logs. 
 ----
 
 ## Hardware Stuff (Tasks for Me)

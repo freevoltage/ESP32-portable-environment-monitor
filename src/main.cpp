@@ -236,6 +236,18 @@ void runMeasurementMode() {
 
 bool enterMenu();  // Forward declaration
 
+// Wait for any button press and return which one: 1=NAV(A), 2=SEL(B)
+int waitForButton() {
+    int pressed = 0;
+    while (pressed == 0) {
+        if (digitalRead(NAV_BUTTON_PIN) == LOW) pressed = 1;
+        if (digitalRead(SEL_BUTTON_PIN) == LOW) pressed = 2;
+        delay(10);
+    }
+    delay(100); // Debounce after capture
+    return pressed;
+}
+
 void showGraphForMenu(DisplayMenu menu) {
     std::vector<SensorReading> readings;
     time_t since = rtc.getEpochTime() - 86400; // Last 24h
@@ -286,10 +298,7 @@ void showGraphForMenu(DisplayMenu menu) {
 
     // Wait for button press to go back to menu
     Serial.println("Graph shown. Press any button to return to menu.");
-    while (digitalRead(NAV_BUTTON_PIN) == HIGH && digitalRead(SEL_BUTTON_PIN) == HIGH) {
-        delay(50);
-    }
-    delay(200); // Debounce
+    waitForButton();
 }
 
 void runDisplayMode() {
@@ -349,18 +358,13 @@ void runDisplayMode() {
     while (inDisplayMode) {
         displayService.showDashboard(reading, rtc.getFormattedTime(), dashItem, battStatus);
 
-        // Wait for button
-        while (digitalRead(NAV_BUTTON_PIN) == HIGH &&
-               digitalRead(SEL_BUTTON_PIN) == HIGH) {
-            delay(50);
-        }
-        delay(200); // Debounce
+        int btn = waitForButton();
 
-        if (digitalRead(NAV_BUTTON_PIN) == LOW) {
+        if (btn == 1) {
             dashItem = (dashItem + 1) % 2;
         }
 
-        if (digitalRead(SEL_BUTTON_PIN) == LOW) {
+        if (btn == 2) {
             if (dashItem == 0) {
                 // ── Log Comfort ──────────────────────────────────────
                 ComfortLevel comfortLevel = ComfortLevel::COMFORTABLE;
@@ -369,19 +373,15 @@ void runDisplayMode() {
                 while (selecting) {
                     displayService.showComfortUI(comfortLevel);
 
-                    while (digitalRead(NAV_BUTTON_PIN) == HIGH &&
-                           digitalRead(SEL_BUTTON_PIN) == HIGH) {
-                        delay(50);
-                    }
-                    delay(200);
+                    int btn = waitForButton();
 
-                    if (digitalRead(NAV_BUTTON_PIN) == LOW) {
+                    if (btn == 1) {
                         int cl = static_cast<int>(comfortLevel);
                         cl = (cl + 1) % 5;
                         comfortLevel = static_cast<ComfortLevel>(cl);
                     }
 
-                    if (digitalRead(SEL_BUTTON_PIN) == LOW) {
+                    if (btn == 2) {
                         ComfortLog log;
                         log.timestamp = rtc.getEpochTime();
                         log.level = comfortLevel;
@@ -410,24 +410,15 @@ bool enterMenu() {
     while (inMenu) {
         displayService.showMenu(currentMenu);
 
-        bool navPressed = false;
-        bool selPressed = false;
+        int btn = waitForButton();
 
-        while (!navPressed && !selPressed) {
-            if (digitalRead(NAV_BUTTON_PIN) == LOW) navPressed = true;
-            if (digitalRead(SEL_BUTTON_PIN) == LOW) selPressed = true;
-            delay(50);
-        }
-
-        delay(200);
-
-        if (navPressed) {
+        if (btn == 1) {
             int idx = static_cast<int>(currentMenu);
             idx = (idx + 1) % 7;
             currentMenu = static_cast<DisplayMenu>(idx);
         }
 
-        if (selPressed) {
+        if (btn == 2) {
             switch (currentMenu) {
                 case DisplayMenu::GRAPH_TEMP:
                 case DisplayMenu::GRAPH_HUMIDITY:
@@ -442,19 +433,15 @@ bool enterMenu() {
                     while (selecting) {
                         displayService.showComfortUI(comfortLevel);
 
-                        while (digitalRead(NAV_BUTTON_PIN) == HIGH &&
-                               digitalRead(SEL_BUTTON_PIN) == HIGH) {
-                            delay(50);
-                        }
-                        delay(200);
+                        int btn = waitForButton();
 
-                        if (digitalRead(NAV_BUTTON_PIN) == LOW) {
+                        if (btn == 1) {
                             int cl = static_cast<int>(comfortLevel);
                             cl = (cl + 1) % 5;
                             comfortLevel = static_cast<ComfortLevel>(cl);
                         }
 
-                        if (digitalRead(SEL_BUTTON_PIN) == LOW) {
+                        if (btn == 2) {
                             ComfortLog log;
                             log.timestamp = rtc.getEpochTime();
                             log.level = comfortLevel;
@@ -487,19 +474,14 @@ bool enterMenu() {
                         SyncStatus syncStatus = timeSync.getStatus();
                         displayService.showSyncSubMenu(syncItem, syncStatus.mode, syncStatus.lastSource, syncStatus.lastSyncTime);
 
-                        // Wait for button
-                        while (digitalRead(NAV_BUTTON_PIN) == HIGH &&
-                               digitalRead(SEL_BUTTON_PIN) == HIGH) {
-                            delay(50);
-                        }
-                        delay(200); // Debounce
+                        int btn = waitForButton();
 
-                        if (digitalRead(NAV_BUTTON_PIN) == LOW) {
+                        if (btn == 1) {
                             // A = Navigate: cycle through menu items
                             syncItem = (syncItem + 1) % 3;
                         }
 
-                        if (digitalRead(SEL_BUTTON_PIN) == LOW) {
+                        if (btn == 2) {
                             // B = Select: act on highlighted item
                             switch (syncItem) {
                                 case SYNC_MODE: {
