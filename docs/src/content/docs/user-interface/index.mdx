@@ -1,0 +1,214 @@
+---
+title: User Interface
+description: Screen layouts, button navigation, and menu system for the hiking station.
+---
+
+## Overview
+
+The hiking station uses a **two-button navigation** system on a 240x240 TFT display:
+
+- **Button A (GPIO8)** — Navigate: cycles through menu items
+- **Button B (GPIO3)** — Select: activates the highlighted item
+
+This pattern is consistent across every screen.
+
+## Flow
+
+```
+Power-on / Button Wake
+        │
+        ▼
+   ┌─────────┐
+   │Dashboard│  ← Default screen
+   └────┬────┘
+        │
+   B: Log Comfort ──→ Comfort Logging ──→ back to Dashboard
+   B: Menu ─────────→ Full Menu
+                         │
+                    A: Navigate
+                    B: Select
+                         │
+              ┌──────────┼──────────┐
+              │          │          │
+         Graph Temp  Log Comfort  Sync Time
+         Graph Hum   OTA         Sleep
+         Graph Alt               ──→ Deep Sleep
+```
+
+## Dashboard
+
+The first screen shown on button wake. Displays current sensor readings and provides quick access to the two most common actions.
+
+```
+┌──────────────────────────────┐
+│      HIKING STATION          │  ← Header
+├──────────────────────────────┤
+│ 23.5°C       42%            │  ← Temperature + Humidity
+│  1,245 m     1013hPa        │  ← Altitude + Pressure
+│                              │
+│  14:32                       │  ← Current time
+│                              │
+├──────────────────────────────┤
+│ > Log Comfort                │  ← Selectable item
+│   Menu                       │  ← Selectable item
+├──────────────────────────────┤
+│ ████████░░ 78% 4.02V        │  ← Battery bar
+│ A=Navigate  B=Select        │  ← Footer
+└──────────────────────────────┘
+```
+
+| Action | Button B |
+|--------|----------|
+| **Log Comfort** | Opens comfort logging (5 levels, saves to SD) |
+| **Menu** | Opens the full menu with all options |
+
+## Full Menu
+
+Accessed from the Dashboard → Menu.
+
+```
+┌──────────────────────────────┐
+│          MENU                │
+├──────────────────────────────┤
+│ > Graph Temperature          │
+│   Graph Humidity             │
+│   Graph Altitude             │
+│   Log Comfort                │
+│   OTA                        │
+│   Sync Time                  │
+│   Sleep                      │
+├──────────────────────────────┤
+│ A=Navigate  B=Select        │
+└──────────────────────────────┘
+```
+
+| Item | Action |
+|------|--------|
+| **Graph Temperature** | 24h rolling temperature graph |
+| **Graph Humidity** | 24h rolling humidity graph |
+| **Graph Altitude** | 24h rolling altitude graph |
+| **Log Comfort** | Log comfort level to SD card |
+| **OTA** | WiFi firmware update mode |
+| **Sync Time** | Time sync sub-menu |
+| **Sleep** | Enter deep sleep |
+
+## Graphs
+
+Shows the last 24 hours of data for the selected sensor. Data is read from the SD card.
+
+```
+┌──────────────────────────────┐
+│        TEMPERATURE           │
+├──────────────────────────────┤
+│    ·                         │
+│   · ·    ·                   │
+│  ·   ·  · ·     ·           │
+│ ·     ··   ·   · ·         │
+│·           · ··   ·        │
+│              ·       ·      │
+├──────────────────────────────┤
+│ 22°C ──────── 28°C          │  ← Scale
+│ 12:00         14:32         │  ← Time axis
+│                              │
+│ Any button → back to menu   │
+└──────────────────────────────┘
+```
+
+## Sync Time Sub-Menu
+
+Accessed from Full Menu → Sync Time.
+
+```
+┌──────────────────────────────┐
+│         TIME SYNC            │
+├──────────────────────────────┤
+│ > Mode     BLE+WiFi          │  ← Tap B to cycle modes
+│   Sync Now                   │  ← Tap B to start sync
+│   Back                       │  ← Tap B to exit
+├──────────────────────────────┤
+│ Last sync:                   │
+│ BLE @ 1721654532             │
+│                              │
+│ A=Navigate  B=Select        │
+└──────────────────────────────┘
+```
+
+### Sync Modes
+
+| Mode | Behavior |
+|------|----------|
+| **OFF** | No auto-sync |
+| **BLE** | BLE phone sync only |
+| **WiFi** | WiFi NTP sync only |
+| **BLE+WiFi** | Try BLE first, fall back to WiFi |
+| **WiFi+BLE** | Try WiFi first, fall back to BLE |
+
+### Sync Now
+
+Triggers an immediate sync using the current mode. Shows a countdown on screen (BLE: up to 10 seconds).
+
+## OTA Mode
+
+WiFi firmware update mode. Upload a new firmware binary via web browser.
+
+```
+┌──────────────────────────────┐
+│          OTA MODE            │
+├──────────────────────────────┤
+│ Open in browser:             │
+│ http://192.168.1.42/update   │
+│                              │
+│      Waiting for             │
+│       upload...              │
+│                              │
+│ Auth: admin / hikingstation  │
+│ B=Exit  Timeout=120s         │
+└──────────────────────────────┘
+```
+
+- **Button B** exits OTA immediately
+- **120-second timeout** auto-exits if no upload starts
+- After exit, the device enters deep sleep
+
+## Comfort Logging
+
+Quick-access from Dashboard or Full Menu. Logs how you feel to the SD card.
+
+```
+┌──────────────────────────────┐
+│       LOG COMFORT            │
+├──────────────────────────────┤
+│                              │
+│     ◄  COMFORTABLE  ►       │  ← Cycle with Button A
+│                              │
+├──────────────────────────────┤
+│ Levels:                      │
+│   Too cold ← Cold ←         │
+│   Comfortable →             │
+│   Warm → Too warm           │
+├──────────────────────────────┤
+│ A=Cycle  B=Log              │
+└──────────────────────────────┘
+```
+
+| Level | Meaning |
+|-------|---------|
+| **Too cold** | Uncomfortably cold |
+| **Cold** | Below comfortable |
+| **Comfortable** | Just right |
+| **Warm** | Above comfortable |
+| **Too warm** | Uncomfortably warm |
+
+Button B logs the current selection and returns to the previous screen.
+
+## Battery Indicator
+
+The Dashboard shows a color-coded battery bar:
+
+| Color | Level | Meaning |
+|-------|-------|---------|
+| Green | > 50% | Good |
+| Yellow | 20-50% | Low |
+| Red | < 20% | Critical |
+
+The bar also shows the exact percentage and voltage (e.g., `78% 4.02V`).

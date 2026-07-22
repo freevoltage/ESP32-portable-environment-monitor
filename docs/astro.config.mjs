@@ -23,6 +23,12 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'User Interface',
+					items: [
+						{ label: 'Screens & Navigation', slug: 'user-interface/index' },
+					],
+				},
+				{
 					label: 'Architecture',
 					items: [
 						{ label: 'System Overview', slug: 'architecture/overview' },
