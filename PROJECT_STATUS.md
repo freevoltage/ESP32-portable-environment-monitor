@@ -11,9 +11,10 @@ PlatformIO embedded C++ project for **Adafruit Feather ESP32-C6**. Portable hiki
 ```
 Application (main.cpp)
     ├── DataService        → orchestrates sensor/storage/rtc
-    ├── DisplayService     → manages display output (menu, graphs, comfort UI)
-    ├── ConnectivityService → WiFi + NTP time sync
-    └── TimeSyncService    → BLE phone sync + WiFi fallback (NimBLE)
+    ├── DisplayService     → manages display output (dashboard, menu, graphs)
+    ├── ConnectivityService → WiFi + NTP time sync (with abort callback)
+    ├── TimeSyncService    → BLE phone sync + WiFi fallback (NimBLE)
+    └── SettingsManager    → device settings (LittleFS persistence)
             │
         Service Layer (lib/services/)
             │
@@ -46,12 +47,14 @@ Application (main.cpp)
 - ~2-3 seconds total, wakes every 30 minutes (`MEASUREMENT_INTERVAL_SEC = 1800`)
 
 ### Display Mode (button wake via EXT1)
-- Turn on display → auto time sync (per configured mode) → show current reading
-- Navigate menu: Graph Temp / Graph Humidity / Graph Altitude / Log Comfort / OTA / Sync Time / Sleep
+- Turn on display → show dashboard with sensor data + time + battery + connectivity icon
+- Navigate 3-item dashboard: Log Comfort, Menu, Sleep
+- Full menu (7 items): Graph Temp / Graph Humidity / Graph Altitude / Settings / OTA / Sync Time / Sleep
+- Settings sub-menu: Sleep Interval (1m/5m/15m/30m/1hr), NTP Sync (1hr/6hr/12hr/24hr), Back
 - 24h rolling graph using `getReadingsSince()`
-- Comfort logging: 5 levels (Too cold → Too warm) → `/comfort.csv`
-- OTA mode: ElegantOTA web server on port 8080, TFT progress bar, auth required
+- OTA mode: ElegantOTA web server, B-button abort, 120s timeout, "WiFi required for OTA" message
 - Sync Time: cycle modes (OFF/BLE/WiFi/BLE+WiFi/WiFi+BLE), trigger manual sync
+- Both-buttons abort: always returns to Dashboard from any sub-menu
 - EXT1 wake on Select button only: `(1ULL << GPIO3)`, `ESP_EXT1_WAKEUP_ANY_LOW`
 - GPIO8/GPIO9 are NOT RTC GPIOs — only GPIO0-7 support EXT1 wakeup on ESP32-C6
 
@@ -67,6 +70,7 @@ Application (main.cpp)
 - `SyncMode` — enum class : uint8_t (OFF=0, BLE=1, WIFI=2, BLE_FIRST=3, WIFI_FIRST=4)
 - `SyncSource` — enum class : uint8_t (NONE=0, BLE=1, WIFI=2)
 - `SyncStatus` — source, timestamp, inProgress
+- `DeviceSettings` — measurementIntervalSec, ntpSyncIntervalHours
 - `SystemMode`, `ConnectivityStatus` — state machine enums
 
 ## Fully Working (tested on hardware + native)
@@ -79,15 +83,16 @@ Application (main.cpp)
 | `storage_manager` | `lib/hardware/storage_manager/` | Complete (~1030 lines)      | 5 active embedded  |
 | `rtc_manager`     | `lib/hardware/rtc_manager/`     | Complete (ESP32Time)        | 11 embedded        |
 | `display_manager` | `lib/hardware/display_manager/` | Complete (240x240 ST7789)   | 1 embedded         |
-| `wifi_manager`    | `lib/hardware/wifi_manager/`    | Complete (WiFi + NTP)       | 11 native mock     |
+| `wifi_manager`    | `lib/hardware/wifi_manager/`    | Complete (WiFi + NTP + abort callback) | 11 native mock     |
 | `battery_manager` | `lib/hardware/battery_manager/` | Complete (MAX17048)         | 9 native mock      |
+| `settings_manager`| `lib/hardware/settings_manager/`| Complete (LittleFS)         | —                  |
 
 ### Service Layer (`lib/services/`)
 
 | Module                 | Location                            | Status                    | Tests                     |
 | ---------------------- | ----------------------------------- | ------------------------- | ------------------------- |
 | `data_service`         | `lib/services/data/`                | Complete (232 lines)      | 21 native mock + 21 on-device |
-| `display_service`      | `lib/services/display/`             | Complete (~140 lines)     | Tested on hardware (7-item menu, graph, comfort UI) |
+| `display_service`      | `lib/services/display/`             | Complete (~140 lines)     | Tested on hardware (7-item menu, dashboard, graphs, comfort UI) |
 | `connectivity_service` | `lib/services/connectivity/`        | Complete (116 lines)      | 12 native mock            |
 | `time_sync_service`    | `lib/services/time_sync_service/`   | Complete (BLE+WiFi)       | 15 native mock        |
 
@@ -127,6 +132,18 @@ Application (main.cpp)
 
 ## Recent Changes (2026-07-22)
 
+- **Settings sub-menu added** — SettingsManager class with LittleFS persistence (`/settings.txt`). Menu now 7 items: Graph Temp/Humidity/Altitude, Settings, OTA, Sync Time, Sleep. Settings sub-menu: Sleep Interval (1m/5m/15m/30m/1hr), NTP Sync (1hr/6hr/12hr/24hr), Back.
+- **WiFi abort callback** — `WiFiManager::connect()` accepts optional `AbortCallback` for button-press abort. OTA mode uses this for B-button cancellation. Returns false if aborted.
+- **Dashboard redesign** — 3 items (Log Comfort, Menu, Sleep). Header shows "WiFi" when connected. Battery bar shows "Last:WiFi" or "Last:BLE" for sync source. Footer: `"A=Nav B=Sel A+B=Back"`.
+- **Log Comfort removed from menu** — now accessed from Dashboard only (comfort log protection: one per day)
+- **Battery bar position** — moved from y=190 to y=210 (closer to footer)
+- **WiFi progress dots** — alternating "." and ".." during connection
+- **OTA "WiFi required" message** — shows message when sync mode is BLE-only
+- **Wiki build fixed** — MDX `<` in tables escaped as `&lt;`, sidebar slug fixed
+- **Wiki UI page updated** — connectivity icon, settings sub-menu, full menu structure
+
+## Recent Changes (2026-07-22 — earlier)
+
 - **BLE double-free crash fixed** — NimBLE `deinit(true)` causes heap corruption on Tasmota ESP32-C6; switched to `deinit(false)` with callback cleanup before deinit
 - **Black display after deep sleep fixed** — `gpio_hold_dis(TFT_LIT)` at boot; ESP32-C6 doesn't auto-release GPIO hold after wake
 - **SD data preservation** — removed unconditional datalog deletion from `StorageManager::begin()`; data now persists across boot cycles
@@ -149,7 +166,7 @@ Application (main.cpp)
 
 ## What's Missing / Needs Work
 
-1. **BLE sync blocks display mode** — time sync waits up to 10s for phone before showing menu; consider making non-blocking or skipping on button wake
+1. **BLE companion app** — iOS iPhone 17 app needed for BLE time sync + data transfer
 2. **Test coverage gaps** — display (1 standalone test), storage has many tests commented out
 3. **Comfort file not cleaned between test runs** — `/comfort.csv` accumulates across test runs
 4. **Flash usage at 64%** — healthy headroom after partition table optimization

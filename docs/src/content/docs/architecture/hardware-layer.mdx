@@ -1,6 +1,6 @@
 ---
 title: Hardware Layer
-description: HAL managers for sensor, display, RTC, storage, and WiFi.
+description: HAL managers for sensor, display, RTC, storage, WiFi, battery, and settings.
 ---
 
 The HAL layer provides direct hardware access. Each manager is a self-contained library under `lib/hardware/`.
@@ -82,7 +82,33 @@ WiFi connection management.
 
 | Method | Description |
 |--------|-------------|
-| `connect()` | Connect to configured WiFi |
+| `connect(ssid, password, timeoutSeconds, abort)` | Connect to WiFi with optional abort callback |
 | `disconnect()` | Disconnect from WiFi |
 | `isConnected()` | Check connection status |
 | `syncTime(server)` | Sync time via NTP |
+
+## Battery Manager
+
+**Location**: `lib/hardware/battery_manager/`
+
+MAX17048 fuel gauge via I2C.
+
+| Method | Description |
+|--------|-------------|
+| `begin()` | Initialize MAX17048 (300ms I2C delay) |
+| `getBatteryStatus()` | Returns `BatteryStatus` (voltage, SOC, charging flag) |
+
+## Settings Manager
+
+**Location**: `lib/hardware/settings_manager/`
+
+Device settings persisted to LittleFS.
+
+| Method | Description |
+|--------|-------------|
+| `begin()` | Load settings from `/settings.txt` |
+| `getSettings()` | Returns `DeviceSettings` |
+| `cycleMeasurementInterval()` | Cycle through 1m/5m/15m/30m/1hr |
+| `cycleNTPSyncInterval()` | Cycle through 1hr/6hr/12hr/24hr |
+| `save()` | Persist to LittleFS |
+| `apply()` | Apply settings (e.g., update RTC manager) |

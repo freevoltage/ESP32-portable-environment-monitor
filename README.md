@@ -77,8 +77,9 @@ Application (main.cpp)
             ├── DisplayManager   (ST7789)
             ├── StorageManager   (SD card)
             ├── RTCManager       (ESP32Time)
-            ├── WiFiManager      (WiFi)
-            └── BatteryManager   (MAX17048)
+            ├── WiFiManager      (WiFi + abort callback)
+            ├── BatteryManager   (MAX17048)
+            └── SettingsManager  (LittleFS persistence)
 ```
 
 `main.cpp` never calls hardware managers directly — all interactions go through the service layer.

@@ -39,13 +39,22 @@ Manages all display output — menus, graphs, comfort UI.
 | `showReading(SensorReading)` | Current sensor values |
 | `showGraph(data, label)` | 24h rolling graph |
 | `showMenu(DisplayMenu)` | Menu with current selection highlighted |
-| `showComfortUI()` | Comfort level selection screen |
-| `showClock()` | Display current time and date |
+| `showDashboard(reading, time, selected, battery, wifi, syncSource)` | Dashboard with sensor data + connectivity icon |
+| `showSyncUI(mode, lastSync)` | Sync mode status display |
+| `showSyncProgress(message, remaining)` | Sync progress countdown |
+| `showSyncSubMenu(mode, lastSync)` | Sync sub-menu with 3 items |
+| `showSettingsSubMenu(selected, settings)` | Settings sub-menu with cycling values |
+| `showOTAMode()` | OTA mode screen with abort hint |
+| `showOTAProgress(progress)` | OTA upload progress bar |
+| `showBatteryInfo(voltage, soc)` | Battery status screen |
 | `setBrightness(uint8)` | Adjust backlight |
 
 **Menu System**:
 - Two-button navigation (Navigate + Select)
-- 5 menu items: Graph Temp / Graph Humidity / Graph Altitude / Log Comfort / Sleep
+- Dashboard (3 items): Log Comfort / Menu / Sleep
+- Full menu (7 items): Graph Temp / Graph Humidity / Graph Altitude / Settings / OTA / Sync Time / Sleep
+- Settings sub-menu (3 items): Sleep Interval / NTP Sync / Back
+- Sync sub-menu (3 items): Mode / Sync Now / Back
 
 ## Connectivity Service
 
@@ -55,11 +64,11 @@ WiFi connection and NTP time synchronization.
 
 | Method | Description |
 |--------|-------------|
-| `begin()` | Initialize WiFi manager |
-| `connect()` | Connect to WiFi network |
+| `begin()` | Initialize WiFi manager, load WiFi config from LittleFS |
+| `connect(timeoutMs, abort)` | Connect to WiFi with optional abort callback |
 | `disconnect()` | Disconnect from WiFi |
 | `syncTime()` | Sync RTC via NTP |
-| `ensureTimeSync()` | Sync if needed (once per day) |
+| `ensureTimeSync()` | Sync if needed (once per NTP interval) |
 | `getStatus()` | Return `ConnectivityStatus` |
 
 **State Machine**:
@@ -80,8 +89,12 @@ main.cpp
   │     ├── DataService.getRecentReadings()
   │     └── DisplayManager.drawGraph()
   │
-  └── ConnectivityService.syncTime()
-        └── WiFiManager.syncTime()
+  ├── ConnectivityService.syncTime()
+  │     └── WiFiManager.syncTime()
+  │
+  └── TimeSyncService.sync(callback)
+        ├── syncBLE(callback) — BLE phone sync
+        └── ConnectivityService.syncTime() — WiFi fallback
 ```
 
 Services never call each other directly — `main.cpp` orchestrates the workflow.

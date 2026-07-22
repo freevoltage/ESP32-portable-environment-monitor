@@ -34,8 +34,8 @@ description: All configuration options in include/config.h.
 |--------|-------|-------------|
 | `uS_TO_S_FACTOR` | `1000000ULL` | Microseconds to seconds conversion |
 | `TIME_TO_SLEEP` | `5` | Deep sleep duration in seconds (test mode) |
-| `MEASUREMENT_INTERVAL_SEC` | `1800` | Measurement interval (30 minutes) |
-| `TIME_SYNC_INTERVAL_HOURS` | `24` | NTP sync interval |
+| `MEASUREMENT_INTERVAL_SEC` | `60` | Default measurement interval (dev). Overridden by SettingsManager at runtime. |
+| `TIME_SYNC_INTERVAL_HOURS` | `24` | Default NTP sync interval. Overridden by SettingsManager at runtime. |
 
 ## Graph Layout
 
@@ -84,3 +84,12 @@ description: All configuration options in include/config.h.
 | Define | Value | Description |
 |--------|-------|-------------|
 | `DEBUG` | commented out | Enable debug output |
+| `DEBUG_LOG_FILENAME` | `"/debug.log"` | SD card debug log file (BOOT, SENSOR, SYNC, BATT events) |
+
+## OTA
+
+| Define | Value | Description |
+|--------|-------|-------------|
+| `OTA_TIMEOUT_MS` | `120000` | OTA mode auto-exit timeout (120 seconds) |
+| `OTA_SSID` | `"admin"` | OTA web server username |
+| `OTA_PASSWORD` | `"hikingstation"` | OTA web server password |

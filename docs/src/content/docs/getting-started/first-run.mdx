@@ -76,7 +76,7 @@ The menu renders at textSize(1) to fit all 7 items. Highlighted item shows cyan 
 | **Graph Temp** | 24h rolling temperature graph from SD card data. Press any button to return. |
 | **Graph Humidity** | 24h rolling humidity graph. Press any button to return. |
 | **Graph Altitude** | 24h rolling altitude graph. Press any button to return. |
-| **Log Comfort** | Sub-menu: cycle through Too cold / Cold / Comfortable / Warm / Too warm. Button B logs to `/comfort.csv`, shows "LOGGED!". |
+| **Settings** | Sub-menu: cycle Sleep Interval (1m/5m/15m/30m/1hr) and NTP Sync (1hr/6hr/12hr/24hr). Settings saved to LittleFS. |
 | **OTA** | Connects WiFi, shows IP on display, starts ElegantOTA web server on port 80. Visit `http://<ip>/update` in browser. Auth: `admin` / `hikingstation`. Shows progress bar on TFT. Device reboots after upload. **Never returns to menu.** |
 | **Sync Time** | Sub-menu showing current sync mode + last sync time/source. Button A cycles modes (OFF / BLE / WiFi / BLE+WiFi / WiFi+BLE). Button B triggers manual sync. |
 | **Sleep** | Exits menu, enters deep sleep (same config as measurement mode). |
@@ -136,6 +136,7 @@ The device can be woken by:
 |------|--------|---------|
 | `/datalog.csv` | `epoch,temp,humidity,pressure,altitude` | Sensor readings, one per line |
 | `/comfort.csv` | `epoch,level` | Comfort logs (0=Too cold → 4=Too warm) |
+| `/debug.log` | `TAG: message` | Debug events (BOOT, SENSOR, SYNC, BATT) |
 
 ## LittleFS Config Files
 
@@ -143,6 +144,7 @@ The device can be woken by:
 |------|--------|---------|
 | `/wifi_config.txt` | `ssid=...\npassword=...\n` | WiFi credentials (falls back to defaults if missing) |
 | `/sync_config.txt` | `mode=N` | Sync mode (0-4, default 3=BLE_FIRST) |
+| `/settings.txt` | `measurement_interval=N\nntp_sync_interval=N\n` | Device settings (sleep interval in sec, NTP sync in hours) |
 
 ## Serial Output
 

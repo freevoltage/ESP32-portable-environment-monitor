@@ -43,19 +43,25 @@ export default defineConfig({
 						{ label: 'Deep Sleep & Power', slug: 'configuration/deep-sleep' },
 					],
 				},
-				{
-					label: 'Development',
-					items: [
-						{ label: 'Testing', slug: 'development/testing' },
-						{ label: 'Examples', slug: 'development/examples' },
-						{ label: 'Adding Features', slug: 'development/adding-features' },
-						{ label: 'Wiki Development', slug: 'development/wiki-dev' },
-					],
-				},
-				{
-					label: 'Reference',
-					items: [{ autogenerate: { directory: 'reference' } }],
-				},
+			{
+				label: 'Development',
+				items: [
+					{ label: 'Testing', slug: 'development/testing' },
+					{ label: 'Examples', slug: 'development/examples' },
+					{ label: 'Adding Features', slug: 'development/adding-features' },
+					{ label: 'Wiki Development', slug: 'development/wiki-dev' },
+				],
+			},
+			{
+				label: 'Guides',
+				items: [
+					{ label: 'BLE Companion App', slug: 'guides/ble-companion-app' },
+				],
+			},
+			{
+				label: 'Reference',
+				items: [{ autogenerate: { directory: 'reference' } }],
+			},
 			],
 		}),
 	],

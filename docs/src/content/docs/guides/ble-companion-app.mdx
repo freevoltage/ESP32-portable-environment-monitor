@@ -1,0 +1,305 @@
+---
+title: BLE Companion App
+description: Building an iOS companion app for the Hiking Station using CoreBluetooth.
+---
+
+This guide covers building an iOS companion app that communicates with the Hiking Station via Bluetooth Low Energy (BLE). The app syncs time to the device and can read sensor data.
+
+## Overview
+
+The Hiking Station exposes a BLE GATT service for time synchronization. Your iOS app acts as a **Central** connecting to the device as a **Peripheral**. The primary use case is syncing the device's clock when no WiFi is available.
+
+**Device Name:** `HikingStation`
+**Protocol:** BLE (Bluetooth Low Energy)
+**iOS Framework:** CoreBluetooth
+
+## GATT Interface
+
+### Service
+
+| Property | Value |
+|----------|-------|
+| Service UUID | `4c54494d-6568-6b69-6e67-53746174696f` |
+| Name | Time Sync Service |
+
+### Characteristics
+
+| Characteristic | UUID | Properties | Format |
+|----------------|------|------------|--------|
+| Time Write | `4c54494d-7469-6d65-7772-697465000001` | Write | 4-byte unsigned int, little-endian |
+| Time Read | `4c54494d-7469-6d65-7772-697465000002` | Read, Notify | 4-byte unsigned int, little-endian |
+
+### Data Format
+
+All time values are **4-byte unsigned 32-bit integers** in **little-endian byte order**, representing Unix epoch seconds (seconds since 1970-01-01 00:00:00 UTC).
+
+**Example:** Epoch `1721566800` (2024-07-21 16:00:00 UTC)
+
+```
+Byte[0] = 0x30  (LSB)
+Byte[1] = 0x5A
+Byte[2] = 0x8F
+Byte[3] = 0x66  (MSB)
+```
+
+## Connection Flow
+
+```
+1. App scans for "HikingStation"
+2. App connects (timeout: 5s)
+3. App discovers services → finds Time Sync Service
+4. App discovers characteristics → finds Time Write
+5. App writes current Unix epoch (4 bytes LE) to Time Write
+6. (Optional) App reads Time Read to verify
+7. App disconnects
+8. Device sets internal RTC to received time
+```
+
+**Device timeout:** The device advertises for 10 seconds (`BLE_SYNC_TIMEOUT_MS`). If no connection within that window, advertising stops.
+
+## iOS Implementation
+
+### CoreBluetooth Setup
+
+```swift
+import CoreBluetooth
+
+class BLESyncManager: NSObject, ObservableObject {
+    private var centralManager: CBCentralManager!
+    private var hikingPeripheral: CBPeripheral?
+    private var timeWriteCharacteristic: CBCharacteristic?
+
+    // GATT UUIDs
+    let serviceUUID = CBUUID(string: "4c54494d-6568-6b69-6e67-53746174696f")
+    let timeWriteUUID = CBUUID(string: "4c54494d-7469-6d65-7772-697465000001")
+    let timeReadUUID = CBUUID(string: "4c54494d-7469-6d65-7772-697465000002")
+
+    @Published var isConnected = false
+    @Published var syncStatus = "Idle"
+
+    override init() {
+        super.init()
+        centralManager = CBCentralManager(delegate: self, queue: nil)
+    }
+}
+```
+
+### CBCentralManagerDelegate
+
+```swift
+extension BLESyncManager: CBCentralManagerDelegate {
+    func centralManagerDidUpdateState(_ central: CBCentralManager) {
+        if central.state == .poweredOn {
+            syncStatus = "Scanning..."
+            central.scanForPeripherals(
+                withServices: [serviceUUID],
+                options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
+            )
+        }
+    }
+
+    func centralManager(_ central: CBCentralManager,
+                        didDiscover peripheral: CBPeripheral,
+                        advertisementData: [String: Any],
+                        rssi RSSI: NSNumber) {
+        if peripheral.name == "HikingStation" {
+            hikingPeripheral = peripheral
+            central.stopScan()
+            central.connect(peripheral, options: nil)
+        }
+    }
+
+    func centralManager(_ central: CBCentralManager,
+                        didConnect peripheral: CBPeripheral) {
+        isConnected = true
+        syncStatus = "Connected"
+        peripheral.delegate = self
+        peripheral.discoverServices([serviceUUID])
+    }
+
+    func centralManager(_ central: CBCentralManager,
+                        didFailToConnect peripheral: CBPeripheral,
+                        error: Error?) {
+        syncStatus = "Connection failed: \(error?.localizedDescription ?? "unknown")"
+    }
+
+    func centralManager(_ central: CBCentralManager,
+                        didDisconnectPeripheral peripheral: CBPeripheral,
+                        error: Error?) {
+        isConnected = false
+        syncStatus = "Disconnected"
+        hikingPeripheral = nil
+    }
+}
+```
+
+### CBPeripheralDelegate
+
+```swift
+extension BLESyncManager: CBPeripheralDelegate {
+    func peripheral(_ peripheral: CBPeripheral,
+                    didDiscoverServices error: Error?) {
+        guard let services = peripheral.services else { return }
+        for service in services {
+            if service.uuid == serviceUUID {
+                peripheral.discoverCharacteristics(
+                    [timeWriteUUID, timeReadUUID],
+                    for: service
+                )
+            }
+        }
+    }
+
+    func peripheral(_ peripheral: CBPeripheral,
+                    didDiscoverCharacteristicsFor service: CBService,
+                    error: Error?) {
+        guard let characteristics = service.characteristics else { return }
+        for char in characteristics {
+            if char.uuid == timeWriteUUID {
+                timeWriteCharacteristic = char
+                syncTime()
+            }
+        }
+    }
+
+    func syncTime() {
+        guard let char = timeWriteCharacteristic else { return }
+
+        let epoch = UInt32(Date().timeIntervalSince1970)
+        var value = epoch.littleEndian
+        let data = Data(bytes: &value, count: 4)
+
+        hikingPeripheral?.writeValue(data, for: char, type: .withResponse)
+        syncStatus = "Syncing..."
+    }
+
+    func peripheral(_ peripheral: CBPeripheral,
+                    didWriteValueFor characteristic: CBCharacteristic,
+                    error: Error?) {
+        if error == nil {
+            syncStatus = "Synced!"
+            // Read back to verify
+            if let readChar = peripheral.services?
+                .first(where: { $0.uuid == serviceUUID })?
+                .characteristics?
+                .first(where: { $0.uuid == timeReadUUID }) {
+                peripheral.readValue(for: readChar)
+            }
+        } else {
+            syncStatus = "Write failed: \(error!.localizedDescription)"
+        }
+    }
+
+    func peripheral(_ peripheral: CBPeripheral,
+                    didUpdateValueFor characteristic: CBCharacteristic,
+                    error: Error?) {
+        guard characteristic.uuid == timeReadUUID,
+              let data = characteristic.value,
+              data.count == 4 else { return }
+
+        let deviceEpoch = data.withUnsafeBytes { $0.load(as: UInt32.self) }
+        let deviceTime = Date(timeIntervalSince1970: TimeInterval(deviceEpoch))
+        syncStatus = "Device time: \(deviceTime)"
+    }
+}
+```
+
+### SwiftUI View
+
+```swift
+import SwiftUI
+
+struct SyncView: View {
+    @StateObject private var bleManager = BLESyncManager()
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Hiking Station")
+                .font(.title)
+
+            Text(bleManager.syncStatus)
+                .foregroundColor(bleManager.isConnected ? .green : .gray)
+
+            Button("Sync Time") {
+                bleManager.syncTime()
+            }
+            .disabled(!bleManager.isConnected)
+            .buttonStyle(.borderedProminent)
+        }
+        .padding()
+    }
+}
+```
+
+## iPhone 17 BLE Capabilities
+
+The iPhone 17 supports **Bluetooth 5.3** with LE Audio. Key capabilities relevant to this project:
+
+| Feature | Support |
+|---------|---------|
+| BLE 5.3 | Yes |
+| CoreBluetooth | Yes |
+| Central role | Yes |
+| Background BLE | Yes (limited) |
+| BLE Scanning | Yes |
+| Concurrent connections | Yes |
+
+### Background BLE Considerations
+
+iOS allows BLE operations in the background with these constraints:
+
+- **State restoration** required for background scanning/connection
+- **Service UUIDs** must be specified for background scanning
+- **Background time** is limited (~10 seconds per session)
+- **No UI updates** in background — use BGTaskScheduler for processing
+
+```swift
+// Background scanning with state restoration
+centralManager = CBCentralManager(
+    delegate: self,
+    queue: nil,
+    options: [CBCentralManagerOptionRestoreIdentifierKey: "hikingStationSync"]
+)
+```
+
+### Recommended App Architecture
+
+```
+App (SwiftUI)
+  ├── BLESyncManager (ObservableObject)
+  │     ├── CBCentralManager
+  │     ├── CBPeripheral
+  │     └── GATT operations
+  ├── SyncHistoryView
+  │     └── Last sync time, device status
+  └── SettingsView
+        └── Auto-sync toggle, background mode
+```
+
+## Error Handling
+
+| Error | Cause | Recovery |
+|-------|-------|----------|
+| `CBATTError.writeNotPermitted` | Characteristic not writable | Check UUID, ensure device is in sync mode |
+| `CBError.connectionTimeout` | Device out of range | Move closer, retry scan |
+| `CBError.peripheralDisconnected` | Device restarted or went to sleep | Re-scan and reconnect |
+| Device not found | BLE off or device not advertising | Wake device, select "Sync Time" in menu |
+
+## Testing with Xcode
+
+1. Build and run on a physical iPhone (BLE doesn't work in Simulator)
+2. On the device: navigate to Menu → Sync Time → Mode → select BLE mode → press B for Sync Now
+3. The device starts advertising for 10 seconds
+4. Your app should discover and connect within that window
+
+**Debug logging:** The device logs BLE events to `/debug.log` on the SD card. Check the file for sync success/failure.
+
+## Source Code Reference
+
+| File | Description |
+|------|-------------|
+| `lib/services/time_sync_service/src/time_sync_service.h` | TimeSyncService class definition |
+| `lib/services/time_sync_service/src/time_sync_service.cpp` | BLE GATT setup, callbacks, sync logic |
+| `include/config.h` | BLE_DEVICE_NAME, BLE_SYNC_TIMEOUT_MS |
+| `include/data_structures.h` | SyncMode, SyncSource, SyncStatus structs |
+| `BLE_INTERFACE.md` | Full GATT interface specification |

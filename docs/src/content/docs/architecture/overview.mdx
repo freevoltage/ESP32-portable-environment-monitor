@@ -20,6 +20,7 @@ description: Architecture of the ESP32 hiking weather station.
 │  ┌──────────┬──────────┬──────────┬────────┐│
 │  │SensorMgr │DisplayMgr│StorageMgr│ WiFiMgr││
 │  │ RTCMgr   │          │          │BatteryMgr│
+│  │ SettingsMgr│         │          │        ││
 │  └──────────┴──────────┴──────────┴────────┘│
 └─────────────────────────────────────────────┘
 ```
@@ -41,8 +42,9 @@ lib/
     rtc_manager/                # ESP32Time RTC
     display_manager/            # ST7789 240x240 TFT
     storage_manager/            # SD card (SPI)
-    wifi_manager/               # WiFi connection
+    wifi_manager/               # WiFi connection + abort callback
     battery_manager/            # MAX17048 fuel gauge
+    settings_manager/           # Device settings (LittleFS persistence)
   services/                     # Service layer — orchestrates hardware
     data/                       # DataService
     display/                    # DisplayService
@@ -59,12 +61,15 @@ lib/
 
 - Display OFF, WiFi OFF
 - Read sensors → store to SD → sleep
-- ~2-3 seconds total, wakes every 30 minutes
+- Interval configurable via Settings (1m/5m/15m/30m/1hr), default 30 min
 
 ### Display Mode (button wake via EXT1)
 
-- Turn on display → time sync (BLE/WiFi per config) → show reading
-- Navigate menu → graphs, comfort logging, sleep
+- Turn on display → show dashboard with sensor data + time + battery + connectivity icon
+- Navigate 3-item dashboard: Log Comfort, Menu, Sleep
+- Full menu (7 items): Graph Temp/Humidity/Altitude, Settings, OTA, Sync Time, Sleep
+- Settings sub-menu: Sleep Interval, NTP Sync, Back
+- Sync sub-menu: Mode cycling, Sync Now, Back
 - EXT1 wake on Select button (GPIO3)
 
 ## Test Environments

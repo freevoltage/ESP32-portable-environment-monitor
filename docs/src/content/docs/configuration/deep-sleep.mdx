@@ -7,12 +7,12 @@ description: Deep sleep modes, GPIO hold, and power management.
 
 The ESP32-C6 supports deep sleep to minimize power consumption. The hiking station uses two wake sources:
 
-1. **Timer wake** — measurement mode (every 30 minutes)
+1. **Timer wake** — measurement mode (configurable via Settings: 1m/5m/15m/30m/1hr, default 30 min)
 2. **EXT1 wake** — display mode (button press)
 
 ## Measurement Mode
 
-Timer wake every `MEASUREMENT_INTERVAL_SEC` (1800 = 30 minutes):
+Timer wake every `measurementIntervalSec` (configurable via Settings, default 1800):
 
 ```
 Wake → Read sensors → Store to SD → Deep sleep

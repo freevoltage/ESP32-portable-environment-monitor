@@ -68,6 +68,40 @@ Draw a header bar at the top of the display.
 
 Draw a horizontal separator line.
 
+### `showDashboard(reading, timeStr, selectedItem, battery, wifiConnected, lastSyncSource)`
+
+Draw the main dashboard screen with sensor data, time, battery bar, and connectivity indicator.
+
+**Layout**: Header (sensor values + time) → Battery bar (y=210) → Footer (button hints)
+
+### `showSyncSubMenu(selectedItem, mode, lastSync)`
+
+Draw the sync sub-menu with 3 items: Mode, Sync Now, Back.
+
+### `showSettingsSubMenu(selectedItem, settings)`
+
+Draw the settings sub-menu with 3 items: Sleep Interval, NTP Sync, Back. Shows cycling values.
+
+### `showOTAMode()`
+
+Display OTA mode screen with IP address and "B=Exit" abort hint.
+
+### `showOTAProgress(progress)`
+
+Display OTA upload progress bar on TFT.
+
+### `showSyncUI(mode, lastSync)`
+
+Display sync mode status (BLE/WiFi/NTP).
+
+### `showSyncProgress(message, remaining)`
+
+Display sync progress countdown (e.g., "BLE 9s...").
+
+### `showBatteryInfo(voltage, soc)`
+
+Display battery status screen.
+
 ## Usage
 
 ```cpp
