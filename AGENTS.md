@@ -34,6 +34,7 @@ lib/
     rtc_manager/        # ESP32Time
     wifi_manager/       # WiFi
     battery_manager/    # MAX17048 fuel gauge
+    settings_manager/   # Device settings (LittleFS persistence)
   services/             # Service layer — orchestrates hardware
     data/               # DataService (sensor + storage + RTC)
     display/            # DisplayService (menus, graphs, comfort UI)
@@ -55,13 +56,19 @@ lib/
 | **Button B** | Select (activate highlighted item) |
 | **Both A+B** | **Abort** — always returns to Dashboard |
 
-Both-buttons abort works from **every screen**: comfort logging, sync sub-menu, graphs, and the full menu.
+Both-buttons abort works from **every screen**: comfort logging, sync sub-menu, graphs, settings, and the full menu.
 
-**Dashboard** (first screen on button wake): Shows sensor data + time + battery. Three items: Log Comfort, Menu, Sleep.
+**Dashboard** (first screen on button wake): Shows sensor data + time + battery + connectivity indicator. Three items: Log Comfort, Menu, Sleep. Header shows "WiFi" when connected. Battery bar shows "Last:WiFi" or "Last:BLE" for sync source.
+
+**Menu** (7 items): Graph Temp, Graph Humidity, Graph Altitude, Settings, OTA, Sync Time, Sleep.
+
+**Settings sub-menu** (3 items): Sleep Interval (cycle: 1m/5m/15m/30m/1hr), NTP Sync (cycle: 1hr/6hr/12hr/24hr), Back. Settings persisted to `/settings.txt` on LittleFS.
 
 **Comfort logging**: One log per day max. If already logged today, shows "Already logged today!" and returns.
 
 **`waitForButton()`** in `main.cpp`: returns 1 (NAV), 2 (SEL), or 3 (BOTH/abort). All button loops use this helper.
+
+**WiFi connection**: `WiFiManager::connect()` accepts an optional `AbortCallback` for button-press abort during connection. OTA mode uses this to allow B-button cancellation.
 
 ## Platform Quirk
 
@@ -77,6 +84,7 @@ Headers use `#ifdef MOCK` to swap Arduino types for standard C++ types when runn
 - Shared data structures (`SensorReading`, `TemperatureStats`, `SystemStatus`, enums) are in `include/data_structures.h`
 - Logging uses macros `LOG_INFO(...)`, `LOG_ERROR(...)`, etc. from `include/logger.h` (auto-injects function name)
 - WiFi credentials are configurable via LittleFS (`/wifi_config.txt`), fallback to `config.h` defaults
+- Device settings (measurement interval, NTP sync) persisted to LittleFS (`/settings.txt`)
 - Debug logging to SD card: `storage.logDebug(tag, message)` appends to `/debug.log`
 
 ## Known Issues

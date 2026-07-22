@@ -43,7 +43,7 @@ The first screen shown on button wake. Displays current sensor readings and prov
 
 ```
 ┌──────────────────────────────┐
-│      HIKING STATION          │  ← Header
+│      HIKING STATION      WiFi│  ← Header + connectivity indicator
 ├──────────────────────────────┤
 │ 23.5°C       42%            │  ← Temperature + Humidity
 │  1,245 m     1013hPa        │  ← Altitude + Pressure
@@ -55,7 +55,7 @@ The first screen shown on button wake. Displays current sensor readings and prov
 │   Menu                       │  ← Selectable item
 │   Sleep                      │  ← Selectable item
 ├──────────────────────────────┤
-│ ████████░░ 78% 4.02V        │  ← Battery bar
+│ ████████░░ 78% 4.02V Last:WiFi│  ← Battery bar + last sync source
 │ A=Nav B=Sel A+B=Back        │  ← Footer
 └──────────────────────────────┘
 ```
@@ -65,6 +65,8 @@ The first screen shown on button wake. Displays current sensor readings and prov
 | **Log Comfort** | Opens comfort logging (5 levels, saves to SD) — one log per day max |
 | **Menu** | Opens the full menu with all options |
 | **Sleep** | Enter deep sleep immediately |
+
+**Connectivity indicator**: Shows "WiFi" in the header when connected. Shows "Last:WiFi" or "Last:BLE" next to the battery bar indicating the most recent sync source.
 
 ## Full Menu
 
@@ -77,7 +79,7 @@ Accessed from the Dashboard → Menu. Press **both buttons** to return to the Da
 │ > Graph Temperature          │
 │   Graph Humidity             │
 │   Graph Altitude             │
-│   Log Comfort                │
+│   Settings                   │
 │   OTA                        │
 │   Sync Time                  │
 │   Sleep                      │
@@ -92,7 +94,7 @@ Accessed from the Dashboard → Menu. Press **both buttons** to return to the Da
 | **Graph Temperature** | 24h rolling temperature graph |
 | **Graph Humidity** | 24h rolling humidity graph |
 | **Graph Altitude** | 24h rolling altitude graph |
-| **Log Comfort** | Log comfort level to SD card (one per day) |
+| **Settings** | Device settings sub-menu |
 | **OTA** | WiFi firmware update mode |
 | **Sync Time** | Time sync sub-menu |
 | **Sleep** | Enter deep sleep |
@@ -119,6 +121,30 @@ Shows the last 24 hours of data for the selected sensor. Data is read from the S
 │ A+B → back to dashboard     │
 └──────────────────────────────┘
 ```
+
+## Settings Sub-Menu
+
+Accessed from Full Menu → Settings. Configure device settings persisted to LittleFS.
+
+```
+┌──────────────────────────────┐
+│          SETTINGS            │
+├──────────────────────────────┤
+│ > Sleep     5min             │  ← Tap B to cycle: 1m/5m/15m/30m/1hr
+│   NTP Sync  24hr             │  ← Tap B to cycle: 1hr/6hr/12hr/24hr
+│   Back                       │  ← Tap B to return to menu
+├──────────────────────────────┤
+│ A=Navigate  B=Change        │
+│ A+B = back to menu          │
+└──────────────────────────────┘
+```
+
+| Setting | Options | Default |
+|---------|---------|---------|
+| **Sleep Interval** | 1min, 5min, 15min, 30min, 1hr | 30min |
+| **NTP Sync Interval** | 1hr, 6hr, 12hr, 24hr | 24hr |
+
+Settings are saved to `/settings.txt` on LittleFS and survive reboots.
 
 ## Sync Time Sub-Menu
 

@@ -97,7 +97,7 @@ Show dashboard → navigate → menu → 24h graphs → comfort logging → slee
 
 ```
 ┌──────────────────────────────┐
-│      HIKING STATION          │  ← Header
+│      HIKING STATION      WiFi│  ← Header + connectivity indicator
 ├──────────────────────────────┤
 │ 23.5°C       42%            │  ← Temperature + Humidity
 │  1,245 m     1013hPa        │  ← Altitude + Pressure
@@ -109,7 +109,7 @@ Show dashboard → navigate → menu → 24h graphs → comfort logging → slee
 │   Menu                       │  ← Selectable item
 │   Sleep                      │  ← Selectable item
 ├──────────────────────────────┤
-│ ████████░░ 78% 4.02V        │  ← Battery bar
+│ ████████░░ 78% 4.02V Last:WiFi│  ← Battery bar + last sync source
 │ A=Nav B=Sel A+B=Back        │  ← Footer
 └──────────────────────────────┘
 ```
@@ -130,7 +130,7 @@ Show dashboard → navigate → menu → 24h graphs → comfort logging → slee
 | **Button B** | Select (activate highlighted item) |
 | **Both A+B** | **Abort** — always returns to Dashboard |
 
-Both-buttons abort works from **every screen**: comfort logging, sync sub-menu, graphs, and the full menu. In OTA mode, both buttons also abort (go to sleep).
+Both-buttons abort works from **every screen**: comfort logging, sync sub-menu, graphs, settings, and the full menu. In OTA mode, both buttons also abort (go to sleep).
 
 ### Full Menu
 
@@ -141,7 +141,7 @@ Both-buttons abort works from **every screen**: comfort logging, sync sub-menu, 
 │ > Graph Temperature          │
 │   Graph Humidity             │
 │   Graph Altitude             │
-│   Log Comfort                │
+│   Settings                   │
 │   OTA                        │
 │   Sync Time                  │
 │   Sleep                      │
@@ -156,7 +156,7 @@ Both-buttons abort works from **every screen**: comfort logging, sync sub-menu, 
 | Item | Action |
 |------|--------|
 | Graph Temp/Humidity/Altitude | Show 24h rolling graph |
-| Log Comfort | Log comfort level to SD |
+| Settings | Device settings sub-menu (Sleep Interval, NTP Sync) |
 | OTA | WiFi firmware update (B=Exit, 120s timeout) |
 | Sync Time | Sub-menu: Mode / Sync Now / Back |
 | Sleep | Enter deep sleep |
