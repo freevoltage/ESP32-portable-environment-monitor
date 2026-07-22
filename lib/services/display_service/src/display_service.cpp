@@ -145,6 +145,17 @@ void DisplayService::turnOn() {
     }
 }
 
+bool DisplayService::showDashboard(const SensorReading& reading, const String& timeStr,
+                                   int selectedItem, const BatteryStatus& battery) {
+    if (!displayManager || !displayManager->isReady()) {
+        LOG_ERROR("Display not ready for dashboard");
+        return false;
+    }
+
+    displayManager->showDashboard(reading, timeStr.c_str(), selectedItem, battery);
+    return true;
+}
+
 bool DisplayService::showMenu(DisplayMenu current) {
     if (!displayManager || !displayManager->isReady()) {
         LOG_ERROR("Display not ready for menu");

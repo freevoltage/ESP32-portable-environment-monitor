@@ -160,9 +160,29 @@ void runOTAMode() {
     otaServer.begin();
     Serial.println("[OTA] Server started. Waiting for upload...");
 
-    // Stay in OTA loop indefinitely (no deep sleep)
+    // Stay in OTA loop — exit on button B or 120s timeout
+    unsigned long otaStart = millis();
+    Serial.println("[OTA] Server started. Waiting for upload... (B=Exit, 120s timeout)");
+
     while (true) {
         ElegantOTA.loop();
+
+        // Check for abort button (B)
+        if (digitalRead(SEL_BUTTON_PIN) == LOW) {
+            Serial.println("[OTA] Aborted by user");
+            display.showMessage("OTA Aborted.\nGoing to sleep...");
+            delay(1500);
+            return;
+        }
+
+        // 120 second timeout
+        if (millis() - otaStart > 120000) {
+            Serial.println("[OTA] Timed out");
+            display.showMessage("OTA Timeout.\nGoing to sleep...");
+            delay(1500);
+            return;
+        }
+
         delay(10);
     }
 }
@@ -213,6 +233,8 @@ void runMeasurementMode() {
 }
 
 // ── Display Mode (button wake, full UI) ───────────────────────────────────
+
+bool enterMenu();  // Forward declaration
 
 void showGraphForMenu(DisplayMenu menu) {
     std::vector<SensorReading> readings;
@@ -295,41 +317,99 @@ void runDisplayMode() {
     displayService.showStartupScreen();
     delay(1500);
 
-    // Take a reading and display it
+    // Take a reading
+    SensorReading reading;
+    BatteryStatus battStatus;
     if (dataService.collectCurrentReading()) {
-        SensorReading reading = dataService.getCurrentReading();
+        reading = dataService.getCurrentReading();
         dataService.storeCurrentReading();
-        displayService.showCurrentReading(reading, rtc.getFormattedTime());
 
         char buf[80];
         snprintf(buf, sizeof(buf), "Reading: %.1fC %.0f%% %.0fhPa",
                  reading.temperature, reading.humidity, reading.pressure);
         storage.logDebug("SENSOR", buf);
 
-        // Show battery info at bottom of screen
-        BatteryStatus battStatus = battery.getStatus();
-        display.showBatteryInfo(battStatus);
-
+        battStatus = battery.getStatus();
         if (battStatus.isValid) {
             snprintf(buf, sizeof(buf), "Battery: %.0f%% (%.2fV)", battStatus.percent, battStatus.voltage);
             storage.logDebug("BATT", buf);
         }
-
-        delay(3000);
     }
 
     // Configure buttons as inputs
     pinMode(NAV_BUTTON_PIN, INPUT_PULLUP);
     pinMode(SEL_BUTTON_PIN, INPUT_PULLUP);
 
-    // ── Menu loop ──────────────────────────────────────────────────────
-    DisplayMenu currentMenu = DisplayMenu::GRAPH_TEMP;
+    // ── Dashboard loop ──────────────────────────────────────────────
+    // Dashboard shows current readings + two quick actions:
+    //   0 = Log Comfort, 1 = Menu (full menu)
+    int dashItem = 0;
     bool inDisplayMode = true;
 
     while (inDisplayMode) {
+        displayService.showDashboard(reading, rtc.getFormattedTime(), dashItem, battStatus);
+
+        // Wait for button
+        while (digitalRead(NAV_BUTTON_PIN) == HIGH &&
+               digitalRead(SEL_BUTTON_PIN) == HIGH) {
+            delay(50);
+        }
+        delay(200); // Debounce
+
+        if (digitalRead(NAV_BUTTON_PIN) == LOW) {
+            dashItem = (dashItem + 1) % 2;
+        }
+
+        if (digitalRead(SEL_BUTTON_PIN) == LOW) {
+            if (dashItem == 0) {
+                // ── Log Comfort ──────────────────────────────────────
+                ComfortLevel comfortLevel = ComfortLevel::COMFORTABLE;
+                bool selecting = true;
+
+                while (selecting) {
+                    displayService.showComfortUI(comfortLevel);
+
+                    while (digitalRead(NAV_BUTTON_PIN) == HIGH &&
+                           digitalRead(SEL_BUTTON_PIN) == HIGH) {
+                        delay(50);
+                    }
+                    delay(200);
+
+                    if (digitalRead(NAV_BUTTON_PIN) == LOW) {
+                        int cl = static_cast<int>(comfortLevel);
+                        cl = (cl + 1) % 5;
+                        comfortLevel = static_cast<ComfortLevel>(cl);
+                    }
+
+                    if (digitalRead(SEL_BUTTON_PIN) == LOW) {
+                        ComfortLog log;
+                        log.timestamp = rtc.getEpochTime();
+                        log.level = comfortLevel;
+                        storage.storeComfortLog(log);
+
+                        display.clear();
+                        display.showMessage("LOGGED!");
+                        delay(1500);
+                        selecting = false;
+                    }
+                }
+            } else {
+                // ── Full Menu ────────────────────────────────────────
+                inDisplayMode = enterMenu();
+            }
+        }
+    }
+}
+
+// ── Full Menu (reached from dashboard) ───────────────────────────────────
+
+bool enterMenu() {
+    DisplayMenu currentMenu = DisplayMenu::GRAPH_TEMP;
+    bool inMenu = true;
+
+    while (inMenu) {
         displayService.showMenu(currentMenu);
 
-        // Wait for button press
         bool navPressed = false;
         bool selPressed = false;
 
@@ -339,12 +419,11 @@ void runDisplayMode() {
             delay(50);
         }
 
-        delay(200); // Debounce
+        delay(200);
 
         if (navPressed) {
-            // Cycle through menu items
             int idx = static_cast<int>(currentMenu);
-            idx = (idx + 1) % 7; // 7 menu items
+            idx = (idx + 1) % 7;
             currentMenu = static_cast<DisplayMenu>(idx);
         }
 
@@ -363,12 +442,11 @@ void runDisplayMode() {
                     while (selecting) {
                         displayService.showComfortUI(comfortLevel);
 
-                        // Wait for button
                         while (digitalRead(NAV_BUTTON_PIN) == HIGH &&
                                digitalRead(SEL_BUTTON_PIN) == HIGH) {
                             delay(50);
                         }
-                        delay(200); // Debounce
+                        delay(200);
 
                         if (digitalRead(NAV_BUTTON_PIN) == LOW) {
                             int cl = static_cast<int>(comfortLevel);
@@ -377,13 +455,11 @@ void runDisplayMode() {
                         }
 
                         if (digitalRead(SEL_BUTTON_PIN) == LOW) {
-                            // Log the comfort level
                             ComfortLog log;
                             log.timestamp = rtc.getEpochTime();
                             log.level = comfortLevel;
                             storage.storeComfortLog(log);
 
-                            // Show confirmation
                             display.clear();
                             display.showMessage("LOGGED!");
                             delay(1500);
@@ -394,7 +470,7 @@ void runDisplayMode() {
                 }
 
                 case DisplayMenu::SLEEP:
-                    inDisplayMode = false;
+                    inMenu = false;
                     break;
 
                 case DisplayMenu::OTA:
@@ -456,6 +532,7 @@ void runDisplayMode() {
     }
 
     Serial.println("[DISPLAY] User selected sleep");
+    return false; // Exit display mode → deep sleep
 }
 
 // ── Setup / Loop ──────────────────────────────────────────────────────────

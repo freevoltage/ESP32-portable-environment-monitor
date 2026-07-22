@@ -23,7 +23,11 @@
 - [] Update Project Status
 - [x] For Debuggiong Reasons I had the idea that the device is writing the log data on the sd card and or even to a file on my computer or both!?. I have no idea how to implement this, but this seems like a good idea for me.
 - [x] In the TIME SYNC Menu. Button A should always just navigate between the points and button B should toggle between them or active sync when the SYNC option now  is selected. This scheme should be followed throughout the UI 
-- 
+- [x] Add abort possibility in the OTA Menu (Button B exit, 120s timeout)
+- [x] Add a Dashboard which shows current Temperature, Humidity, Altitude, Time, with sub-menus "Menu" and "Log Comfort"
+- [x] Remove auto-sync from button wake (device responds instantly, sync on-demand from menu only)
+- [] Abbort possibilty in the "OTA" Menuswxe
+- [] Add a Dashboard which shows current Temperature, Hummidity, Altidude, Time, and with the Sub Menus "Menu, and LOG Comfort". help me with the User interface. I would like to work on it in a graphical way or at least some form of markup language or graphical user description. Put this descrption into the
 ----
 
 ## Hardware Stuff (Tasks for Me)

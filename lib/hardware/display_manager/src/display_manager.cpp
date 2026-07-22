@@ -538,8 +538,10 @@ void DisplayManager::showOTAMode(const char* ip)
     // Bottom info
     _tft->setTextColor(ST77XX_YELLOW);
     _tft->setTextSize(1);
-    _tft->setCursor(20, 220);
+    _tft->setCursor(20, 210);
     _tft->print("Auth: admin / hikingstation");
+    _tft->setCursor(20, 225);
+    _tft->print("B=Exit  Timeout=120s");
 }
 
 void DisplayManager::showOTAProgress(int percent, size_t current, size_t total)
@@ -597,6 +599,93 @@ void DisplayManager::showBatteryInfo(const BatteryStatus& battery)
 
     _tft->setCursor(5, y);
     _tft->printf("BATT: %.0f%% (%.2fV)", battery.percent, battery.voltage);
+}
+
+void DisplayManager::showDashboard(const SensorReading& reading, const char* timeStr,
+                                   int selectedItem, const BatteryStatus& battery)
+{
+    if (!isReady()) return;
+
+    clear();
+    drawHeader("HIKING STATION");
+
+    // ── Sensor data (large, top third) ──────────────────────────────
+    // Temperature
+    _tft->setTextSize(3);
+    _tft->setTextColor(ST77XX_RED);
+    _tft->setCursor(5, 30);
+    _tft->printf("%.1fC", reading.temperature);
+
+    // Humidity (same line, right side)
+    _tft->setTextColor(ST77XX_CYAN);
+    _tft->setCursor(130, 30);
+    _tft->printf("%.0f%%", reading.humidity);
+
+    // Altitude (second line)
+    _tft->setTextSize(2);
+    _tft->setTextColor(ST77XX_YELLOW);
+    _tft->setCursor(5, 60);
+    _tft->printf("%.0f m", reading.altitude);
+
+    // Pressure (same line, right side)
+    _tft->setTextColor(ST77XX_GREEN);
+    _tft->setCursor(120, 60);
+    _tft->printf("%.0fhPa", reading.pressure);
+
+    // ── Time (middle) ───────────────────────────────────────────────
+    _tft->setTextSize(2);
+    _tft->setTextColor(ST77XX_WHITE);
+    _tft->setCursor(5, 90);
+    _tft->print(timeStr);
+
+    // ── Separator ───────────────────────────────────────────────────
+    drawSeparator(115);
+
+    // ── Menu items ──────────────────────────────────────────────────
+    const char* items[] = {"Log Comfort", "Menu"};
+    const int itemCount = 2;
+
+    for (int i = 0; i < itemCount; i++) {
+        if (i == selectedItem)
+            _tft->setTextColor(ST77XX_BLACK, ST77XX_CYAN);
+        else
+            _tft->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
+
+        _tft->setTextSize(2);
+        _tft->setCursor(10, 125 + i * 25);
+        if (i == selectedItem) _tft->print("> ");
+        else _tft->print("  ");
+        _tft->print(items[i]);
+    }
+
+    // ── Battery bar ─────────────────────────────────────────────────
+    if (battery.isValid) {
+        int barY = 190;
+        int barWidth = 80;
+        int barHeight = 10;
+
+        // Battery outline
+        _tft->drawRect(5, barY, barWidth, barHeight, ST77XX_WHITE);
+
+        // Fill based on percentage
+        int fillWidth = (int)(barWidth * battery.percent / 100.0f);
+        uint16_t color = battery.percent > 50 ? ST77XX_GREEN :
+                         battery.percent > 20 ? ST77XX_YELLOW : ST77XX_RED;
+        if (fillWidth > 0)
+            _tft->fillRect(6, barY + 1, fillWidth - 1, barHeight - 2, color);
+
+        // Percentage text
+        _tft->setTextSize(1);
+        _tft->setTextColor(color);
+        _tft->setCursor(90, barY);
+        _tft->printf("%.0f%% %.2fV", battery.percent, battery.voltage);
+    }
+
+    // ── Footer ──────────────────────────────────────────────────────
+    _tft->setTextSize(1);
+    _tft->setTextColor(ST77XX_YELLOW);
+    _tft->setCursor(5, 225);
+    _tft->print("A=Navigate B=Select");
 }
 
 void DisplayManager::showSyncUI(SyncMode currentMode, SyncSource lastSource, time_t lastSyncTime)

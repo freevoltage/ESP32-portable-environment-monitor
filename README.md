@@ -89,7 +89,98 @@ Application (main.cpp)
 Read sensors → store to SD → deep sleep. Display OFF, WiFi OFF. ~2-3 sec.
 
 **Display mode** (button wake):
-Time sync (BLE/WiFi per config) → show reading → navigate menu → 24h graphs → comfort logging → sleep.
+Show dashboard → navigate → menu → 24h graphs → comfort logging → sleep.
+
+## User Interface
+
+### Dashboard (first screen on button wake)
+
+```
+┌──────────────────────────────┐
+│      HIKING STATION          │  ← Header
+├──────────────────────────────┤
+│ 23.5°C       42%            │  ← Temperature + Humidity
+│  1,245 m     1013hPa        │  ← Altitude + Pressure
+│                              │
+│  14:32                       │  ← Current time
+│                              │
+├──────────────────────────────┤
+│ > Log Comfort                │  ← Selectable item
+│   Menu                       │  ← Selectable item
+├──────────────────────────────┤
+│ ████████░░ 78% 4.02V        │  ← Battery bar
+│ A=Navigate  B=Select        │  ← Footer
+└──────────────────────────────┘
+```
+
+**Button A** cycles between "Log Comfort" and "Menu".
+**Button B** selects the highlighted item:
+- **Log Comfort** → comfort logging screen (5 levels, log to SD)
+- **Menu** → full menu with all options
+
+### Full Menu
+
+```
+┌──────────────────────────────┐
+│          MENU                │
+├──────────────────────────────┤
+│ > Graph Temperature          │
+│   Graph Humidity             │
+│   Graph Altitude             │
+│   Log Comfort                │
+│   OTA                        │
+│   Sync Time                  │
+│   Sleep                      │
+├──────────────────────────────┤
+│ A=Navigate  B=Select        │
+└──────────────────────────────┘
+```
+
+**Button A** cycles through items. **Button B** selects.
+
+| Item | Action |
+|------|--------|
+| Graph Temp/Humidity/Altitude | Show 24h rolling graph |
+| Log Comfort | Log comfort level to SD |
+| OTA | WiFi firmware update (B=Exit, 120s timeout) |
+| Sync Time | Sub-menu: Mode / Sync Now / Back |
+| Sleep | Enter deep sleep |
+
+### Sync Time Sub-Menu
+
+```
+┌──────────────────────────────┐
+│         TIME SYNC            │
+├──────────────────────────────┤
+│ > Mode     BLE+WiFi          │  ← Tap B to cycle modes
+│   Sync Now                   │  ← Tap B to start sync
+│   Back                       │  ← Tap B to exit
+├──────────────────────────────┤
+│ Last sync:                   │
+│ BLE @ 1721654532             │
+│                              │
+│ A=Navigate  B=Select        │
+└──────────────────────────────┘
+```
+
+### OTA Mode
+
+```
+┌──────────────────────────────┐
+│          OTA MODE            │
+├──────────────────────────────┤
+│ Open in browser:             │
+│ http://192.168.1.42/update   │
+│                              │
+│      Waiting for             │
+│       upload...              │
+│                              │
+│ Auth: admin / hikingstation  │
+│ B=Exit  Timeout=120s         │
+└──────────────────────────────┘
+```
+
+**Button B** exits OTA. Times out after 120 seconds of inactivity.
 
 ## Project Structure
 

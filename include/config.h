@@ -32,7 +32,7 @@
 #define SEL_BUTTON_PIN 3   // GPIO3 = Select button
 
 // Measurement Interval (for timer wake)
-#define MEASUREMENT_INTERVAL_SEC 1800  // 30 minutes
+#define MEASUREMENT_INTERVAL_SEC 60  // 1 minute (dev mode; production: 1800)
 
 // Graph Layout Constants
 #define GRAPH_PADDING    10

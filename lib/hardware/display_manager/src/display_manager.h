@@ -47,6 +47,10 @@ public:
     void drawHeader(const char* title);
     void drawSeparator(int y);
 
+    // Dashboard Display
+    void showDashboard(const SensorReading& reading, const char* timeStr,
+                       int selectedItem, const BatteryStatus& battery);
+
     // OTA Display
     void showOTAMode(const char* ip);
     void showOTAProgress(int percent, size_t current, size_t total);

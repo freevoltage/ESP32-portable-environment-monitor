@@ -31,6 +31,8 @@ class DisplayService{
         bool showClock(const String& timeStr, const String& dateStr);
 
         // Hiking Station UI
+        bool showDashboard(const SensorReading& reading, const String& timeStr,
+                           int selectedItem, const BatteryStatus& battery);
         bool showMenu(DisplayMenu current);
         bool showComfortUI(ComfortLevel current);
         bool showGraph(const char* title, const char* unit,
