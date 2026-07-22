@@ -42,6 +42,7 @@
 // Data Log
 #define DATALOG_FILENAME "/datalog.csv"
 #define COMFORT_FILENAME "/comfort.csv"
+#define DEBUG_LOG_FILENAME "/debug.log"
 #define DEFAULT_MAX_SIZE 1000
 
 // Hold GPIO output states during deep sleep (prevents backlight leakage on GPIO2)

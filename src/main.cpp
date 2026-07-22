@@ -176,6 +176,8 @@ void runMeasurementMode() {
     digitalWrite(TFT_CS, HIGH);
     storage.begin();
 
+    storage.logDebug("BOOT", "Measurement mode (timer wake)");
+
     // Initialize sensor and battery
     sensor.begin();
     battery.begin();
@@ -187,8 +189,14 @@ void runMeasurementMode() {
         Serial.printf("[MEASUREMENT] Stored: %.1f°C %.0f%% %.0fhPa %.0fm\n",
                       reading.temperature, reading.humidity,
                       reading.pressure, reading.altitude);
+        char buf[80];
+        snprintf(buf, sizeof(buf), "Reading: %.1fC %.0f%% %.0fhPa %.0fm",
+                 reading.temperature, reading.humidity,
+                 reading.pressure, reading.altitude);
+        storage.logDebug("SENSOR", buf);
     } else {
         Serial.println("[MEASUREMENT] Sensor read failed");
+        storage.logDebug("SENSOR", "Read FAILED");
     }
 
     // Log battery status
@@ -196,6 +204,9 @@ void runMeasurementMode() {
     if (battStatus.isValid) {
         Serial.printf("[MEASUREMENT] Battery: %.0f%% (%.2fV)\n",
                       battStatus.percent, battStatus.voltage);
+        char buf[40];
+        snprintf(buf, sizeof(buf), "Battery: %.0f%% (%.2fV)", battStatus.percent, battStatus.voltage);
+        storage.logDebug("BATT", buf);
     }
 
     // Sleep immediately — no display, no WiFi
@@ -266,6 +277,8 @@ void runDisplayMode() {
     digitalWrite(TFT_CS, HIGH);
     storage.begin();
 
+    storage.logDebug("BOOT", "Display mode (button wake)");
+
     display.begin();
     sensor.begin();
     battery.begin();
@@ -277,9 +290,10 @@ void runDisplayMode() {
 
     // Sync time (BLE first, then WiFi fallback per configured mode)
     display.showSyncProgress("Syncing time...");
-    timeSync.sync([](const char* msg) {
+    bool syncOk = timeSync.sync([](const char* msg) {
         display.showSyncProgress(msg);
     });
+    storage.logDebug("SYNC", syncOk ? "Time sync OK" : "Time sync FAILED");
 
     displayService.showStartupScreen();
     delay(1500);
@@ -290,9 +304,19 @@ void runDisplayMode() {
         dataService.storeCurrentReading();
         displayService.showCurrentReading(reading, rtc.getFormattedTime());
 
+        char buf[80];
+        snprintf(buf, sizeof(buf), "Reading: %.1fC %.0f%% %.0fhPa",
+                 reading.temperature, reading.humidity, reading.pressure);
+        storage.logDebug("SENSOR", buf);
+
         // Show battery info at bottom of screen
         BatteryStatus battStatus = battery.getStatus();
         display.showBatteryInfo(battStatus);
+
+        if (battStatus.isValid) {
+            snprintf(buf, sizeof(buf), "Battery: %.0f%% (%.2fV)", battStatus.percent, battStatus.voltage);
+            storage.logDebug("BATT", buf);
+        }
 
         delay(3000);
     }
@@ -381,12 +405,14 @@ void runDisplayMode() {
                     break;
 
                 case DisplayMenu::SYNC_TIME: {
-                    // Sync time sub-menu
+                    // Sync time sub-menu: 3 items, A=Navigate, B=Select
+                    enum SyncMenuItem { SYNC_MODE, SYNC_NOW, SYNC_BACK };
+                    int syncItem = SYNC_MODE;
                     bool inSyncMenu = true;
 
                     while (inSyncMenu) {
                         SyncStatus syncStatus = timeSync.getStatus();
-                        displayService.showSyncUI(syncStatus.mode, syncStatus.lastSource, syncStatus.lastSyncTime);
+                        displayService.showSyncSubMenu(syncItem, syncStatus.mode, syncStatus.lastSource, syncStatus.lastSyncTime);
 
                         // Wait for button
                         while (digitalRead(NAV_BUTTON_PIN) == HIGH &&
@@ -396,18 +422,34 @@ void runDisplayMode() {
                         delay(200); // Debounce
 
                         if (digitalRead(NAV_BUTTON_PIN) == LOW) {
-                            // Cycle through sync modes
-                            SyncMode current = timeSync.getMode();
-                            int modeIdx = static_cast<int>(current);
-                            modeIdx = (modeIdx + 1) % 5; // 5 modes
-                            timeSync.setMode(static_cast<SyncMode>(modeIdx));
+                            // A = Navigate: cycle through menu items
+                            syncItem = (syncItem + 1) % 3;
                         }
 
                         if (digitalRead(SEL_BUTTON_PIN) == LOW) {
-                            // Trigger sync
-                            display.showSyncProgress("Syncing...");
-                            timeSync.sync();
-                            delay(1000);
+                            // B = Select: act on highlighted item
+                            switch (syncItem) {
+                                case SYNC_MODE: {
+                                    // Toggle sync mode
+                                    SyncMode current = timeSync.getMode();
+                                    int modeIdx = (static_cast<int>(current) + 1) % 5;
+                                    timeSync.setMode(static_cast<SyncMode>(modeIdx));
+                                    break;
+                                }
+                                case SYNC_NOW: {
+                                    // Trigger sync
+                                    display.showSyncProgress("Syncing...");
+                                    timeSync.sync([](const char* msg) {
+                                        display.showSyncProgress(msg);
+                                    });
+                                    storage.logDebug("SYNC", "Manual sync triggered from menu");
+                                    delay(1000);
+                                    break;
+                                }
+                                case SYNC_BACK:
+                                    inSyncMenu = false;
+                                    break;
+                            }
                         }
                     }
                     break;

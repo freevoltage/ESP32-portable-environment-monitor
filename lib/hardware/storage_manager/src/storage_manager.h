@@ -39,6 +39,9 @@ public:
     bool storeComfortLog(const ComfortLog &log);
     bool getComfortLogsSince(time_t timestamp, std::vector<ComfortLog> &logs);
 
+    /* Debug Log */
+    bool logDebug(const char* tag, const char* message);
+
     /* File operations */
     bool fileExists(const String &filename) const;
     bool createFile(const String &filename);

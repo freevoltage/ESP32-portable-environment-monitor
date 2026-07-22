@@ -710,6 +710,18 @@ bool StorageManager::storeComfortLog(const ComfortLog &log)
     return true;
 }
 
+bool StorageManager::logDebug(const char* tag, const char* message)
+{
+    if (!_initialized) return false;
+
+    File file = SD.open(DEBUG_LOG_FILENAME, FILE_APPEND);
+    if (!file) return false;
+
+    file.printf("[%lu] [%s] %s\n", millis() / 1000, tag, message);
+    file.close();
+    return true;
+}
+
 bool StorageManager::getComfortLogsSince(time_t timestamp, std::vector<ComfortLog> &logs)
 {
     logs.clear();

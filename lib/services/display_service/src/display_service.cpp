@@ -242,3 +242,13 @@ bool DisplayService::showSyncUI(SyncMode currentMode, SyncSource lastSource, tim
     LOG_INFO("Sync UI displayed, mode=%d", static_cast<int>(currentMode));
     return true;
 }
+
+bool DisplayService::showSyncSubMenu(int selectedItem, SyncMode currentMode, SyncSource lastSource, time_t lastSyncTime) {
+    if (!displayManager || !displayManager->isReady()) {
+        LOG_ERROR("Display not ready for sync sub-menu");
+        return false;
+    }
+
+    displayManager->showSyncSubMenu(selectedItem, currentMode, lastSource, lastSyncTime);
+    return true;
+}

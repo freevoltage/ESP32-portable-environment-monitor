@@ -56,6 +56,7 @@ public:
 
     // Time Sync Display
     void showSyncUI(SyncMode currentMode, SyncSource lastSource, time_t lastSyncTime);
+    void showSyncSubMenu(int selectedItem, SyncMode currentMode, SyncSource lastSource, time_t lastSyncTime);
     void showSyncProgress(const char* message);
 
 private:

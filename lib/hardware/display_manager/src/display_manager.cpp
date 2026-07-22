@@ -642,6 +642,60 @@ void DisplayManager::showSyncUI(SyncMode currentMode, SyncSource lastSource, tim
     _tft->print("A=Mode B=Sync");
 }
 
+void DisplayManager::showSyncSubMenu(int selectedItem, SyncMode currentMode, SyncSource lastSource, time_t lastSyncTime)
+{
+    if (!isReady()) return;
+
+    clear();
+    drawHeader("TIME SYNC");
+
+    const char* items[] = {"Mode", "Sync Now", "Back"};
+    const char* modeNames[] = {"OFF", "BLE", "WiFi", "BLE+WiFi", "WiFi+BLE"};
+    const int itemCount = 3;
+
+    for (int i = 0; i < itemCount; i++)
+    {
+        if (i == selectedItem)
+            _tft->setTextColor(ST77XX_BLACK, ST77XX_CYAN);
+        else
+            _tft->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
+
+        _tft->setTextSize(2);
+        _tft->setCursor(10, 35 + i * 30);
+        _tft->print(items[i]);
+
+        // Show current value next to "Mode"
+        if (i == 0) {
+            _tft->setTextColor(ST77XX_CYAN);
+            _tft->setCursor(100, 35);
+            _tft->print(modeNames[static_cast<int>(currentMode)]);
+        }
+    }
+
+    // Last sync info
+    _tft->setTextSize(1);
+    _tft->setTextColor(ST77XX_WHITE);
+    _tft->setCursor(10, 140);
+    _tft->print("Last sync:");
+
+    if (lastSource == SyncSource::NONE || lastSyncTime == 0) {
+        _tft->setTextColor(ST77XX_YELLOW);
+        _tft->setCursor(10, 155);
+        _tft->print("Never");
+    } else {
+        _tft->setTextColor(lastSource == SyncSource::BLE ? ST77XX_GREEN : ST77XX_BLUE);
+        _tft->setCursor(10, 155);
+        const char* srcName = (lastSource == SyncSource::BLE) ? "BLE" : "WiFi";
+        _tft->printf("%s @ %lu", srcName, (unsigned long)lastSyncTime);
+    }
+
+    // Button hints
+    _tft->setTextColor(ST77XX_YELLOW);
+    _tft->setTextSize(1);
+    _tft->setCursor(5, 225);
+    _tft->print("A=Navigate B=Select");
+}
+
 void DisplayManager::showSyncProgress(const char* message)
 {
     if (!isReady()) return;
