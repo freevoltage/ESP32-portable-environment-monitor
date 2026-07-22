@@ -18,7 +18,7 @@ Wakeup: Reset (0)
 [MEASUREMENT] Stored: 23.5°C 65% 1013hPa 142m
 [MEASUREMENT] Battery: 85% (4.15V)
 Entering deep sleep...
-Deep sleep. Timer=1800s, EXT1 on GPIO9+GPIO3
+Deep sleep. Timer=1800s, EXT1 on GPIO3
 ```
 
 ### What Happens
@@ -33,7 +33,7 @@ Deep sleep. Timer=1800s, EXT1 on GPIO9+GPIO3
 8. **Display stays OFF, WiFi stays OFF**
 9. Deep sleep — configured for:
    - **Timer wake** after 1800s (30 min) — periodic silent measurements
-   - **EXT1 wake** on GPIO9 + GPIO3 — either button wakes the device
+   - **EXT1 wake** on GPIO3 (Select button) — wakes the device
    - GPIO2 (backlight) held LOW to prevent leakage
 
 **Total wake time: ~2-3 seconds.** This is the normal operating mode — the device silently measures every 30 minutes.
@@ -44,7 +44,7 @@ Identical to first boot, but serial shows `Wakeup: Timer` instead of `Reset`. No
 
 ## Button Wake (Interactive Display Mode)
 
-Press **Navigate** (GPIO9) or **Select** (GPIO3) to wake into display mode. This is the full interactive UI.
+Press **Navigate** (GPIO8) or **Select** (GPIO3) to wake into display mode. This is the full interactive UI.
 
 ### Boot Sequence
 
@@ -52,7 +52,7 @@ Press **Navigate** (GPIO9) or **Select** (GPIO3) to wake into display mode. This
 2. **Hardware init** — SD card, display (ST7789), sensor, battery, RTC all initialize
 3. **Time sync** — display shows "Syncing time..." progress screen:
    - Default mode is `BLE_FIRST` — tries phone sync first, falls back to WiFi NTP
-   - BLE: device advertises as "HikingStation" for 30 seconds
+   - BLE: device advertises as "HikingStation" for 10 seconds with live countdown ("BLE 9s...", "BLE 8s...")
    - If phone writes a 4-byte epoch → time set, BLE stops
    - If no phone connects → falls back to WiFi NTP
    - Sync mode is configurable and persisted to LittleFS
@@ -64,7 +64,7 @@ Press **Navigate** (GPIO9) or **Select** (GPIO3) to wake into display mode. This
 
 Two-button navigation on a 240x240 TFT:
 
-- **Button A (GPIO9, Navigate)** — cycles through menu items
+- **Button A (GPIO8, Navigate)** — cycles through menu items
 - **Button B (GPIO3, Select)** — selects the highlighted item
 
 The menu renders at textSize(1) to fit all 7 items. Highlighted item shows cyan background; others are white on black.
@@ -124,8 +124,10 @@ When the device enters deep sleep (from menu "Sleep" or end of measurement mode)
 4. Timer wake configured for next measurement interval
 5. GPIO2 (backlight) held LOW during sleep — prevents floating pin leakage
 
+On wake, `gpio_hold_dis(TFT_LIT)` releases the hold so the backlight can be turned on. ESP32-C6 doesn't auto-release GPIO hold after deep sleep.
+
 The device can be woken by:
-- **Any button press** → display mode
+- **Select button press** (GPIO3) → display mode
 - **Timer expiry** (30 min) → measurement mode
 
 ## SD Card Files

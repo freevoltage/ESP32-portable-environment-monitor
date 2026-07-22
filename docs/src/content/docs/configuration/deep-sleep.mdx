@@ -33,25 +33,36 @@ Wake → Display on → WiFi/NTP sync → Menu → Deep sleep
 
 - Display ON
 - WiFi ON (for NTP sync)
-- Uses `esp_sleep_enable_ext1_wakeup()` with both buttons
+- Uses `esp_sleep_enable_ext1_wakeup()` with Select button (GPIO3)
 
 **EXT1 Configuration**:
 ```cpp
 esp_sleep_enable_ext1_wakeup(
-    (1ULL << NAV_BUTTON_PIN) | (1ULL << SEL_BUTTON_PIN),
+    (1ULL << SEL_BUTTON_PIN),
     ESP_EXT1_WAKEUP_ANY_LOW
 );
 ```
+
+**Note**: GPIO8 and GPIO9 are NOT RTC GPIOs on ESP32-C6 — only GPIO0-7 support EXT1 wakeup.
 
 ## GPIO Hold
 
 During deep sleep, GPIO2 (backlight) is held LOW to prevent leakage:
 
 ```cpp
-gpio_hold_en(GPIO_NUM_2);  // Hold backlight OFF
+gpio_hold_en(GPIO_NUM_2);  // Hold backlight OFF before sleep
 ```
 
 This is guarded by `#define HOLD_GPIO_IN_SLEEP 1` in `config.h`.
+
+**Important**: ESP32-C6 does NOT auto-release GPIO hold after waking from deep sleep. The hold must be explicitly released at boot:
+
+```cpp
+// In setup(), before any display init:
+gpio_hold_dis(static_cast<gpio_num_t>(TFT_LIT));
+```
+
+Without this, `digitalWrite(TFT_LIT, HIGH)` has no effect — the backlight stays pinned LOW.
 
 **Alternative**: Hardware pull-down resistor from `TFT_LIT` to GND on the display board.
 

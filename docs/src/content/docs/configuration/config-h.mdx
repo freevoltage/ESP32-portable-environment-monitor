@@ -12,7 +12,7 @@ description: All configuration options in include/config.h.
 | `TFT_CS` | `5` | Display chip select |
 | `TFT_RST` | `6` | Display reset |
 | `TFT_DC` | `7` | Display data/command |
-| `NAV_BUTTON_PIN` | `9` | Navigate button (BOOT) |
+| `NAV_BUTTON_PIN` | `8` | Navigate button |
 | `SEL_BUTTON_PIN` | `3` | Select button |
 
 ## Display
@@ -63,11 +63,21 @@ description: All configuration options in include/config.h.
 
 | Define | Value | Description |
 |--------|-------|-------------|
-| `WIFI_SSID` | `"TP-Link_0B73"` | WiFi network name |
-| `WIFI_PASSWORD` | `"63392418"` | WiFi password |
+| `WIFI_DEFAULT_SSID` | `"TP-Link_0B73"` | Default WiFi network name (fallback) |
+| `WIFI_DEFAULT_PASSWORD` | `"63392418"` | Default WiFi password (fallback) |
+| `WIFI_CONFIG_FILE` | `"/wifi_config.txt"` | LittleFS file for WiFi credentials |
 | `NTP_SERVER` | `"pool.ntp.org"` | NTP server |
 | `GMT_OFFSET_SEC` | `3600` | GMT+1 offset |
 | `DAYLIGHT_OFFSET_SEC` | `3600` | DST offset |
+
+## BLE Time Sync
+
+| Define | Value | Description |
+|--------|-------|-------------|
+| `BLE_DEVICE_NAME` | `"HikingStation"` | BLE advertised name |
+| `BLE_SYNC_TIMEOUT_MS` | `10000` | Max wait for phone BLE time write (10s) |
+| `TIME_SYNC_CONFIG_FILE` | `"/sync_config.txt"` | Persisted sync mode on LittleFS |
+| `NEOPIXEL_I2C_POWER` | `20` | Controls I2C power rail (~55uA savings in sleep) |
 
 ## Debug
 

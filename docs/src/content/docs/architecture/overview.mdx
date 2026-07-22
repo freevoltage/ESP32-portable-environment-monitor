@@ -12,14 +12,14 @@ description: Architecture of the ESP32 hiking weather station.
 │    Measurement mode ↔ Display mode          │
 ├─────────────────────────────────────────────┤
 │              Service Layer                  │
-│  ┌──────────┬──────────┬──────────────────┐ │
-│  │ DataService │ DisplayService │ ConnectivityService │
-│  └──────────┴──────────┴──────────────────┘ │
+│  ┌──────────┬──────────┬──────────┬───────┐ │
+│  │ DataService │ DisplayService │ ConnectivityService │ TimeSyncService │
+│  └──────────┴──────────┴──────────┴───────┘ │
 ├─────────────────────────────────────────────┤
 │              HAL Layer                      │
 │  ┌──────────┬──────────┬──────────┬────────┐│
 │  │SensorMgr │DisplayMgr│StorageMgr│ WiFiMgr││
-│  │ RTCMgr   │          │          │        ││
+│  │ RTCMgr   │          │          │BatteryMgr│
 │  └──────────┴──────────┴──────────┴────────┘│
 └─────────────────────────────────────────────┘
 ```
@@ -42,10 +42,12 @@ lib/
     display_manager/            # ST7789 240x240 TFT
     storage_manager/            # SD card (SPI)
     wifi_manager/               # WiFi connection
+    battery_manager/            # MAX17048 fuel gauge
   services/                     # Service layer — orchestrates hardware
     data/                       # DataService
     display/                    # DisplayService
     connectivity/               # ConnectivityService
+    time_sync_service/          # TimeSyncService (BLE + WiFi)
   test_runner/                  # Custom Unity test runner
   test_fixture/                 # setUp/tearDown dispatch
   utils/                        # DateTimeUtils, I2CScanner
@@ -61,14 +63,14 @@ lib/
 
 ### Display Mode (button wake via EXT1)
 
-- Turn on display → WiFi/NTP sync → show reading
+- Turn on display → time sync (BLE/WiFi per config) → show reading
 - Navigate menu → graphs, comfort logging, sleep
-- EXT1 wake on both buttons: `(1ULL << GPIO9) | (1ULL << GPIO3)`
+- EXT1 wake on Select button (GPIO3)
 
 ## Test Environments
 
 | Environment | Platform | What it tests |
 |------------|----------|---------------|
 | `main` | ESP32-C6 | All hardware + integration (34 tests) |
-| `mock` | Host (Mac) | DataService + ConnectivityService mocks (33 tests) |
+| `mock` | Host (Mac) | All services + hardware mocks (68 tests) |
 | `service` | ESP32-C6 | DataService with real hardware |

@@ -10,6 +10,8 @@ A portable hiking weather station built with **Adafruit Feather ESP32-C6**, **BM
 - **Two-mode operation** — silent measurement (timer wake) + interactive display (button wake)
 - **Deep sleep** — ~2-3 sec wake time, 30 min intervals
 - **WiFi/NTP sync** — automatic time synchronization on display wake
+- **BLE phone sync** — sync time from phone app via NimBLE (configurable modes)
+- **Battery monitoring** — MAX17048 fuel gauge with color-coded display
 - **24h rolling graphs** — visualize temperature, humidity, altitude history
 - **Comfort logging** — 5 levels from "Too cold" to "Too warm"
 
@@ -21,7 +23,7 @@ A portable hiking weather station built with **Adafruit Feather ESP32-C6**, **BM
 | Sensor | BME280 | I2C |
 | Display | 1.54" 240x240 IPS ST7789 | SPI |
 | Storage | SD card module | SPI (separate from display) |
-| Button A | Navigate | GPIO9 (active LOW, internal pullup) |
+| Button A | Navigate | GPIO8 (active LOW, internal pullup) |
 | Button B | Select | GPIO3 (active LOW, internal pullup) |
 
 ### Pin Mapping
@@ -34,7 +36,7 @@ A portable hiking weather station built with **Adafruit Feather ESP32-C6**, **BM
 | `TFT_CS` | 5 | Display chip select |
 | `TFT_RST` | 6 | Display reset |
 | `TFT_DC` | 7 | Display data/command |
-| `NAV_BUTTON_PIN` | 9 | Navigate button (BOOT) |
+| `NAV_BUTTON_PIN` | 8 | Navigate button |
 
 Pin definitions live in `include/config.h`.
 
@@ -58,7 +60,7 @@ pio run -t clean             # clean build (run after platform/lib changes)
 
 ```sh
 pio test -e main             # 34 hardware tests (on device)
-pio test -e mock             # 33 mock tests (on host, no hardware)
+pio test -e mock             # 68 mock tests (on host, no hardware)
 ```
 
 ## Architecture
@@ -67,14 +69,16 @@ pio test -e mock             # 33 mock tests (on host, no hardware)
 Application (main.cpp)
     ├── DataService         → sensor + storage + RTC
     ├── DisplayService      → menus, graphs, comfort UI
-    └── ConnectivityService → WiFi + NTP
+    ├── ConnectivityService → WiFi + NTP
+    └── TimeSyncService     → BLE phone sync + WiFi fallback (NimBLE)
             │
         HAL Layer (lib/hardware/)
             ├── SensorManager    (BME280)
             ├── DisplayManager   (ST7789)
             ├── StorageManager   (SD card)
             ├── RTCManager       (ESP32Time)
-            └── WiFiManager      (WiFi)
+            ├── WiFiManager      (WiFi)
+            └── BatteryManager   (MAX17048)
 ```
 
 `main.cpp` never calls hardware managers directly — all interactions go through the service layer.
@@ -85,7 +89,7 @@ Application (main.cpp)
 Read sensors → store to SD → deep sleep. Display OFF, WiFi OFF. ~2-3 sec.
 
 **Display mode** (button wake):
-WiFi/NTP sync → show reading → navigate menu → 24h graphs → comfort logging → sleep.
+Time sync (BLE/WiFi per config) → show reading → navigate menu → 24h graphs → comfort logging → sleep.
 
 ## Project Structure
 
@@ -94,21 +98,24 @@ src/main.cpp                    # Firmware entrypoint
 include/config.h                # Pins, timing, WiFi creds
 include/data_structures.h       # SensorReading, enums, shared types
 
-lib/
+  lib/
   hardware/                     # HAL — direct hardware access
     sensor_manager/             # BME280 I2C
     display_manager/            # ST7789 TFT
     storage_manager/            # SD card (SPI)
     rtc_manager/                # ESP32Time
     wifi_manager/               # WiFi
+    battery_manager/            # MAX17048 fuel gauge
   services/                     # Service layer — orchestrates hardware
     data/                       # DataService
     display/                    # DisplayService
     connectivity/               # ConnectivityService
+    time_sync_service/          # TimeSyncService (BLE + WiFi)
 
 test/
   test_hardware/                # 34 integration tests (on device)
-  test_mock/                    # 33 mock tests (on host)
+  test_mock/                    # 68 mock tests (on host)
+  test_service/                 # service tests (on device)
 
 docs/                           # Starlight wiki
 ```
