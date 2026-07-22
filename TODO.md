@@ -21,13 +21,14 @@
 - [] Update the Docu/Wiki
 - [] Update the Readme
 - [] Update Project Status
-- [] For Debuggiong Reasons I had the idea that the device is writing the log data on the sd card and or even to a file on my computer or both!?. I have no idea how to implement this, but this seems like a good idea for me.
-
+- [x] For Debuggiong Reasons I had the idea that the device is writing the log data on the sd card and or even to a file on my computer or both!?. I have no idea how to implement this, but this seems like a good idea for me.
+- [x] In the TIME SYNC Menu. Button A should always just navigate between the points and button B should toggle between them or active sync when the SYNC option now  is selected. This scheme should be followed throughout the UI 
+- 
 ----
 
 ## Hardware Stuff (Tasks for Me)
 
-- [] Add a Button to the Breadboard and then program the button to wake up from deep Sleep
+- [x] Add a Button to the Breadboard and then program the button to wake up from deep Sleep
 
 ---
 
@@ -36,8 +37,8 @@
 The hiking station redesign is complete. The last remaining items are either your responsibility or low-priority cleanup:
 
 ### Your tasks:
-- [] Test on real hardware (pio test -e main)
-- [] Deploy firmware (pio run -t upload -e main)
+- [x] Test on real hardware (pio test -e main)
+- [x] Deploy firmware (pio run -t upload -e main)
 - [] Verify button behavior, comfort logging, and graph display
 
 ### Low-priority cleanup (if you want me to work on something):

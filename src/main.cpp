@@ -285,15 +285,12 @@ void runDisplayMode() {
 
     rtc.begin();
 
-    // Initialize time sync service
+    // Initialize time sync service (for manual sync from menu)
     timeSync.begin(&rtc, &connectivity);
 
-    // Sync time (BLE first, then WiFi fallback per configured mode)
-    display.showSyncProgress("Syncing time...");
-    bool syncOk = timeSync.sync([](const char* msg) {
-        display.showSyncProgress(msg);
-    });
-    storage.logDebug("SYNC", syncOk ? "Time sync OK" : "Time sync FAILED");
+    // Time is already set from the last measurement cycle (within 30 min).
+    // No auto-sync here — the device should respond instantly on button wake.
+    // Users can sync manually from the SYNC_TIME menu if needed.
 
     displayService.showStartupScreen();
     delay(1500);
