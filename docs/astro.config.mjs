@@ -25,7 +25,7 @@ export default defineConfig({
 				{
 					label: 'User Interface',
 					items: [
-						{ label: 'Screens & Navigation', slug: 'user-interface/index' },
+						{ label: 'Screens & Navigation', slug: 'user-interface' },
 					],
 				},
 				{
