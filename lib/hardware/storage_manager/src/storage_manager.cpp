@@ -179,8 +179,7 @@ bool StorageManager::getLastNReadings(std::vector<SensorReading> &readings, uint
 
     File file = SD.open(_filename, FILE_READ);
 
-    /// The next section is there to determine the HEADER SIZE and BYTES PER LINE
-
+    // Skip header line
     size_t startPos = file.position();
     String header = file.readStringUntil('\n');
     const size_t HEADER_SIZE = file.position() - startPos;
@@ -191,53 +190,41 @@ bool StorageManager::getLastNReadings(std::vector<SensorReading> &readings, uint
     {
         LOG_WARN("File is empty.");
         file.close();
-        return true; // Because reading an empty file is expected to be true
-    }
-
-    size_t lineStartPos = file.position();
-    String firstLine = file.readStringUntil('\n');
-    size_t BYTES_PER_LINE = file.position() - lineStartPos;
-
-    LOG_DEBUG("First line: %s, size: %d", firstLine.c_str(), BYTES_PER_LINE);
-
-    size_t fileSize = file.size();
-    size_t dataSize = fileSize - HEADER_SIZE;
-    size_t totalLines = dataSize / BYTES_PER_LINE;
-
-    LOG_DEBUG("File size: %d, dataSize: %d, Total lines: %d", fileSize, dataSize, totalLines);
-
-    if (totalLines == 0)
-    {
-        file.close();
         return true;
     }
 
-    // Step 4: Seek to position of the last N lines
-    uint16_t linesToRead = (totalLines < maxCount) ? totalLines : maxCount;
-
-    // Seek to the Last Line and then Read backwards
-    for(int i=0; i<linesToRead; i++)
+    // Read all data lines sequentially (handles variable-width lines)
+    std::vector<String> allLines;
+    while (file.available())
     {
-        size_t lineIndex = totalLines - 1 - i; // Last Line = totalLines - 1;
-        size_t seekPos = HEADER_SIZE + lineIndex * BYTES_PER_LINE;
-
-        LOG_DEBUG("Reading line %d/%d at position %d", i+1, linesToRead, seekPos);
-
-        file.seek(seekPos);
         String line = file.readStringUntil('\n');
         line.trim();
-
-        if(line.length() == 0){
-            LOG_WARN("Empty line at position %d", seekPos);
-            continue;
+        if (line.length() > 0)
+        {
+            allLines.push_back(line);
         }
+    }
+    file.close();
 
-        LOG_DEBUG("Parsing: '%s'", line.c_str());
-        SensorReading reading = parseReading(line);
+    size_t totalLines = allLines.size();
+    LOG_DEBUG("Total data lines: %d", totalLines);
+
+    if (totalLines == 0)
+    {
+        return true;
+    }
+
+    // Return the last N lines, newest first
+    uint16_t linesToRead = (totalLines < maxCount) ? totalLines : maxCount;
+    size_t startIndex = totalLines - linesToRead;
+
+    for (uint16_t i = 0; i < linesToRead; i++)
+    {
+        LOG_DEBUG("Parsing: '%s'", allLines[startIndex + i].c_str());
+        SensorReading reading = parseReading(allLines[startIndex + i]);
         readings.push_back(reading);
     }
 
-    file.close();
     LOG_INFO("Retrieved %d readings (newest first)", readings.size());
 
     return true;

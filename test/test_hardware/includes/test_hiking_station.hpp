@@ -43,7 +43,9 @@ const char* menuToString(DisplayMenu menu) {
         case DisplayMenu::GRAPH_TEMP:      return "Graph Temp";
         case DisplayMenu::GRAPH_HUMIDITY:  return "Graph Humidity";
         case DisplayMenu::GRAPH_ALTITUDE:  return "Graph Altitude";
-        case DisplayMenu::LOG_COMFORT:     return "Log Comfort";
+        case DisplayMenu::SETTINGS:        return "Settings";
+        case DisplayMenu::OTA:             return "OTA";
+        case DisplayMenu::SYNC_TIME:       return "Sync Time";
         case DisplayMenu::SLEEP:           return "Sleep";
         default:                           return "Unknown";
     }
@@ -273,11 +275,12 @@ void test_hiking_display_menu() {
 
     DisplayMenu items[] = {
         DisplayMenu::GRAPH_TEMP, DisplayMenu::GRAPH_HUMIDITY,
-        DisplayMenu::GRAPH_ALTITUDE, DisplayMenu::LOG_COMFORT,
+        DisplayMenu::GRAPH_ALTITUDE, DisplayMenu::SETTINGS,
+        DisplayMenu::OTA, DisplayMenu::SYNC_TIME,
         DisplayMenu::SLEEP
     };
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 7; i++) {
         Serial.printf("  Rendering menu [%d]: %s\n", i, menuToString(items[i]));
         testDisplayService->showMenu(items[i]);
         delay(800); // Pause so user can see each item on the TFT
