@@ -566,7 +566,7 @@ bool enterMenu(bool& aborted) {
 
 void setup() {
     Serial.begin(115200);
-    while (!Serial);
+    delay(100);  // Let USB CDC initialize if host is present; don't block forever
 
     // Release GPIO hold from deep sleep (ESP32-C6 doesn't auto-release)
     gpio_hold_dis(static_cast<gpio_num_t>(TFT_LIT));
