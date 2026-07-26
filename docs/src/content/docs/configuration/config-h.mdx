@@ -12,7 +12,7 @@ description: All configuration options in include/config.h.
 | `TFT_CS` | `5` | Display chip select |
 | `TFT_RST` | `6` | Display reset |
 | `TFT_DC` | `7` | Display data/command |
-| `NAV_BUTTON_PIN` | `9` | Navigate button (BOOT) |
+| `NAV_BUTTON_PIN` | `8` | Navigate button |
 | `SEL_BUTTON_PIN` | `3` | Select button |
 
 ## Display
@@ -26,7 +26,9 @@ description: All configuration options in include/config.h.
 
 | Define | Value | Description |
 |--------|-------|-------------|
-| `SEALEVELPRESSURE_HPA` | `1013.25` | Sea level pressure for altitude calculation |
+| `SEALEVELPRESSURE_HPA` | `1018.25` | Sea level pressure for altitude calculation (set to your local QNH) |
+| `TEMP_OFFSET` | `0.0` | Temperature calibration offset in °C (positive = subtract from reading) |
+| `HUMIDITY_OFFSET` | `0.0` | Humidity calibration offset in % (positive = subtract from reading) |
 
 ## Timing
 
@@ -34,8 +36,8 @@ description: All configuration options in include/config.h.
 |--------|-------|-------------|
 | `uS_TO_S_FACTOR` | `1000000ULL` | Microseconds to seconds conversion |
 | `TIME_TO_SLEEP` | `5` | Deep sleep duration in seconds (test mode) |
-| `MEASUREMENT_INTERVAL_SEC` | `1800` | Measurement interval (30 minutes) |
-| `TIME_SYNC_INTERVAL_HOURS` | `24` | NTP sync interval |
+| `MEASUREMENT_INTERVAL_SEC` | `60` | Default measurement interval (dev). Overridden by SettingsManager at runtime. |
+| `TIME_SYNC_INTERVAL_HOURS` | `24` | Default NTP sync interval. Overridden by SettingsManager at runtime. |
 
 ## Graph Layout
 
@@ -63,14 +65,33 @@ description: All configuration options in include/config.h.
 
 | Define | Value | Description |
 |--------|-------|-------------|
-| `WIFI_SSID` | `"TP-Link_0B73"` | WiFi network name |
-| `WIFI_PASSWORD` | `"63392418"` | WiFi password |
+| `WIFI_DEFAULT_SSID` | `"TP-Link_0B73"` | Default WiFi network name (fallback) |
+| `WIFI_DEFAULT_PASSWORD` | `"63392418"` | Default WiFi password (fallback) |
+| `WIFI_CONFIG_FILE` | `"/wifi_config.txt"` | LittleFS file for WiFi credentials |
 | `NTP_SERVER` | `"pool.ntp.org"` | NTP server |
 | `GMT_OFFSET_SEC` | `3600` | GMT+1 offset |
 | `DAYLIGHT_OFFSET_SEC` | `3600` | DST offset |
+
+## BLE Time Sync
+
+| Define | Value | Description |
+|--------|-------|-------------|
+| `BLE_DEVICE_NAME` | `"HikingStation"` | BLE advertised name |
+| `BLE_SYNC_TIMEOUT_MS` | `10000` | Max wait for phone BLE time write (10s) |
+| `TIME_SYNC_CONFIG_FILE` | `"/sync_config.txt"` | Persisted sync mode on LittleFS |
+| `NEOPIXEL_I2C_POWER` | `20` | Controls I2C power rail (~55uA savings in sleep) |
 
 ## Debug
 
 | Define | Value | Description |
 |--------|-------|-------------|
 | `DEBUG` | commented out | Enable debug output |
+| `DEBUG_LOG_FILENAME` | `"/debug.log"` | SD card debug log file (BOOT, SENSOR, SYNC, BATT events) |
+
+## OTA
+
+| Define | Value | Description |
+|--------|-------|-------------|
+| `OTA_TIMEOUT_MS` | `120000` | OTA mode auto-exit timeout (120 seconds) |
+| `OTA_SSID` | `"admin"` | OTA web server username |
+| `OTA_PASSWORD` | `"hikingstation"` | OTA web server password |

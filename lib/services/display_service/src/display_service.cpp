@@ -145,6 +145,19 @@ void DisplayService::turnOn() {
     }
 }
 
+bool DisplayService::showDashboard(const SensorReading& reading, const String& timeStr,
+                                   int selectedItem, const BatteryStatus& battery,
+                                   bool wifiConnected, SyncSource lastSyncSource) {
+    if (!displayManager || !displayManager->isReady()) {
+        LOG_ERROR("Display not ready for dashboard");
+        return false;
+    }
+
+    displayManager->showDashboard(reading, timeStr.c_str(), selectedItem, battery,
+                                   wifiConnected, lastSyncSource);
+    return true;
+}
+
 bool DisplayService::showMenu(DisplayMenu current) {
     if (!displayManager || !displayManager->isReady()) {
         LOG_ERROR("Display not ready for menu");
@@ -154,8 +167,8 @@ bool DisplayService::showMenu(DisplayMenu current) {
     displayManager->clear();
     displayManager->drawHeader("MENU");
 
-    const char* items[] = {"Graph Temp", "Graph Humidity", "Graph Altitude", "Log Comfort", "OTA", "Sync Time", "Sleep"};
-    const int itemCount = 7;
+    const char* items[] = {"Graph Temp", "Graph Humidity", "Graph Altitude", "Calendar", "Settings", "OTA", "Sync Time", "Back"};
+    const int itemCount = 8;
 
     for (int i = 0; i < itemCount; i++)
     {
@@ -240,5 +253,147 @@ bool DisplayService::showSyncUI(SyncMode currentMode, SyncSource lastSource, tim
 
     displayManager->showSyncUI(currentMode, lastSource, lastSyncTime);
     LOG_INFO("Sync UI displayed, mode=%d", static_cast<int>(currentMode));
+    return true;
+}
+
+bool DisplayService::showSyncSubMenu(int selectedItem, SyncMode currentMode, SyncSource lastSource, time_t lastSyncTime) {
+    if (!displayManager || !displayManager->isReady()) {
+        LOG_ERROR("Display not ready for sync sub-menu");
+        return false;
+    }
+
+    displayManager->showSyncSubMenu(selectedItem, currentMode, lastSource, lastSyncTime);
+    return true;
+}
+
+bool DisplayService::showSettingsSubMenu(int selectedItem, const DeviceSettings& settings) {
+    if (!displayManager || !displayManager->isReady()) {
+        LOG_ERROR("Display not ready for settings sub-menu");
+        return false;
+    }
+
+    displayManager->showSettingsSubMenu(selectedItem, settings);
+    return true;
+}
+
+bool DisplayService::showCalendarList(const std::vector<ComfortLog>& logs, int selectedIndex) {
+    if (!displayManager || !displayManager->isReady()) {
+        LOG_ERROR("Display not ready for calendar list");
+        return false;
+    }
+
+    displayManager->clear();
+    displayManager->drawHeader("COMFORT LOG");
+
+    Adafruit_ST7789* tft = displayManager->getTFT();
+
+    const char* levelNames[] = {"Too cold", "Cold", "Comfort.", "Warm", "Too warm"};
+    uint16_t levelColors[] = {ST77XX_BLUE, ST77XX_CYAN, ST77XX_GREEN, ST77XX_YELLOW, ST77XX_RED};
+
+    // Show up to 7 entries starting from the top
+    int visibleCount = min((int)logs.size(), 7);
+    for (int i = 0; i < visibleCount; i++) {
+        int idx = i;  // logs should already be in reverse chronological order
+        const ComfortLog& log = logs[idx];
+
+        // Format date
+        struct tm* ti = localtime(&log.timestamp);
+        char dateBuf[16];
+        snprintf(dateBuf, sizeof(dateBuf), "%s %2d",
+                 "JanFebMarAprMayJunJulAugSepOctNovDec" + (ti->tm_mon * 3),
+                 ti->tm_mday);
+
+        // Highlight selected item
+        if (idx == selectedIndex) {
+            tft->setTextColor(ST77XX_BLACK, ST77XX_CYAN);
+        } else {
+            tft->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
+        }
+
+        tft->setTextSize(1);
+        tft->setCursor(10, 22 + i * 28);
+        tft->print(dateBuf);
+
+        // Show comfort level with color
+        tft->setCursor(100, 22 + i * 28);
+        if (idx == selectedIndex) {
+            tft->setTextColor(ST77XX_BLACK, ST77XX_CYAN);
+        } else {
+            tft->setTextColor(levelColors[static_cast<int>(log.level)], ST77XX_BLACK);
+        }
+        tft->print(levelNames[static_cast<int>(log.level)]);
+    }
+
+    // Button hints
+    tft->setTextColor(ST77XX_YELLOW);
+    tft->setTextSize(1);
+    tft->setCursor(5, 225);
+    tft->print("A=Scroll B=Select");
+
+    LOG_INFO("Calendar list displayed, %d entries, selected=%d", visibleCount, selectedIndex);
+    return true;
+}
+
+bool DisplayService::showCalendarDetail(const char* dateStr, ComfortLevel level, bool hasLog, int selectedItem) {
+    if (!displayManager || !displayManager->isReady()) {
+        LOG_ERROR("Display not ready for calendar detail");
+        return false;
+    }
+
+    displayManager->clear();
+    displayManager->drawHeader(dateStr);
+
+    Adafruit_ST7789* tft = displayManager->getTFT();
+
+    if (hasLog) {
+        // Show current comfort level
+        const char* levelNames[] = {"Too cold", "Cold", "Comfortable", "Warm", "Too warm"};
+        uint16_t levelColors[] = {ST77XX_BLUE, ST77XX_CYAN, ST77XX_GREEN, ST77XX_YELLOW, ST77XX_RED};
+
+        tft->setTextSize(2);
+        tft->setTextColor(levelColors[static_cast<int>(level)]);
+        tft->setCursor(20, 50);
+        tft->print(levelNames[static_cast<int>(level)]);
+
+        // Menu options
+        const char* options[] = {"Change", "Back"};
+        for (int i = 0; i < 2; i++) {
+            if (i == selectedItem) {
+                tft->setTextColor(ST77XX_BLACK, ST77XX_CYAN);
+            } else {
+                tft->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
+            }
+            tft->setTextSize(2);
+            tft->setCursor(20, 100 + i * 40);
+            tft->printf("%s %s", i == selectedItem ? ">" : " ", options[i]);
+        }
+    } else {
+        // No log for this day
+        tft->setTextSize(2);
+        tft->setTextColor(ST77XX_WHITE);
+        tft->setCursor(20, 50);
+        tft->print("No entry");
+
+        // Menu options
+        const char* options[] = {"Log it", "Back"};
+        for (int i = 0; i < 2; i++) {
+            if (i == selectedItem) {
+                tft->setTextColor(ST77XX_BLACK, ST77XX_CYAN);
+            } else {
+                tft->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
+            }
+            tft->setTextSize(2);
+            tft->setCursor(20, 100 + i * 40);
+            tft->printf("%s %s", i == selectedItem ? ">" : " ", options[i]);
+        }
+    }
+
+    // Button hints
+    tft->setTextColor(ST77XX_YELLOW);
+    tft->setTextSize(1);
+    tft->setCursor(5, 225);
+    tft->print("A=Navigate B=Select");
+
+    LOG_INFO("Calendar detail displayed, hasLog=%d, selected=%d", hasLog, selectedItem);
     return true;
 }

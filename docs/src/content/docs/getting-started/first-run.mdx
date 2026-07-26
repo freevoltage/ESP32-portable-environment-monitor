@@ -18,7 +18,7 @@ Wakeup: Reset (0)
 [MEASUREMENT] Stored: 23.5°C 65% 1013hPa 142m
 [MEASUREMENT] Battery: 85% (4.15V)
 Entering deep sleep...
-Deep sleep. Timer=1800s, EXT1 on GPIO9+GPIO3
+Deep sleep. Timer=1800s, EXT1 on GPIO3
 ```
 
 ### What Happens
@@ -33,7 +33,7 @@ Deep sleep. Timer=1800s, EXT1 on GPIO9+GPIO3
 8. **Display stays OFF, WiFi stays OFF**
 9. Deep sleep — configured for:
    - **Timer wake** after 1800s (30 min) — periodic silent measurements
-   - **EXT1 wake** on GPIO9 + GPIO3 — either button wakes the device
+   - **EXT1 wake** on GPIO3 (Select button) — wakes the device
    - GPIO2 (backlight) held LOW to prevent leakage
 
 **Total wake time: ~2-3 seconds.** This is the normal operating mode — the device silently measures every 30 minutes.
@@ -44,7 +44,7 @@ Identical to first boot, but serial shows `Wakeup: Timer` instead of `Reset`. No
 
 ## Button Wake (Interactive Display Mode)
 
-Press **Navigate** (GPIO9) or **Select** (GPIO3) to wake into display mode. This is the full interactive UI.
+Press **Navigate** (GPIO8) or **Select** (GPIO3) to wake into display mode. This is the full interactive UI.
 
 ### Boot Sequence
 
@@ -52,19 +52,19 @@ Press **Navigate** (GPIO9) or **Select** (GPIO3) to wake into display mode. This
 2. **Hardware init** — SD card, display (ST7789), sensor, battery, RTC all initialize
 3. **Time sync** — display shows "Syncing time..." progress screen:
    - Default mode is `BLE_FIRST` — tries phone sync first, falls back to WiFi NTP
-   - BLE: device advertises as "HikingStation" for 30 seconds
+   - BLE: device advertises as "HikingStation" for 10 seconds with live countdown ("BLE 9s...", "BLE 8s...")
    - If phone writes a 4-byte epoch → time set, BLE stops
    - If no phone connects → falls back to WiFi NTP
    - Sync mode is configurable and persisted to LittleFS
 4. **Startup screen** — "Booting..." briefly, then system status
-5. **Current reading** — live BME280 reading with current time + battery info (color-coded: green >50%, yellow 20-50%, red <20%)
+5. **Current reading** — live BME280 reading with current time + battery info (color-coded: green >50%, yellow 20-50%, red &lt;20%)
 6. **3 second pause** on the current reading
 
 ### Menu Navigation
 
 Two-button navigation on a 240x240 TFT:
 
-- **Button A (GPIO9, Navigate)** — cycles through menu items
+- **Button A (GPIO8, Navigate)** — cycles through menu items
 - **Button B (GPIO3, Select)** — selects the highlighted item
 
 The menu renders at textSize(1) to fit all 7 items. Highlighted item shows cyan background; others are white on black.
@@ -76,10 +76,10 @@ The menu renders at textSize(1) to fit all 7 items. Highlighted item shows cyan 
 | **Graph Temp** | 24h rolling temperature graph from SD card data. Press any button to return. |
 | **Graph Humidity** | 24h rolling humidity graph. Press any button to return. |
 | **Graph Altitude** | 24h rolling altitude graph. Press any button to return. |
-| **Log Comfort** | Sub-menu: cycle through Too cold / Cold / Comfortable / Warm / Too warm. Button B logs to `/comfort.csv`, shows "LOGGED!". |
+| **Settings** | Sub-menu: cycle Sleep Interval (1m/5m/15m/30m/1hr) and NTP Sync (1hr/6hr/12hr/24hr). Settings saved to LittleFS. |
 | **OTA** | Connects WiFi, shows IP on display, starts ElegantOTA web server on port 80. Visit `http://<ip>/update` in browser. Auth: `admin` / `hikingstation`. Shows progress bar on TFT. Device reboots after upload. **Never returns to menu.** |
 | **Sync Time** | Sub-menu showing current sync mode + last sync time/source. Button A cycles modes (OFF / BLE / WiFi / BLE+WiFi / WiFi+BLE). Button B triggers manual sync. |
-| **Sleep** | Exits menu, enters deep sleep (same config as measurement mode). |
+| **Back** | Returns to Dashboard. |
 
 ### Graph Behavior
 
@@ -124,8 +124,10 @@ When the device enters deep sleep (from menu "Sleep" or end of measurement mode)
 4. Timer wake configured for next measurement interval
 5. GPIO2 (backlight) held LOW during sleep — prevents floating pin leakage
 
+On wake, `gpio_hold_dis(TFT_LIT)` releases the hold so the backlight can be turned on. ESP32-C6 doesn't auto-release GPIO hold after deep sleep.
+
 The device can be woken by:
-- **Any button press** → display mode
+- **Select button press** (GPIO3) → display mode
 - **Timer expiry** (30 min) → measurement mode
 
 ## SD Card Files
@@ -134,6 +136,7 @@ The device can be woken by:
 |------|--------|---------|
 | `/datalog.csv` | `epoch,temp,humidity,pressure,altitude` | Sensor readings, one per line |
 | `/comfort.csv` | `epoch,level` | Comfort logs (0=Too cold → 4=Too warm) |
+| `/debug.log` | `TAG: message` | Debug events (BOOT, SENSOR, SYNC, BATT) |
 
 ## LittleFS Config Files
 
@@ -141,6 +144,7 @@ The device can be woken by:
 |------|--------|---------|
 | `/wifi_config.txt` | `ssid=...\npassword=...\n` | WiFi credentials (falls back to defaults if missing) |
 | `/sync_config.txt` | `mode=N` | Sync mode (0-4, default 3=BLE_FIRST) |
+| `/settings.txt` | `measurement_interval=N\nntp_sync_interval=N\n` | Device settings (sleep interval in sec, NTP sync in hours) |
 
 ## Serial Output
 

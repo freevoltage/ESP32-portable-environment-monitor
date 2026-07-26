@@ -21,7 +21,10 @@
 
 // BME280
 //#define BME280_ADDRESS 0x77
-#define SEALEVELPRESSURE_HPA (1013.25)
+#define SEALEVELPRESSURE_HPA (1018.25)  // Berlin actual sea-level pressure (~1018 hPa)
+                                        // Calibrate: set to your local QNH from weather service
+#define TEMP_OFFSET       0.0f  // Calibration offset in °C (positive = subtract from reading)
+#define HUMIDITY_OFFSET   0.0f  // Calibration offset in % (positive = subtract from reading)
 
 // Deep Sleep Configuration
 #define uS_TO_S_FACTOR 1000000ULL
@@ -32,7 +35,7 @@
 #define SEL_BUTTON_PIN 3   // GPIO3 = Select button
 
 // Measurement Interval (for timer wake)
-#define MEASUREMENT_INTERVAL_SEC 1800  // 30 minutes
+#define MEASUREMENT_INTERVAL_SEC 60  // 1 minute (dev mode; production: 1800)
 
 // Graph Layout Constants
 #define GRAPH_PADDING    10
@@ -42,6 +45,7 @@
 // Data Log
 #define DATALOG_FILENAME "/datalog.csv"
 #define COMFORT_FILENAME "/comfort.csv"
+#define DEBUG_LOG_FILENAME "/debug.log"
 #define DEFAULT_MAX_SIZE 1000
 
 // Hold GPIO output states during deep sleep (prevents backlight leakage on GPIO2)

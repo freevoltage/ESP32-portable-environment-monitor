@@ -11,6 +11,7 @@
 #include <data_structures.h>
 #include <battery_manager.h>
 #include <time_sync_service.h>
+#include <settings_manager.h>
 
 // ESP-IDF sleep API
 #include "driver/gpio.h"
@@ -36,6 +37,7 @@ DisplayService displayService(&display, &rtc, &connectivity);
 DataService dataService(&sensor, &storage, &rtc);
 BatteryManager battery;
 TimeSyncService timeSync;
+SettingsManager settings;
 
 // OTA server
 AsyncWebServer otaServer(OTA_SERVER_PORT);
@@ -78,8 +80,26 @@ void enterDeepSleep() {
     Serial.println("Entering deep sleep...");
     displayService.turnOff();
 
+    // Dev mode: skip deep sleep and return. The device stays alive via loop()
+    // which handles periodic measurements and the dashboard UI.
+    // No ESP.restart() — that also causes USB re-enumeration and hardware
+    // reset on native USB boards.
+    if (Serial) {
+        Serial.println("[DEV] USB connected — returning to loop()");
+        return;
+    }
+
     // Cut I2C power rail to save ~55uA during sleep
     battery.disableI2CPower();
+
+    // Wait for buttons to be released before configuring EXT1 wake.
+    // If the user is still holding B (SEL) when deep sleep starts,
+    // ESP_EXT1_WAKEUP_ANY_LOW fires immediately — instant unwanted wake.
+    Serial.println("[SLEEP] Waiting for button release...");
+    while (digitalRead(SEL_BUTTON_PIN) == LOW || digitalRead(NAV_BUTTON_PIN) == LOW) {
+        delay(10);
+    }
+    delay(50); // Additional debounce after release
 
     // Configure EXT1 wake on Select button only (GPIO3 = valid RTC GPIO on ESP32-C6)
     // Note: GPIO8/GPIO9 are NOT RTC GPIOs — only GPIO0-7 support EXT1 wakeup
@@ -89,7 +109,8 @@ void enterDeepSleep() {
     ));
 
     // Also configure timer wake for periodic measurements
-    esp_sleep_enable_timer_wakeup(MEASUREMENT_INTERVAL_SEC * uS_TO_S_FACTOR);
+    uint16_t sleepSec = settings.getSettings().measurementIntervalSec;
+    esp_sleep_enable_timer_wakeup(sleepSec * uS_TO_S_FACTOR);
 
     // Hold backlight pin state during deep sleep (prevents GPIO2 floating -> backlight leakage)
     // Toggle via HOLD_GPIO_IN_SLEEP in config.h; hardware alternative: pull-down resistor on TFT_LIT
@@ -98,7 +119,7 @@ void enterDeepSleep() {
 #endif
 
     Serial.printf("Deep sleep. Timer=%ds, EXT1 on GPIO%d\n",
-                  MEASUREMENT_INTERVAL_SEC, SEL_BUTTON_PIN);
+                  sleepSec, SEL_BUTTON_PIN);
     Serial.flush();
     esp_deep_sleep_start();
 }
@@ -113,10 +134,12 @@ void runOTAMode() {
     display.begin();
     display.setBrightness(255);
 
-    // Connect WiFi
-    display.showMessage("Connecting WiFi...");
+    // Connect WiFi (OTA always requires WiFi)
+    display.showMessage("WiFi required\nfor OTA...\nB = Cancel");
     const WiFiConfig& wifiCfg = connectivity.getWiFiConfig();
-    wifiMgr.connect(wifiCfg.ssid, wifiCfg.password, 30);
+    wifiMgr.connect(wifiCfg.ssid, wifiCfg.password, 30, []() -> bool {
+        return digitalRead(SEL_BUTTON_PIN) == LOW;
+    });
 
     if (!wifiMgr.isConnected()) {
         display.showMessage("WiFi FAILED!\nRebooting...");
@@ -160,9 +183,31 @@ void runOTAMode() {
     otaServer.begin();
     Serial.println("[OTA] Server started. Waiting for upload...");
 
-    // Stay in OTA loop indefinitely (no deep sleep)
+    // Stay in OTA loop — exit on button B or 120s timeout
+    unsigned long otaStart = millis();
+    Serial.println("[OTA] Server started. Waiting for upload... (B=Exit, 120s timeout)");
+
     while (true) {
         ElegantOTA.loop();
+
+        // Check for abort: Button B alone or both buttons together
+        bool navLow = (digitalRead(NAV_BUTTON_PIN) == LOW);
+        bool selLow = (digitalRead(SEL_BUTTON_PIN) == LOW);
+        if (selLow || (navLow && selLow)) {
+            Serial.println("[OTA] Aborted by user");
+            display.showMessage("OTA Aborted.\nGoing to sleep...");
+            delay(1500);
+            return;
+        }
+
+        // 120 second timeout
+        if (millis() - otaStart > 120000) {
+            Serial.println("[OTA] Timed out");
+            display.showMessage("OTA Timeout.\nGoing to sleep...");
+            delay(1500);
+            return;
+        }
+
         delay(10);
     }
 }
@@ -176,6 +221,8 @@ void runMeasurementMode() {
     digitalWrite(TFT_CS, HIGH);
     storage.begin();
 
+    storage.logDebug("BOOT", "Measurement mode (timer wake)");
+
     // Initialize sensor and battery
     sensor.begin();
     battery.begin();
@@ -187,8 +234,14 @@ void runMeasurementMode() {
         Serial.printf("[MEASUREMENT] Stored: %.1f°C %.0f%% %.0fhPa %.0fm\n",
                       reading.temperature, reading.humidity,
                       reading.pressure, reading.altitude);
+        char buf[80];
+        snprintf(buf, sizeof(buf), "Reading: %.1fC %.0f%% %.0fhPa %.0fm",
+                 reading.temperature, reading.humidity,
+                 reading.pressure, reading.altitude);
+        storage.logDebug("SENSOR", buf);
     } else {
         Serial.println("[MEASUREMENT] Sensor read failed");
+        storage.logDebug("SENSOR", "Read FAILED");
     }
 
     // Log battery status
@@ -196,12 +249,33 @@ void runMeasurementMode() {
     if (battStatus.isValid) {
         Serial.printf("[MEASUREMENT] Battery: %.0f%% (%.2fV)\n",
                       battStatus.percent, battStatus.voltage);
+        char buf[40];
+        snprintf(buf, sizeof(buf), "Battery: %.0f%% (%.2fV)", battStatus.percent, battStatus.voltage);
+        storage.logDebug("BATT", buf);
     }
 
     // Sleep immediately — no display, no WiFi
 }
 
 // ── Display Mode (button wake, full UI) ───────────────────────────────────
+
+bool enterMenu(bool& aborted);  // Forward declaration
+void enterSettingsSubMenu();    // Forward declaration
+
+// Wait for any button press and return which one: 1=NAV(A), 2=SEL(B), 3=BOTH (abort)
+int waitForButton() {
+    int pressed = 0;
+    while (pressed == 0) {
+        bool navLow = (digitalRead(NAV_BUTTON_PIN) == LOW);
+        bool selLow = (digitalRead(SEL_BUTTON_PIN) == LOW);
+        if (navLow && selLow) pressed = 3;      // Both = abort
+        else if (navLow) pressed = 1;
+        else if (selLow) pressed = 2;
+        delay(10);
+    }
+    delay(100); // Debounce after capture
+    return pressed;
+}
 
 void showGraphForMenu(DisplayMenu menu) {
     std::vector<SensorReading> readings;
@@ -253,10 +327,7 @@ void showGraphForMenu(DisplayMenu menu) {
 
     // Wait for button press to go back to menu
     Serial.println("Graph shown. Press any button to return to menu.");
-    while (digitalRead(NAV_BUTTON_PIN) == HIGH && digitalRead(SEL_BUTTON_PIN) == HIGH) {
-        delay(50);
-    }
-    delay(200); // Debounce
+    waitForButton();
 }
 
 void runDisplayMode() {
@@ -266,68 +337,164 @@ void runDisplayMode() {
     digitalWrite(TFT_CS, HIGH);
     storage.begin();
 
+    storage.logDebug("BOOT", "Display mode (button wake)");
+
     display.begin();
     sensor.begin();
     battery.begin();
 
     rtc.begin();
 
-    // Initialize time sync service
+    // Initialize time sync service (for manual sync from menu)
     timeSync.begin(&rtc, &connectivity);
 
-    // Sync time (BLE first, then WiFi fallback per configured mode)
-    display.showSyncProgress("Syncing time...");
-    timeSync.sync([](const char* msg) {
-        display.showSyncProgress(msg);
-    });
+    // Time is already set from the last measurement cycle (within 30 min).
+    // No auto-sync here — the device should respond instantly on button wake.
+    // Users can sync manually from the SYNC_TIME menu if needed.
 
     displayService.showStartupScreen();
     delay(1500);
 
-    // Take a reading and display it
+    // Take a reading
+    SensorReading reading;
+    BatteryStatus battStatus;
     if (dataService.collectCurrentReading()) {
-        SensorReading reading = dataService.getCurrentReading();
+        reading = dataService.getCurrentReading();
         dataService.storeCurrentReading();
-        displayService.showCurrentReading(reading, rtc.getFormattedTime());
 
-        // Show battery info at bottom of screen
-        BatteryStatus battStatus = battery.getStatus();
-        display.showBatteryInfo(battStatus);
+        char buf[80];
+        snprintf(buf, sizeof(buf), "Reading: %.1fC %.0f%% %.0fhPa",
+                 reading.temperature, reading.humidity, reading.pressure);
+        storage.logDebug("SENSOR", buf);
 
-        delay(3000);
+        battStatus = battery.getStatus();
+        if (battStatus.isValid) {
+            snprintf(buf, sizeof(buf), "Battery: %.0f%% (%.2fV)", battStatus.percent, battStatus.voltage);
+            storage.logDebug("BATT", buf);
+        }
     }
 
-    // Configure buttons as inputs
-    pinMode(NAV_BUTTON_PIN, INPUT_PULLUP);
-    pinMode(SEL_BUTTON_PIN, INPUT_PULLUP);
+    // Buttons already configured with pull-ups in setup() before detectWakeupCause()
 
-    // ── Menu loop ──────────────────────────────────────────────────────
-    DisplayMenu currentMenu = DisplayMenu::GRAPH_TEMP;
+    // ── Dashboard loop ──────────────────────────────────────────────
+    // Dashboard shows current readings + three quick actions:
+    //   0 = Log Comfort, 1 = Menu (full menu), 2 = Sleep
+    int dashItem = 0;
     bool inDisplayMode = true;
 
     while (inDisplayMode) {
-        displayService.showMenu(currentMenu);
+        displayService.showDashboard(reading, rtc.getFormattedTime(), dashItem, battStatus,
+                                     wifiMgr.isConnected(), timeSync.getStatus().lastSource);
 
-        // Wait for button press
-        bool navPressed = false;
-        bool selPressed = false;
+        int btn = waitForButton();
 
-        while (!navPressed && !selPressed) {
-            if (digitalRead(NAV_BUTTON_PIN) == LOW) navPressed = true;
-            if (digitalRead(SEL_BUTTON_PIN) == LOW) selPressed = true;
-            delay(50);
+        if (btn == 1) {
+            dashItem = (dashItem + 1) % 3;
         }
 
-        delay(200); // Debounce
+        if (btn == 2) {
+            if (dashItem == 0) {
+                // ── Log Comfort ──────────────────────────────────────
+                // Check if already logged today
+                time_t now = rtc.getEpochTime();
+                struct tm* ti = localtime(&now);
+                time_t startOfDay = now - (ti->tm_hour * 3600 + ti->tm_min * 60 + ti->tm_sec);
 
-        if (navPressed) {
-            // Cycle through menu items
+                std::vector<ComfortLog> todayLogs;
+                storage.getComfortLogsSince(startOfDay, todayLogs);
+
+                if (!todayLogs.empty()) {
+                    display.clear();
+                    display.showMessage("Already logged\ntoday!");
+                    delay(1500);
+                } else {
+                    ComfortLevel comfortLevel = ComfortLevel::COMFORTABLE;
+                    bool selecting = true;
+
+                    while (selecting) {
+                        displayService.showComfortUI(comfortLevel);
+
+                        int cbtn = waitForButton();
+
+                        if (cbtn == 3) { selecting = false; }           // Abort → dashboard
+                        if (cbtn == 1) {                                 // Cycle level
+                            int cl = static_cast<int>(comfortLevel);
+                            cl = (cl + 1) % 5;
+                            comfortLevel = static_cast<ComfortLevel>(cl);
+                        }
+                        if (cbtn == 2) {                                 // Log it
+                            ComfortLog log;
+                            log.timestamp = rtc.getEpochTime();
+                            log.level = comfortLevel;
+                            storage.storeComfortLog(log);
+
+                            display.clear();
+                            display.showMessage("LOGGED!");
+                            delay(1500);
+                            selecting = false;
+                        }
+                    }
+                }
+            } else if (dashItem == 1) {
+                // ── Full Menu ────────────────────────────────────────
+                bool aborted = false;
+                inDisplayMode = enterMenu(aborted);
+                // aborted → back to dashboard (inDisplayMode stays true)
+            } else {
+                // ── Sleep ────────────────────────────────────────────
+                inDisplayMode = false;
+            }
+        }
+        // btn == 3 (both) at dashboard level → do nothing, stay here
+    }
+}
+
+// ── Full Menu (reached from dashboard) ───────────────────────────────────
+
+void enterSettingsSubMenu() {
+    const char* items[] = {"Sleep", "NTP Sync", "Back"};
+    int selected = 0;
+    bool inSettings = true;
+
+    while (inSettings) {
+        displayService.showSettingsSubMenu(selected, settings.getSettings());
+
+        int btn = waitForButton();
+        if (btn == 3) break;  // Both = abort
+
+        if (btn == 1) {
+            selected = (selected + 1) % 3;
+        }
+
+        if (btn == 2) {
+            switch (selected) {
+                case 0: settings.cycleMeasurementInterval(); break;
+                case 1: settings.cycleNTPSyncInterval(); break;
+                case 2: inSettings = false; break;
+            }
+        }
+    }
+}
+
+bool enterMenu(bool& aborted) {
+    DisplayMenu currentMenu = DisplayMenu::GRAPH_TEMP;
+    bool inMenu = true;
+    aborted = false;
+
+    while (inMenu) {
+        displayService.showMenu(currentMenu);
+
+        int btn = waitForButton();
+
+        if (btn == 3) { aborted = true; break; }  // Both → back to dashboard
+
+        if (btn == 1) {
             int idx = static_cast<int>(currentMenu);
-            idx = (idx + 1) % 7; // 7 menu items
+            idx = (idx + 1) % 8;
             currentMenu = static_cast<DisplayMenu>(idx);
         }
 
-        if (selPressed) {
+        if (btn == 2) {
             switch (currentMenu) {
                 case DisplayMenu::GRAPH_TEMP:
                 case DisplayMenu::GRAPH_HUMIDITY:
@@ -335,45 +502,13 @@ void runDisplayMode() {
                     showGraphForMenu(currentMenu);
                     break;
 
-                case DisplayMenu::LOG_COMFORT: {
-                    ComfortLevel comfortLevel = ComfortLevel::COMFORTABLE;
-                    bool selecting = true;
-
-                    while (selecting) {
-                        displayService.showComfortUI(comfortLevel);
-
-                        // Wait for button
-                        while (digitalRead(NAV_BUTTON_PIN) == HIGH &&
-                               digitalRead(SEL_BUTTON_PIN) == HIGH) {
-                            delay(50);
-                        }
-                        delay(200); // Debounce
-
-                        if (digitalRead(NAV_BUTTON_PIN) == LOW) {
-                            int cl = static_cast<int>(comfortLevel);
-                            cl = (cl + 1) % 5;
-                            comfortLevel = static_cast<ComfortLevel>(cl);
-                        }
-
-                        if (digitalRead(SEL_BUTTON_PIN) == LOW) {
-                            // Log the comfort level
-                            ComfortLog log;
-                            log.timestamp = rtc.getEpochTime();
-                            log.level = comfortLevel;
-                            storage.storeComfortLog(log);
-
-                            // Show confirmation
-                            display.clear();
-                            display.showMessage("LOGGED!");
-                            delay(1500);
-                            selecting = false;
-                        }
-                    }
+                case DisplayMenu::SETTINGS:
+                    enterSettingsSubMenu();
                     break;
-                }
 
-                case DisplayMenu::SLEEP:
-                    inDisplayMode = false;
+                case DisplayMenu::BACK:
+                    aborted = true;
+                    inMenu = false;
                     break;
 
                 case DisplayMenu::OTA:
@@ -381,33 +516,155 @@ void runDisplayMode() {
                     break;
 
                 case DisplayMenu::SYNC_TIME: {
-                    // Sync time sub-menu
+                    // Sync time sub-menu: 3 items, A=Navigate, B=Select
+                    enum SyncMenuItem { SYNC_MODE, SYNC_NOW, SYNC_BACK };
+                    int syncItem = SYNC_MODE;
                     bool inSyncMenu = true;
 
                     while (inSyncMenu) {
                         SyncStatus syncStatus = timeSync.getStatus();
-                        displayService.showSyncUI(syncStatus.mode, syncStatus.lastSource, syncStatus.lastSyncTime);
+                        displayService.showSyncSubMenu(syncItem, syncStatus.mode, syncStatus.lastSource, syncStatus.lastSyncTime);
 
-                        // Wait for button
-                        while (digitalRead(NAV_BUTTON_PIN) == HIGH &&
-                               digitalRead(SEL_BUTTON_PIN) == HIGH) {
-                            delay(50);
-                        }
-                        delay(200); // Debounce
+                        int sbtn = waitForButton();
 
-                        if (digitalRead(NAV_BUTTON_PIN) == LOW) {
-                            // Cycle through sync modes
-                            SyncMode current = timeSync.getMode();
-                            int modeIdx = static_cast<int>(current);
-                            modeIdx = (modeIdx + 1) % 5; // 5 modes
-                            timeSync.setMode(static_cast<SyncMode>(modeIdx));
+                        if (sbtn == 3) { inSyncMenu = false; break; }   // Abort → menu
+
+                        if (sbtn == 1) {
+                            syncItem = (syncItem + 1) % 3;
                         }
 
-                        if (digitalRead(SEL_BUTTON_PIN) == LOW) {
-                            // Trigger sync
-                            display.showSyncProgress("Syncing...");
-                            timeSync.sync();
-                            delay(1000);
+                        if (sbtn == 2) {
+                            switch (syncItem) {
+                                case SYNC_MODE: {
+                                    SyncMode current = timeSync.getMode();
+                                    int modeIdx = (static_cast<int>(current) + 1) % 5;
+                                    timeSync.setMode(static_cast<SyncMode>(modeIdx));
+                                    break;
+                                }
+                                case SYNC_NOW: {
+                                    display.showSyncProgress("Syncing...");
+                                    timeSync.sync([](const char* msg) {
+                                        display.showSyncProgress(msg);
+                                    });
+                                    storage.logDebug("SYNC", "Manual sync triggered from menu");
+                                    delay(1000);
+                                    break;
+                                }
+                                case SYNC_BACK:
+                                    inSyncMenu = false;
+                                    break;
+                            }
+                        }
+                    }
+                    break;
+                }
+
+                case DisplayMenu::CALENDAR: {
+                    // Calendar view: scrollable list of comfort logs
+                    std::vector<ComfortLog> allLogs;
+                    storage.getAllComfortLogs(allLogs);
+
+                    // Sort by timestamp descending (most recent first)
+                    std::sort(allLogs.begin(), allLogs.end(), [](const ComfortLog& a, const ComfortLog& b) {
+                        return a.timestamp > b.timestamp;
+                    });
+
+                    int calSelected = 0;
+                    bool inCalendar = true;
+
+                    while (inCalendar) {
+                        displayService.showCalendarList(allLogs, calSelected);
+
+                        int cbtn = waitForButton();
+
+                        if (cbtn == 3) { inCalendar = false; break; }   // Abort → menu
+
+                        if (cbtn == 1) {
+                            // Scroll down
+                            if (!allLogs.empty()) {
+                                calSelected = (calSelected + 1) % allLogs.size();
+                            }
+                        }
+
+                        if (cbtn == 2) {
+                            // Select day → detail view
+                            if (allLogs.empty()) {
+                                // No logs at all — go back
+                                inCalendar = false;
+                                break;
+                            }
+
+                            ComfortLog& selectedLog = allLogs[calSelected];
+
+                            // Format date for header
+                            struct tm* ti = localtime(&selectedLog.timestamp);
+                            char dateBuf[16];
+                            snprintf(dateBuf, sizeof(dateBuf), "%s %d",
+                                     "JanFebMarAprMayJunJulAugSepOctNovDec" + (ti->tm_mon * 3),
+                                     ti->tm_mday);
+
+                            // Detail view: 2 items (Change/Back or Log it/Back)
+                            int detailItem = 0;
+                            bool inDetail = true;
+
+                            while (inDetail) {
+                                displayService.showCalendarDetail(dateBuf, selectedLog.level, true, detailItem);
+
+                                int dbtn = waitForButton();
+
+                                if (dbtn == 3) { inDetail = false; break; }   // Abort → calendar list
+
+                                if (dbtn == 1) {
+                                    detailItem = (detailItem + 1) % 2;
+                                }
+
+                                if (dbtn == 2) {
+                                    if (detailItem == 0) {
+                                        // Change: open comfort UI with current level pre-selected
+                                        ComfortLevel newLevel = selectedLog.level;
+                                        bool editing = true;
+
+                                        while (editing) {
+                                            displayService.showComfortUI(newLevel);
+
+                                            int ebtn = waitForButton();
+
+                                            if (ebtn == 3) { editing = false; }           // Abort → detail
+                                            if (ebtn == 1) {                                 // Cycle level
+                                                int cl = static_cast<int>(newLevel);
+                                                cl = (cl + 1) % 5;
+                                                newLevel = static_cast<ComfortLevel>(cl);
+                                            }
+                                            if (ebtn == 2) {                                 // Confirm edit
+                                                // Delete old log and store new one
+                                                time_t dayStart = selectedLog.timestamp - (ti->tm_hour * 3600 + ti->tm_min * 60 + ti->tm_sec);
+                                                storage.deleteComfortLogsForDay(dayStart);
+
+                                                ComfortLog newLog;
+                                                newLog.timestamp = selectedLog.timestamp;
+                                                newLog.level = newLevel;
+                                                storage.storeComfortLog(newLog);
+
+                                                // Refresh log list
+                                                allLogs.clear();
+                                                storage.getAllComfortLogs(allLogs);
+                                                std::sort(allLogs.begin(), allLogs.end(), [](const ComfortLog& a, const ComfortLog& b) {
+                                                    return a.timestamp > b.timestamp;
+                                                });
+
+                                                display.clear();
+                                                display.showMessage("UPDATED!");
+                                                delay(1000);
+                                                editing = false;
+                                                inDetail = false;
+                                            }
+                                        }
+                                    } else {
+                                        // Back
+                                        inDetail = false;
+                                    }
+                                }
+                            }
                         }
                     }
                     break;
@@ -416,14 +673,16 @@ void runDisplayMode() {
         }
     }
 
+    if (aborted) return true;   // Back to dashboard
     Serial.println("[DISPLAY] User selected sleep");
+    return false;               // Deep sleep
 }
 
 // ── Setup / Loop ──────────────────────────────────────────────────────────
 
 void setup() {
     Serial.begin(115200);
-    while (!Serial);
+    delay(100);  // Let USB CDC initialize if host is present; don't block forever
 
     // Release GPIO hold from deep sleep (ESP32-C6 doesn't auto-release)
     gpio_hold_dis(static_cast<gpio_num_t>(TFT_LIT));
@@ -432,17 +691,32 @@ void setup() {
     digitalWrite(LED_BUILTIN, HIGH);
     delay(500);
 
+    // Load device settings from LittleFS
+    settings.begin();
+
+    // Restore timezone after deep sleep wake. configTime() sets the TZ env var
+    // in regular RAM, which is wiped by deep sleep. The hardware RTC retains the
+    // correct UTC epoch, so we just need to re-apply the timezone offset.
+    configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
+
     ++bootCount;
     Serial.printf("\n=== Boot #%d ===\n", bootCount);
+
+    // Enable button pull-ups BEFORE detectWakeupCause() so GPIO reads are reliable.
+    // After deep sleep wake, GPIOs reset to input without pull-up — floating pins
+    // can read LOW and cause false EXT1 detection in the fallback logic.
+    pinMode(NAV_BUTTON_PIN, INPUT_PULLUP);
+    pinMode(SEL_BUTTON_PIN, INPUT_PULLUP);
+
     printWakeupReason();
 
     esp_sleep_wakeup_cause_t cause = detectWakeupCause();
 
+    // Button wake → display mode (normal)
+    // Timer wake or power-on → measurement mode (silent, display off)
     if (cause == ESP_SLEEP_WAKEUP_EXT1) {
-        // Button wake → full display mode
         runDisplayMode();
     } else {
-        // Timer wake or power-on → silent measurement
         rtc.begin();
         runMeasurementMode();
     }
@@ -451,5 +725,95 @@ void setup() {
 }
 
 void loop() {
-    // Never reached — deep sleep restarts the chip
+    // Dev mode only — production never reaches loop() (device deep sleeps in setup()).
+    // On native USB, ESP.restart() and deep sleep both cause USB re-enumeration
+    // -> hardware reset -> infinite boot loop. So we stay alive by naturally looping
+    // here instead. Each iteration: take a reading, show dashboard, handle buttons.
+    if (!Serial) return;
+
+    // Initialize hardware (idempotent — safe to call each iteration)
+    digitalWrite(TFT_CS, HIGH);
+    storage.begin();
+    sensor.begin();
+    battery.begin();
+
+    // Take a fresh reading
+    SensorReading reading;
+    BatteryStatus battStatus;
+    if (dataService.collectCurrentReading()) {
+        reading = dataService.getCurrentReading();
+        dataService.storeCurrentReading();
+        battStatus = battery.getStatus();
+        Serial.printf("[DEV] Reading: %.1f°C %.0f%% %.0fhPa\n",
+                      reading.temperature, reading.humidity, reading.pressure);
+    }
+
+    // Dashboard loop — same UI as runDisplayMode(), but "Sleep" continues
+    // the loop (new reading) instead of trying to deep sleep.
+    int dashItem = 0;
+    bool inDashboard = true;
+
+    while (inDashboard) {
+        displayService.showDashboard(reading, rtc.getFormattedTime(), dashItem, battStatus,
+                                     wifiMgr.isConnected(), timeSync.getStatus().lastSource);
+
+        int btn = waitForButton();
+
+        if (btn == 1) {
+            dashItem = (dashItem + 1) % 3;
+        }
+
+        if (btn == 2) {
+            if (dashItem == 0) {
+                // ── Log Comfort ──
+                time_t now = rtc.getEpochTime();
+                struct tm* ti = localtime(&now);
+                time_t startOfDay = now - (ti->tm_hour * 3600 + ti->tm_min * 60 + ti->tm_sec);
+
+                std::vector<ComfortLog> todayLogs;
+                storage.getComfortLogsSince(startOfDay, todayLogs);
+
+                if (!todayLogs.empty()) {
+                    display.clear();
+                    display.showMessage("Already logged\ntoday!");
+                    delay(1500);
+                } else {
+                    ComfortLevel comfortLevel = ComfortLevel::COMFORTABLE;
+                    bool selecting = true;
+
+                    while (selecting) {
+                        displayService.showComfortUI(comfortLevel);
+                        int cbtn = waitForButton();
+                        if (cbtn == 3) { selecting = false; }
+                        if (cbtn == 1) {
+                            int cl = static_cast<int>(comfortLevel);
+                            cl = (cl + 1) % 5;
+                            comfortLevel = static_cast<ComfortLevel>(cl);
+                        }
+                        if (cbtn == 2) {
+                            ComfortLog log;
+                            log.timestamp = rtc.getEpochTime();
+                            log.level = comfortLevel;
+                            storage.storeComfortLog(log);
+                            display.clear();
+                            display.showMessage("LOGGED!");
+                            delay(1500);
+                            selecting = false;
+                        }
+                    }
+                }
+            } else if (dashItem == 1) {
+                // ── Menu ──
+                bool aborted = false;
+                enterMenu(aborted);
+            } else {
+                // ── Sleep → in dev mode, just break to take a new reading ──
+                Serial.println("[DEV] Sleep selected — new reading coming");
+                inDashboard = false;
+            }
+        }
+        // btn == 3 (both) at dashboard -> stay in dashboard
+    }
+
+    delay(1000); // Brief pause before next reading
 }

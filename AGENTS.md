@@ -16,10 +16,8 @@ pio device monitor       # open serial monitor manually
 ## Test
 
 ```sh
-pio test -e main         # embedded tests (runs on device via Unity)
-pio test -e service      # service-layer tests on device
-pio test -e native       # host-native tests (no hardware)
-pio test -e mock         # mock tests (env:mock in platformio.ini; test/test_mock/ not yet created)
+pio test -e main         # embedded tests (runs on device via Unity) — 34 tests
+pio test -e mock         # mock tests (on host, no hardware) — 68 tests
 ```
 
 Tests use a custom `TestContext` fixture system (`lib/test_fixture/test_fixture.h`) and a custom Unity runner (`lib/test_runner/`). Individual test suites are enabled/disabled by uncommenting `run_tests()` calls in the test runner .cpp files.
@@ -27,27 +25,67 @@ Tests use a custom `TestContext` fixture system (`lib/test_fixture/test_fixture.
 ## Architecture
 
 ```
-src/main.cpp            # firmware entrypoint (setup/loop, deep sleep)
+src/main.cpp            # firmware entrypoint (setup/loop, deep sleep, dashboard, menus)
 lib/
-  sensor_manager/       # BME280 I2C sensor
-  rtc_manager/          # ESP32Time RTC
-  display_manager/      # ST7789 TFT display
-  storage_manager/      # SD card (SPI)
-  wifi_manager/         # WiFi connection
-  connectivity_service/ # WiFi + NTP time sync (service layer)
-  data_service/         # orchestrates sensor/storage/rtc
-  display_service/      # display service (older)
-  test_runner/          # custom Unity test runner with PlatformIO-compatible output
-  test_fixture/         # setUp/tearDown dispatch system for multiple test namespaces
-  hardware/             # empty dirs (planned hardware abstraction layer)
-  services/             # alternate service implementations (older copies)
+  hardware/             # HAL — direct hardware access
+    sensor_manager/     # BME280 I2C
+    display_manager/    # ST7789 TFT (240x240)
+    storage_manager/    # SD card (SPI)
+    rtc_manager/        # ESP32Time
+    wifi_manager/       # WiFi
+    battery_manager/    # MAX17048 fuel gauge
+    settings_manager/   # Device settings (LittleFS persistence)
+  services/             # Service layer — orchestrates hardware
+    data/               # DataService (sensor + storage + RTC)
+    display/            # DisplayService (menus, graphs, comfort UI)
+    connectivity/       # ConnectivityService (WiFi + NTP)
+    time_sync_service/  # TimeSyncService (BLE phone sync + WiFi fallback)
+  test_runner/          # custom Unity test runner
+  test_fixture/         # setUp/tearDown dispatch system
 ```
 
-**Important**: There are duplicate libraries at two levels -- `lib/data_service/` and `lib/services/data/`, `lib/connectivity_service/` and `lib/services/connectivity/`, `lib/display_service/` and `lib/services/display/`. The top-level versions are the ones used by the build. The `lib/services/` copies are older/alternate implementations.
+**Important**: There are duplicate libraries at two levels — top-level `lib/data_service/`, `lib/connectivity_service/`, `lib/display_service/` are older copies. The `lib/services/` versions are the ones used by the build.
+
+## UI Navigation Rules
+
+**Two buttons**: A (GPIO8) = Navigate, B (GPIO3) = Select.
+
+| Input | Action |
+|-------|--------|
+| **Button A** | Navigate (cycle items) |
+| **Button B** | Select (activate highlighted item) |
+| **Both A+B** | **Abort** — always returns to Dashboard |
+
+Both-buttons abort works from **every screen**: comfort logging, sync sub-menu, graphs, settings, and the full menu.
+
+**Dashboard** (first screen on button wake): Shows sensor data + time + battery + connectivity indicator. Three items: Log Comfort, Menu, Sleep. Header shows "WiFi" when connected. Battery bar shows "Last:WiFi" or "Last:BLE" for sync source.
+
+**Menu** (8 items): Graph Temp, Graph Humidity, Graph Altitude, Calendar, Settings, OTA, Sync Time, Back.
+
+**Settings sub-menu** (3 items): Sleep Interval (cycle: 1m/5m/15m/30m/1hr), NTP Sync (cycle: 1hr/6hr/12hr/24hr), Back. Settings persisted to `/settings.txt` on LittleFS.
+
+**Comfort logging**: One log per day max. If already logged today, shows "Already logged today!" and returns.
+
+**`waitForButton()`** in `main.cpp`: returns 1 (NAV), 2 (SEL), or 3 (BOTH/abort). All button loops use this helper.
+
+**WiFi connection**: `WiFiManager::connect()` accepts an optional `AbortCallback` for button-press abort during connection. OTA mode uses this to allow B-button cancellation.
 
 ## Platform Quirk
 
 The project uses the **Tasmota fork** of platform-espressif32 (not the official Espressif platform) to get Arduino framework support for ESP32-C6. If you see `Error: This board doesn't support arduino framework!`, run `pio run -t clean` and reinstall packages with `pio pkg uninstall && pio pkg install`.
+
+## Deep Sleep & Serial Monitor
+
+The Adafruit Feather ESP32-C6 uses **native USB**. Deep sleep disconnects the USB bus — the computer re-enumerates the device and triggers a hardware reset, causing an infinite boot loop. `ESP.restart()` has the same problem.
+
+**Development mode** (USB connected): `enterDeepSleep()` detects `if (Serial)` and returns immediately. The device stays alive via `loop()`, which takes periodic readings and shows the dashboard UI. Full button interaction works. Deep sleep is not tested in this mode.
+
+**Production mode** (USB disconnected, battery): `Serial` is false. The device enters deep sleep normally — sleeps for `measurementIntervalSec`, wakes on timer or button B.
+
+| Power Source | `Serial` | Behavior |
+|---|---|---|
+| USB cable (development) | true | Skip deep sleep, loop in `loop()`, full UI |
+| Battery (production) | false | Deep sleep 30min, silent measurement, button wake |
 
 ## Conditional Compilation (MOCK)
 
@@ -58,11 +96,55 @@ Headers use `#ifdef MOCK` to swap Arduino types for standard C++ types when runn
 - Pin definitions live in `include/config.h`
 - Shared data structures (`SensorReading`, `TemperatureStats`, `SystemStatus`, enums) are in `include/data_structures.h`
 - Logging uses macros `LOG_INFO(...)`, `LOG_ERROR(...)`, etc. from `include/logger.h` (auto-injects function name)
-- WiFi credentials are currently hardcoded in `include/config.h`
+- WiFi credentials are configurable via LittleFS (`/wifi_config.txt`), fallback to `config.h` defaults
+- Device settings (measurement interval, NTP sync) persisted to LittleFS (`/settings.txt`)
+- Debug logging to SD card: `storage.logDebug(tag, message)` appends to `/debug.log`
 
 ## Known Issues
 
-- `lib/hardware/` contains empty subdirectories (display, rtc, sensor, storage, wifi) -- not yet implemented
 - `test/test_mock/` directory referenced by `env:mock` in platformio.ini does not exist yet
-- The `env:service` environment references `test/test_service/includes` but may not have all dependencies resolved
-- `app.h` is entirely commented out (planned App class not yet active)
+- `env:service` environment references `test/test_service/includes` but may not have all dependencies resolved
+
+
+<!-- headroom:rtk-instructions -->
+# RTK (Rust Token Killer) - Token-Optimized Commands
+
+When running shell commands, **always prefix with `rtk`**. This reduces context
+usage by 60-90% with zero behavior change. If rtk has no filter for a command,
+it passes through unchanged — so it is always safe to use.
+
+## Key Commands
+```bash
+# Git (59-80% savings)
+rtk git status          rtk git diff            rtk git log
+
+# Files & Search (60-75% savings)
+rtk ls <path>           rtk read <file>         rtk grep <pattern>
+rtk find <pattern>      rtk diff <file>
+
+# Test (90-99% savings) — shows failures only
+rtk pytest tests/       rtk cargo test          rtk test <cmd>
+
+# Build & Lint (80-90% savings) — shows errors only
+rtk tsc                 rtk lint                rtk cargo build
+rtk prettier --check    rtk mypy                rtk ruff check
+
+# Analysis (70-90% savings)
+rtk err <cmd>           rtk log <file>          rtk json <file>
+rtk summary <cmd>       rtk deps                rtk env
+
+# GitHub (26-87% savings)
+rtk gh pr view <n>      rtk gh run list         rtk gh issue list
+
+# Infrastructure (85% savings)
+rtk docker ps           rtk kubectl get         rtk docker logs <c>
+
+# Package managers (70-90% savings)
+rtk pip list            rtk pnpm install        rtk npm run <script>
+```
+
+## Rules
+- In command chains, prefix each segment: `rtk git add . && rtk git commit -m "msg"`
+- For debugging, use raw command without rtk prefix
+- `rtk proxy <cmd>` runs command without filtering but tracks usage
+<!-- /headroom:rtk-instructions -->

@@ -1,0 +1,254 @@
+---
+title: User Interface
+description: Screen layouts, button navigation, and menu system for the hiking station.
+---
+
+## Overview
+
+The hiking station uses a **two-button navigation** system on a 240x240 TFT display:
+
+- **Button A (GPIO8)** — Navigate: cycles through menu items
+- **Button B (GPIO3)** — Select: activates the highlighted item
+
+### Universal Rules
+
+| Input | Action |
+|-------|--------|
+| **Button A** | Navigate (cycle through items) |
+| **Button B** | Select (activate highlighted item) |
+| **Both A+B** | **Abort** — always returns to the Dashboard |
+
+Both-buttons abort works from **every screen**: comfort logging, sync sub-menu, graphs, and the full menu. In OTA mode, both buttons also abort (go to sleep).
+
+## Flow
+
+```
+Power-on / Button Wake
+        │
+        ▼
+   ┌─────────┐
+   │Dashboard│  ← Default screen (3 items)
+   └────┬────┘
+        │
+   B: Log Comfort ──→ Comfort Logging ──→ back to Dashboard
+   B: Menu ─────────→ Full Menu ────────→ A+B = back to Dashboard
+   B: Sleep ────────→ Deep Sleep
+        │
+   A+B: Abort ──────→ stay at Dashboard (no-op at top level)
+```
+
+## Dashboard
+
+The first screen shown on button wake. Displays current sensor readings and provides quick access to three actions.
+
+```
+┌──────────────────────────────┐
+│      HIKING STATION      WiFi│  ← Header + connectivity indicator
+├──────────────────────────────┤
+│ 23.5°C       42%            │  ← Temperature + Humidity
+│  1,245 m     1013hPa        │  ← Altitude + Pressure
+│                              │
+│  14:32                       │  ← Current time
+│                              │
+├──────────────────────────────┤
+│ > Log Comfort                │  ← Selectable item
+│   Menu                       │  ← Selectable item
+│   Sleep                      │  ← Selectable item
+├──────────────────────────────┤
+│ ████████░░ 78% 4.02V Last:WiFi│  ← Battery bar + last sync source
+│ A=Nav B=Sel A+B=Back        │  ← Footer
+└──────────────────────────────┘
+```
+
+| Action | Button B |
+|--------|----------|
+| **Log Comfort** | Opens comfort logging (5 levels, saves to SD) — one log per day max |
+| **Menu** | Opens the full menu with all options |
+| **Sleep** | Enter deep sleep immediately |
+
+**Connectivity indicator**: Shows "WiFi" in the header when connected. Shows "Last:WiFi" or "Last:BLE" next to the battery bar indicating the most recent sync source.
+
+## Full Menu
+
+Accessed from the Dashboard → Menu. Press **Back** or **both buttons** to return to the Dashboard.
+
+```
+┌──────────────────────────────┐
+│          MENU                │
+├──────────────────────────────┤
+│ > Graph Temperature          │
+│   Graph Humidity             │
+│   Graph Altitude             │
+│   Settings                   │
+│   OTA                        │
+│   Sync Time                  │
+│   Back                       │
+├──────────────────────────────┤
+│ A=Navigate  B=Select        │
+│ A+B=Back to Dashboard       │
+└──────────────────────────────┘
+```
+
+| Item | Action |
+|------|--------|
+| **Graph Temperature** | 24h rolling temperature graph |
+| **Graph Humidity** | 24h rolling humidity graph |
+| **Graph Altitude** | 24h rolling altitude graph |
+| **Settings** | Device settings sub-menu |
+| **OTA** | WiFi firmware update mode |
+| **Sync Time** | Time sync sub-menu |
+| **Back** | Return to Dashboard |
+
+## Graphs
+
+Shows the last 24 hours of data for the selected sensor. Data is read from the SD card.
+
+```
+┌──────────────────────────────┐
+│        TEMPERATURE           │
+├──────────────────────────────┤
+│    ·                         │
+│   · ·    ·                   │
+│  ·   ·  · ·     ·           │
+│ ·     ··   ·   · ·         │
+│·           · ··   ·        │
+│              ·       ·      │
+├──────────────────────────────┤
+│ 22°C ──────── 28°C          │  ← Scale
+│ 12:00         14:32         │  ← Time axis
+│                              │
+│ Any button → back to menu   │
+│ A+B → back to dashboard     │
+└──────────────────────────────┘
+```
+
+## Settings Sub-Menu
+
+Accessed from Full Menu → Settings. Configure device settings persisted to LittleFS.
+
+```
+┌──────────────────────────────┐
+│          SETTINGS            │
+├──────────────────────────────┤
+│ > Sleep     5min             │  ← Tap B to cycle: 1m/5m/15m/30m/1hr
+│   NTP Sync  24hr             │  ← Tap B to cycle: 1hr/6hr/12hr/24hr
+│   Back                       │  ← Tap B to return to menu
+├──────────────────────────────┤
+│ A=Navigate  B=Change        │
+│ A+B = back to menu          │
+└──────────────────────────────┘
+```
+
+| Setting | Options | Default |
+|---------|---------|---------|
+| **Sleep Interval** | 1min, 5min, 15min, 30min, 1hr | 30min |
+| **NTP Sync Interval** | 1hr, 6hr, 12hr, 24hr | 24hr |
+
+Settings are saved to `/settings.txt` on LittleFS and survive reboots.
+
+## Sync Time Sub-Menu
+
+Accessed from Full Menu → Sync Time.
+
+```
+┌──────────────────────────────┐
+│         TIME SYNC            │
+├──────────────────────────────┤
+│ > Mode     BLE+WiFi          │  ← Tap B to cycle modes
+│   Sync Now                   │  ← Tap B to start sync
+│   Back                       │  ← Tap B to exit
+├──────────────────────────────┤
+│ Last sync:                   │
+│ BLE @ 1721654532             │
+│                              │
+│ A=Navigate  B=Select        │
+│ A+B = back to menu          │
+└──────────────────────────────┘
+```
+
+### Sync Modes
+
+| Mode | Behavior |
+|------|----------|
+| **OFF** | No auto-sync |
+| **BLE** | BLE phone sync only |
+| **WiFi** | WiFi NTP sync only |
+| **BLE+WiFi** | Try BLE first, fall back to WiFi |
+| **WiFi+BLE** | Try WiFi first, fall back to BLE |
+
+### Sync Now
+
+Triggers an immediate sync using the current mode. Shows a countdown on screen (BLE: up to 10 seconds).
+
+## OTA Mode
+
+WiFi firmware update mode. Upload a new firmware binary via web browser.
+
+```
+┌──────────────────────────────┐
+│          OTA MODE            │
+├──────────────────────────────┤
+│ Open in browser:             │
+│ http://192.168.1.42/update   │
+│                              │
+│      Waiting for             │
+│       upload...              │
+│                              │
+│ Auth: admin / hikingstation  │
+│ B=Exit  A+B=Exit  120s      │
+└──────────────────────────────┘
+```
+
+- **Button B** or **both buttons** exits OTA immediately
+- **120-second timeout** auto-exits if no upload starts
+- After exit, the device enters deep sleep
+
+## Comfort Logging
+
+Quick-access from Dashboard or Full Menu. Logs how you feel to the SD card.
+
+### One Log Per Day
+
+To prevent accidental or duplicate entries, **only one comfort log is allowed per calendar day**. If you've already logged today, the device shows "Already logged today!" and returns to the previous screen.
+
+### Log Screen
+
+```
+┌──────────────────────────────┐
+│       LOG COMFORT            │
+├──────────────────────────────┤
+│                              │
+│     ◄  COMFORTABLE  ►       │  ← Cycle with Button A
+│                              │
+├──────────────────────────────┤
+│ Levels:                      │
+│   Too cold ← Cold ←         │
+│   Comfortable →             │
+│   Warm → Too warm           │
+├──────────────────────────────┤
+│ A=Cycle  B=Log  A+B=Back    │
+└──────────────────────────────┘
+```
+
+| Level | Meaning |
+|-------|---------|
+| **Too cold** | Uncomfortably cold |
+| **Cold** | Below comfortable |
+| **Comfortable** | Just right |
+| **Warm** | Above comfortable |
+| **Too warm** | Uncomfortably warm |
+
+Button B logs the current selection and returns to the previous screen.
+Button A+B aborts without logging and returns to the Dashboard.
+
+## Battery Indicator
+
+The Dashboard shows a color-coded battery bar:
+
+| Color | Level | Meaning |
+|-------|-------|---------|
+| Green | > 50% | Good |
+| Yellow | 20-50% | Low |
+| Red | &lt; 20% | Critical |
+
+The bar also shows the exact percentage and voltage (e.g., `78% 4.02V`).

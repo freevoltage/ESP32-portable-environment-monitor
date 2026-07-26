@@ -179,8 +179,7 @@ bool StorageManager::getLastNReadings(std::vector<SensorReading> &readings, uint
 
     File file = SD.open(_filename, FILE_READ);
 
-    /// The next section is there to determine the HEADER SIZE and BYTES PER LINE
-
+    // Skip header line
     size_t startPos = file.position();
     String header = file.readStringUntil('\n');
     const size_t HEADER_SIZE = file.position() - startPos;
@@ -191,53 +190,41 @@ bool StorageManager::getLastNReadings(std::vector<SensorReading> &readings, uint
     {
         LOG_WARN("File is empty.");
         file.close();
-        return true; // Because reading an empty file is expected to be true
-    }
-
-    size_t lineStartPos = file.position();
-    String firstLine = file.readStringUntil('\n');
-    size_t BYTES_PER_LINE = file.position() - lineStartPos;
-
-    LOG_DEBUG("First line: %s, size: %d", firstLine.c_str(), BYTES_PER_LINE);
-
-    size_t fileSize = file.size();
-    size_t dataSize = fileSize - HEADER_SIZE;
-    size_t totalLines = dataSize / BYTES_PER_LINE;
-
-    LOG_DEBUG("File size: %d, dataSize: %d, Total lines: %d", fileSize, dataSize, totalLines);
-
-    if (totalLines == 0)
-    {
-        file.close();
         return true;
     }
 
-    // Step 4: Seek to position of the last N lines
-    uint16_t linesToRead = (totalLines < maxCount) ? totalLines : maxCount;
-
-    // Seek to the Last Line and then Read backwards
-    for(int i=0; i<linesToRead; i++)
+    // Read all data lines sequentially (handles variable-width lines)
+    std::vector<String> allLines;
+    while (file.available())
     {
-        size_t lineIndex = totalLines - 1 - i; // Last Line = totalLines - 1;
-        size_t seekPos = HEADER_SIZE + lineIndex * BYTES_PER_LINE;
-
-        LOG_DEBUG("Reading line %d/%d at position %d", i+1, linesToRead, seekPos);
-
-        file.seek(seekPos);
         String line = file.readStringUntil('\n');
         line.trim();
-
-        if(line.length() == 0){
-            LOG_WARN("Empty line at position %d", seekPos);
-            continue;
+        if (line.length() > 0)
+        {
+            allLines.push_back(line);
         }
+    }
+    file.close();
 
-        LOG_DEBUG("Parsing: '%s'", line.c_str());
-        SensorReading reading = parseReading(line);
+    size_t totalLines = allLines.size();
+    LOG_DEBUG("Total data lines: %d", totalLines);
+
+    if (totalLines == 0)
+    {
+        return true;
+    }
+
+    // Return the last N lines, newest first
+    uint16_t linesToRead = (totalLines < maxCount) ? totalLines : maxCount;
+    size_t startIndex = totalLines - linesToRead;
+
+    for (uint16_t i = 0; i < linesToRead; i++)
+    {
+        LOG_DEBUG("Parsing: '%s'", allLines[startIndex + i].c_str());
+        SensorReading reading = parseReading(allLines[startIndex + i]);
         readings.push_back(reading);
     }
 
-    file.close();
     LOG_INFO("Retrieved %d readings (newest first)", readings.size());
 
     return true;
@@ -710,6 +697,18 @@ bool StorageManager::storeComfortLog(const ComfortLog &log)
     return true;
 }
 
+bool StorageManager::logDebug(const char* tag, const char* message)
+{
+    if (!_initialized) return false;
+
+    File file = SD.open(DEBUG_LOG_FILENAME, FILE_APPEND);
+    if (!file) return false;
+
+    file.printf("[%lu] [%s] %s\n", millis() / 1000, tag, message);
+    file.close();
+    return true;
+}
+
 bool StorageManager::getComfortLogsSince(time_t timestamp, std::vector<ComfortLog> &logs)
 {
     logs.clear();
@@ -762,6 +761,129 @@ bool StorageManager::getComfortLogsSince(time_t timestamp, std::vector<ComfortLo
 
     file.close();
     LOG_INFO("Retrieved %d comfort logs since %lu", logs.size(), static_cast<unsigned long>(timestamp));
+    return true;
+}
+
+bool StorageManager::getAllComfortLogs(std::vector<ComfortLog> &logs)
+{
+    logs.clear();
+
+    if (!_initialized)
+    {
+        LOG_ERROR("Storage not initialized");
+        return false;
+    }
+
+    const String comfortFile = COMFORT_FILENAME;
+
+    if (!fileExists(comfortFile))
+    {
+        return true; // No comfort logs yet, empty is valid
+    }
+
+    File file = SD.open(comfortFile.c_str(), FILE_READ);
+    if (!file)
+    {
+        LOG_ERROR("Failed to open comfort file");
+        return false;
+    }
+
+    // Skip header
+    if (file.available())
+    {
+        file.readStringUntil('\n');
+    }
+
+    while (file.available())
+    {
+        String line = file.readStringUntil('\n');
+        line.trim();
+        if (line.length() == 0) continue;
+
+        ComfortLog log;
+        unsigned long ts;
+        int level;
+        if (sscanf(line.c_str(), "%lu,%d", &ts, &level) == 2)
+        {
+            log.timestamp = static_cast<time_t>(ts);
+            log.level = static_cast<ComfortLevel>(level);
+            logs.push_back(log);
+        }
+    }
+
+    file.close();
+    LOG_INFO("Retrieved all %d comfort logs", logs.size());
+    return true;
+}
+
+bool StorageManager::deleteComfortLogsForDay(time_t dayStart)
+{
+    if (!_initialized)
+    {
+        LOG_ERROR("Storage not initialized");
+        return false;
+    }
+
+    const String comfortFile = COMFORT_FILENAME;
+
+    if (!fileExists(comfortFile))
+    {
+        return true; // Nothing to delete
+    }
+
+    // Read all logs
+    std::vector<ComfortLog> allLogs;
+    if (!getAllComfortLogs(allLogs))
+    {
+        return false;
+    }
+
+    // Filter out logs for this day (within 24h window)
+    time_t dayEnd = dayStart + 86400;
+    std::vector<ComfortLog> remaining;
+    for (const auto& log : allLogs)
+    {
+        if (log.timestamp < dayStart || log.timestamp >= dayEnd)
+        {
+            remaining.push_back(log);
+        }
+    }
+
+    // Rewrite file with remaining logs
+    deleteFile(comfortFile);
+
+    if (remaining.empty())
+    {
+        LOG_INFO("Deleted all comfort logs for day %lu", static_cast<unsigned long>(dayStart));
+        return true;
+    }
+
+    // Create file with header
+    File headerFile = SD.open(comfortFile.c_str(), FILE_WRITE);
+    if (!headerFile)
+    {
+        LOG_ERROR("Failed to recreate comfort file");
+        return false;
+    }
+    headerFile.println("Timestamp,ComfortLevel");
+    headerFile.flush();
+    headerFile.close();
+
+    // Append remaining logs
+    File dataFile = SD.open(comfortFile.c_str(), FILE_APPEND);
+    if (!dataFile)
+    {
+        LOG_ERROR("Failed to open comfort file for rewriting");
+        return false;
+    }
+
+    for (const auto& log : remaining)
+    {
+        dataFile.printf("%lu,%d\n", static_cast<unsigned long>(log.timestamp), static_cast<int>(log.level));
+    }
+    dataFile.close();
+
+    LOG_INFO("Deleted comfort logs for day %lu, %d remaining", static_cast<unsigned long>(dayStart), remaining.size());
     return true;
 }
 

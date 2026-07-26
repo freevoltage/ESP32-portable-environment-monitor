@@ -7,7 +7,7 @@ description: How to run tests and the test architecture.
 
 ```sh
 pio test -e main             # Hardware tests (34 tests, on device)
-pio test -e mock             # Mock tests (33 tests, on host)
+pio test -e mock             # Mock tests (68 tests, on host)
 pio test -e service          # Service tests (on device)
 ```
 
@@ -16,7 +16,7 @@ pio test -e service          # Service tests (on device)
 | Environment | Platform | What it tests | Tests |
 |------------|----------|---------------|-------|
 | `main` | ESP32-C6 | All hardware + hiking station integration | 34 |
-| `mock` | Host (Mac) | DataService + ConnectivityService mocks | 33 |
+| `mock` | Host (Mac) | DataService + ConnectivityService mocks | 68 |
 | `service` | ESP32-C6 | DataService with real hardware | 21 |
 
 ## Test Architecture

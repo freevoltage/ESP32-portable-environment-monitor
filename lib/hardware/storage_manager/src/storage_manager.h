@@ -38,6 +38,11 @@ public:
     /* Comfort Log Operations */
     bool storeComfortLog(const ComfortLog &log);
     bool getComfortLogsSince(time_t timestamp, std::vector<ComfortLog> &logs);
+    bool getAllComfortLogs(std::vector<ComfortLog> &logs);
+    bool deleteComfortLogsForDay(time_t dayStart);
+
+    /* Debug Log */
+    bool logDebug(const char* tag, const char* message);
 
     /* File operations */
     bool fileExists(const String &filename) const;

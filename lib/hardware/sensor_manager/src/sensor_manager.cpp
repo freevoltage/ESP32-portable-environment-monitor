@@ -70,7 +70,7 @@ SensorReading SensorManager::getReading()
 
 float SensorManager::readTemperature() {
     if (!initialized) return NAN;
-    return bme.readTemperature();
+    return bme.readTemperature() - TEMP_OFFSET;
 }
 
 float SensorManager::readPressure() {
@@ -80,7 +80,7 @@ float SensorManager::readPressure() {
 
 float SensorManager::readHumidity() {
     if (!initialized) return NAN;
-    return bme.readHumidity();
+    return bme.readHumidity() - HUMIDITY_OFFSET;
 }
 
 float SensorManager::getAltitude() {

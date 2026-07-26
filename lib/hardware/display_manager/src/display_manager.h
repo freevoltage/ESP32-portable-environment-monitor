@@ -47,6 +47,11 @@ public:
     void drawHeader(const char* title);
     void drawSeparator(int y);
 
+    // Dashboard Display
+    void showDashboard(const SensorReading& reading, const char* timeStr,
+                       int selectedItem, const BatteryStatus& battery,
+                       bool wifiConnected, SyncSource lastSyncSource);
+
     // OTA Display
     void showOTAMode(const char* ip);
     void showOTAProgress(int percent, size_t current, size_t total);
@@ -56,7 +61,11 @@ public:
 
     // Time Sync Display
     void showSyncUI(SyncMode currentMode, SyncSource lastSource, time_t lastSyncTime);
+    void showSyncSubMenu(int selectedItem, SyncMode currentMode, SyncSource lastSource, time_t lastSyncTime);
     void showSyncProgress(const char* message);
+
+    // Settings Display
+    void showSettingsSubMenu(int selectedItem, const DeviceSettings& settings);
 
 private:
     Adafruit_ST7789* _tft;

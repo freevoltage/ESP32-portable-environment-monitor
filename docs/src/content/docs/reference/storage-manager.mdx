@@ -11,6 +11,7 @@ description: API reference for the SD card storage manager.
 
 - **`/datalog.csv`**: `epoch,temp,humidity,pressure,altitude`
 - **`/comfort.csv`**: `epoch,level`
+- **`/debug.log`**: `TAG: message` (BOOT, SENSOR, SYNC, BATT events)
 
 ## Methods
 
@@ -61,6 +62,22 @@ Remove entries older than `period_days` days.
 - `period_days` — Retention period (default: 30 days)
 
 **Implementation**: Rewrites the file keeping only recent entries.
+
+### `logDebug(String tag, String message)`
+
+Append a debug entry to `/debug.log` on SD card.
+
+**Parameters**:
+- `tag` — Event tag (e.g., "BOOT", "SENSOR", "SYNC", "BATT")
+- `message` — Debug message
+
+### `storeComfortLog(ComfortLog)`
+
+Append a comfort log entry to `/comfort.csv`.
+
+### `getComfortLogsSince(time_t since)`
+
+Get comfort logs from a given time (used for one-log-per-day protection).
 
 ## Usage
 

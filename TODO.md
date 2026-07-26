@@ -21,13 +21,32 @@
 - [] Update the Docu/Wiki
 - [] Update the Readme
 - [] Update Project Status
-- [] For Debuggiong Reasons I had the idea that the device is writing the log data on the sd card and or even to a file on my computer or both!?. I have no idea how to implement this, but this seems like a good idea for me.
-
+- [x] For Debuggiong Reasons I had the idea that the device is writing the log data on the sd card and or even to a file on my computer or both!?. I have no idea how to implement this, but this seems like a good idea for me.
+- [x] In the TIME SYNC Menu. Button A should always just navigate between the points and button B should toggle between them or active sync when the SYNC option now  is selected. This scheme should be followed throughout the UI 
+- [x] Add abort possibility in the OTA Menu (Button B exit, 120s timeout)
+- [x] Add a Dashboard which shows current Temperature, Humidity, Altitude, Time, with sub-menus "Menu" and "Log Comfort"
+- [x] Remove auto-sync from button wake (device responds instantly, sync on-demand from menu only)
+- [x] Both buttons (A+B) = abort any operation, always returns to Dashboard
+- [x] Add "Sleep" item to Dashboard
+- [x] Comfort log protection: one log per day max (shows "Already logged today!")
+- [x] Abbort possibilty in the "OTA" Menuswxe
+- [x] Add a Dashboard which shows current Temperature, Hummidity, Altidude, Time, and with the Sub Menus "Menu, and LOG Comfort". help me with the User interface. I would like to work on it in a graphical way or at least some form of markup language or graphical user description. Put this descrption into the
+- [x] ADd to the Documentation and the Code: BRESS BOTH BUTTONS AT ONCE to ABBORT ANY OPERATION (like sync or so. PRESSING BOTH BUTTONS WILL always return to the dashboard. )
+- [x] Also add the Menu Item "SLeep" to the Dashboard. 
+- [ ] It shouldnt be possible to log Multiple Sleep Entries during the Day or at least I want to discuss it how we could possible implement this. or protect the sleep comfort log from getting crowded with wrong and accidental logs. 
+- [ ] Remove the "log comfort" item from the menu. Pls build the menu according to the readme   
+- [ ] I want to add some On the devise sleep configurations. At least the time interval, but i am also open for more on the devise configs, like auto ntp sync time intervals
+- [ ] For Some reason the device is not able to connect to the Wifi anymore even tho i am in the correct network
+- [ ] During the Wifi Connection in the terminal. the output should alternate between "." and ".." so I can see that its still trying to connect. WHen its just "." i dont know if its stuck or still working
+- [ ] The Abbort Operating during the "Connecting WiFi" does not work. Is this more complicated to implement? Does this need architectural re work?
+- [ ] I want to see an Icon on the Dashboard which indicated wether the Devise is connected to BLE or Wifi 
+- [ ] There is currently a lot of distance between the battery bar and the footer, move the battery bar closer to the footer.
+- [ ] The Bun run dev command fails. PLs AI run the command yourself and check the error log
 ----
 
 ## Hardware Stuff (Tasks for Me)
 
-- [] Add a Button to the Breadboard and then program the button to wake up from deep Sleep
+- [x] Add a Button to the Breadboard and then program the button to wake up from deep Sleep
 
 ---
 
@@ -36,8 +55,8 @@
 The hiking station redesign is complete. The last remaining items are either your responsibility or low-priority cleanup:
 
 ### Your tasks:
-- [] Test on real hardware (pio test -e main)
-- [] Deploy firmware (pio run -t upload -e main)
+- [x] Test on real hardware (pio test -e main)
+- [x] Deploy firmware (pio run -t upload -e main)
 - [] Verify button behavior, comfort logging, and graph display
 
 ### Low-priority cleanup (if you want me to work on something):
@@ -55,3 +74,14 @@ The hiking station redesign is complete. The last remaining items are either you
 - [] Multi-sensor support
 - [] Web dashboard (WiFi status page, live data, config)
 - [] BLE companion phone app (see BLE_INTERFACE.md)
+
+
+
+## Verification Results
+- After uploading the main. The devcise does not stay in deep sleep. It automatically boots up after a few seconds and goes back to the dashboard. Even when i select the "sleep" option from the dashboard, the device goes to sleep but immediatly wakes up again and to the dashboard. The expected behaviour would be, that I need to wake it up from the Dashboard using the BUTTON B. 
+- Menu: In the Menu there is not "return path". ( ah well there is, by pressing both buttons. but would be nice to have a dedicated "back" option)
+- Another problem is that the measured values for temperature and hummidty are very incorrect. The measurement results are always higher than the reality, by a coupld of degrees. I dont know if it is possible to correct it using the BME280. If this is an offset thing, or calibration thing. Also the altidude is way to high. I am in berlin, which should be arround 34-38m above ocean, but the display shows 115
+
+- [] I had the idea for an additional "calendar" view. Or Logging View. Where I get the logging data vissible for the past days. (Maybe since the beginning of my hike) Then I would need some way to let the device know when my hike started. But well no I think this is too compliicated. I think it just just use whatever is saved on the SD Card. But it needs to use the date of the savings, Because maybe I forogot to log on a day and then it should not be confused. And this view could also allow me to re-open a day and change its logging value? That would be cool right? 
+
+

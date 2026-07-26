@@ -31,6 +31,9 @@ class DisplayService{
         bool showClock(const String& timeStr, const String& dateStr);
 
         // Hiking Station UI
+        bool showDashboard(const SensorReading& reading, const String& timeStr,
+                           int selectedItem, const BatteryStatus& battery,
+                           bool wifiConnected, SyncSource lastSyncSource);
         bool showMenu(DisplayMenu current);
         bool showComfortUI(ComfortLevel current);
         bool showGraph(const char* title, const char* unit,
@@ -38,6 +41,14 @@ class DisplayService{
                        const std::vector<time_t>& timestamps,
                        float minVal, float maxVal);
         bool showSyncUI(SyncMode currentMode, SyncSource lastSource, time_t lastSyncTime);
+        bool showSyncSubMenu(int selectedItem, SyncMode currentMode, SyncSource lastSource, time_t lastSyncTime);
+
+        // Settings Display
+        bool showSettingsSubMenu(int selectedItem, const DeviceSettings& settings);
+
+        // Calendar Display
+        bool showCalendarList(const std::vector<ComfortLog>& logs, int selectedIndex);
+        bool showCalendarDetail(const char* dateStr, ComfortLevel level, bool hasLog, int selectedItem);
 
         // Display Management
         void forceUpdate();

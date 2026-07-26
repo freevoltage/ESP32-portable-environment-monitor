@@ -5,7 +5,7 @@
 
 WiFiManager::WiFiManager() : wifiConnected(false) {}
 
-bool WiFiManager::connect(const char* ssid, const char* password, int timeoutSeconds) {
+bool WiFiManager::connect(const char* ssid, const char* password, int timeoutSeconds, AbortCallback abort) {
     LOG_INFO("\n=== WiFi Connection ===");
     LOG_INFO("Connecting to: %s\n", ssid);
     
@@ -17,7 +17,12 @@ bool WiFiManager::connect(const char* ssid, const char* password, int timeoutSec
     
     while (WiFi.status() != WL_CONNECTED && attempts < maxAttempts) {
         delay(500);
-        LOG_INFO(".");
+        if (abort && abort()) {
+            LOG_INFO("\nWiFi connection aborted by user");
+            disconnect();
+            return false;
+        }
+        LOG_INFO("%s", (attempts % 2 == 0) ? "." : "..");
         attempts++;
     }
     

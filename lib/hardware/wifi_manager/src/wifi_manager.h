@@ -9,10 +9,12 @@
 
 class WiFiManager {
 public:
+    typedef bool (*AbortCallback)();
+
     WiFiManager();
     
-    // Connect to WiFi
-    bool connect(const char* ssid, const char* password, int timeoutSeconds = 20);
+    // Connect to WiFi (abort callback checked every 500ms)
+    bool connect(const char* ssid, const char* password, int timeoutSeconds = 20, AbortCallback abort = nullptr);
     
     // Disconnect and turn off WiFi
     void disconnect();

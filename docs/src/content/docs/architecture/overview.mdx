@@ -12,14 +12,15 @@ description: Architecture of the ESP32 hiking weather station.
 │    Measurement mode ↔ Display mode          │
 ├─────────────────────────────────────────────┤
 │              Service Layer                  │
-│  ┌──────────┬──────────┬──────────────────┐ │
-│  │ DataService │ DisplayService │ ConnectivityService │
-│  └──────────┴──────────┴──────────────────┘ │
+│  ┌──────────┬──────────┬──────────┬───────┐ │
+│  │ DataService │ DisplayService │ ConnectivityService │ TimeSyncService │
+│  └──────────┴──────────┴──────────┴───────┘ │
 ├─────────────────────────────────────────────┤
 │              HAL Layer                      │
 │  ┌──────────┬──────────┬──────────┬────────┐│
 │  │SensorMgr │DisplayMgr│StorageMgr│ WiFiMgr││
-│  │ RTCMgr   │          │          │        ││
+│  │ RTCMgr   │          │          │BatteryMgr│
+│  │ SettingsMgr│         │          │        ││
 │  └──────────┴──────────┴──────────┴────────┘│
 └─────────────────────────────────────────────┘
 ```
@@ -41,11 +42,14 @@ lib/
     rtc_manager/                # ESP32Time RTC
     display_manager/            # ST7789 240x240 TFT
     storage_manager/            # SD card (SPI)
-    wifi_manager/               # WiFi connection
+    wifi_manager/               # WiFi connection + abort callback
+    battery_manager/            # MAX17048 fuel gauge
+    settings_manager/           # Device settings (LittleFS persistence)
   services/                     # Service layer — orchestrates hardware
     data/                       # DataService
     display/                    # DisplayService
     connectivity/               # ConnectivityService
+    time_sync_service/          # TimeSyncService (BLE + WiFi)
   test_runner/                  # Custom Unity test runner
   test_fixture/                 # setUp/tearDown dispatch
   utils/                        # DateTimeUtils, I2CScanner
@@ -57,18 +61,21 @@ lib/
 
 - Display OFF, WiFi OFF
 - Read sensors → store to SD → sleep
-- ~2-3 seconds total, wakes every 30 minutes
+- Interval configurable via Settings (1m/5m/15m/30m/1hr), default 30 min
 
 ### Display Mode (button wake via EXT1)
 
-- Turn on display → WiFi/NTP sync → show reading
-- Navigate menu → graphs, comfort logging, sleep
-- EXT1 wake on both buttons: `(1ULL << GPIO9) | (1ULL << GPIO3)`
+- Turn on display → show dashboard with sensor data + time + battery + connectivity icon
+- Navigate 3-item dashboard: Log Comfort, Menu, Sleep
+- Full menu (7 items): Graph Temp/Humidity/Altitude, Settings, OTA, Sync Time, Back
+- Settings sub-menu: Sleep Interval, NTP Sync, Back
+- Sync sub-menu: Mode cycling, Sync Now, Back
+- EXT1 wake on Select button (GPIO3)
 
 ## Test Environments
 
 | Environment | Platform | What it tests |
 |------------|----------|---------------|
 | `main` | ESP32-C6 | All hardware + integration (34 tests) |
-| `mock` | Host (Mac) | DataService + ConnectivityService mocks (33 tests) |
+| `mock` | Host (Mac) | All services + hardware mocks (68 tests) |
 | `service` | ESP32-C6 | DataService with real hardware |

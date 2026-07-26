@@ -8,7 +8,7 @@ static bool mockNtpShouldFail = false;
 
 WiFiManager::WiFiManager() : wifiConnected(false) {}
 
-bool WiFiManager::connect(const char* ssid, const char* password, int timeoutSeconds) {
+bool WiFiManager::connect(const char* ssid, const char* password, int timeoutSeconds, AbortCallback abort) {
     if (mockWifiShouldFail) {
         wifiConnected = false;
         return false;

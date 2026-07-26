@@ -7,12 +7,12 @@ description: Deep sleep modes, GPIO hold, and power management.
 
 The ESP32-C6 supports deep sleep to minimize power consumption. The hiking station uses two wake sources:
 
-1. **Timer wake** — measurement mode (every 30 minutes)
+1. **Timer wake** — measurement mode (configurable via Settings: 1m/5m/15m/30m/1hr, default 30 min)
 2. **EXT1 wake** — display mode (button press)
 
 ## Measurement Mode
 
-Timer wake every `MEASUREMENT_INTERVAL_SEC` (1800 = 30 minutes):
+Timer wake every `measurementIntervalSec` (configurable via Settings, default 1800):
 
 ```
 Wake → Read sensors → Store to SD → Deep sleep
@@ -33,25 +33,36 @@ Wake → Display on → WiFi/NTP sync → Menu → Deep sleep
 
 - Display ON
 - WiFi ON (for NTP sync)
-- Uses `esp_sleep_enable_ext1_wakeup()` with both buttons
+- Uses `esp_sleep_enable_ext1_wakeup()` with Select button (GPIO3)
 
 **EXT1 Configuration**:
 ```cpp
 esp_sleep_enable_ext1_wakeup(
-    (1ULL << NAV_BUTTON_PIN) | (1ULL << SEL_BUTTON_PIN),
+    (1ULL << SEL_BUTTON_PIN),
     ESP_EXT1_WAKEUP_ANY_LOW
 );
 ```
+
+**Note**: GPIO8 and GPIO9 are NOT RTC GPIOs on ESP32-C6 — only GPIO0-7 support EXT1 wakeup.
 
 ## GPIO Hold
 
 During deep sleep, GPIO2 (backlight) is held LOW to prevent leakage:
 
 ```cpp
-gpio_hold_en(GPIO_NUM_2);  // Hold backlight OFF
+gpio_hold_en(GPIO_NUM_2);  // Hold backlight OFF before sleep
 ```
 
 This is guarded by `#define HOLD_GPIO_IN_SLEEP 1` in `config.h`.
+
+**Important**: ESP32-C6 does NOT auto-release GPIO hold after waking from deep sleep. The hold must be explicitly released at boot:
+
+```cpp
+// In setup(), before any display init:
+gpio_hold_dis(static_cast<gpio_num_t>(TFT_LIT));
+```
+
+Without this, `digitalWrite(TFT_LIT, HIGH)` has no effect — the backlight stays pinned LOW.
 
 **Alternative**: Hardware pull-down resistor from `TFT_LIT` to GND on the display board.
 
@@ -63,3 +74,24 @@ This is guarded by `#define HOLD_GPIO_IN_SLEEP 1` in `config.h`.
 | Display | ON | ON | Until sleep |
 
 The majority of time is spent in deep sleep (~30 minutes between measurements).
+
+## Timezone Persistence
+
+`configTime()` sets the `TZ` environment variable in regular RAM, which is wiped by deep sleep. The hardware RTC retains the correct UTC epoch, but after wake `localtime()` defaults to UTC — causing a 2-hour offset for CEST.
+
+**Fix**: `configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER)` is called in `setup()` after every wake. This restores the timezone without a network call — the hardware RTC already has the correct UTC epoch.
+
+**Note**: Pressing the physical RESET button clears the RTC peripheral entirely (time resets to 1970). Only NTP/BLE sync can restore the time after a hardware reset.
+
+## Serial Monitor & Deep Sleep
+
+The Adafruit Feather ESP32-C6 uses **native USB**. Deep sleep disconnects the USB bus — the computer re-enumerates the device and triggers a hardware reset, causing an infinite boot loop. `ESP.restart()` has the same problem.
+
+**Development mode** (USB connected): `enterDeepSleep()` detects `if (Serial)` and returns immediately. The device stays alive via `loop()`, which takes periodic readings and shows the dashboard UI. Full button interaction works. Deep sleep is not tested in this mode.
+
+**Production mode** (USB disconnected, battery): `Serial` is false. The device enters deep sleep normally — sleeps for `measurementIntervalSec`, wakes on timer or button B.
+
+| Power Source | `Serial` | Behavior |
+|---|---|---|
+| USB cable (development) | true | Skip deep sleep, loop in `loop()`, full UI |
+| Battery (production) | false | Deep sleep 30min, silent measurement, button wake |

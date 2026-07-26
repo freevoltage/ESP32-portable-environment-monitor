@@ -12,7 +12,7 @@ ConnectivityService::ConnectivityService(WiFiManager* wifi, RTCManager* rtc)
       lastSyncAttempt(0) {
 }
 
-bool ConnectivityService::connect(int timeoutMs) {
+bool ConnectivityService::connect(int timeoutMs, WiFiManager::AbortCallback abort) {
     if (!wiFiManager) {
         LOG_ERROR("WiFiManager not available");
         return false;
@@ -29,7 +29,7 @@ bool ConnectivityService::connect(int timeoutMs) {
     LOG_INFO("Connecting to WiFi...");
 
     int timeoutSeconds = timeoutMs / 1000;
-    bool connected = wiFiManager->connect(_wifiConfig.ssid, _wifiConfig.password, timeoutSeconds);
+    bool connected = wiFiManager->connect(_wifiConfig.ssid, _wifiConfig.password, timeoutSeconds, abort);
 
     if (connected) {
         status = ConnectivityStatus::CONNECTED;
