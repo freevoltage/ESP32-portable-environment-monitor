@@ -80,6 +80,18 @@ void enterDeepSleep() {
     Serial.println("Entering deep sleep...");
     displayService.turnOff();
 
+    // Auto-detect serial host: if a USB host is connected (monitor open),
+    // skip deep sleep to avoid USB re-enumeration triggering a hardware reset.
+    // The Adafruit Feather ESP32-C6 uses native USB — any serial reconnection
+    // after deep sleep causes a hard reset. This check lets the device loop
+    // safely for debugging, while sleeping properly when running standalone.
+    if (Serial) {
+        Serial.println("[SLEEP] Skipping deep sleep — serial connected (debug mode)");
+        delay(10000);
+        ESP.restart();
+        return;
+    }
+
     // Cut I2C power rail to save ~55uA during sleep
     battery.disableI2CPower();
 
