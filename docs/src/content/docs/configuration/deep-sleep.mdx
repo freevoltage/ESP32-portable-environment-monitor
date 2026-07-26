@@ -28,11 +28,11 @@ Wake → Read sensors → Store to SD → Deep sleep
 Button wake via EXT1:
 
 ```
-Wake → Display on → WiFi/NTP sync → Menu → Deep sleep
+Wake → Display on → Dashboard → Menu → Deep sleep
 ```
 
 - Display ON
-- WiFi ON (for NTP sync)
+- WiFi OFF (no auto-sync on wake)
 - Uses `esp_sleep_enable_ext1_wakeup()` with Select button (GPIO3)
 
 **EXT1 Configuration**:
@@ -71,7 +71,7 @@ Without this, `digitalWrite(TFT_LIT, HIGH)` has no effect — the backlight stay
 | Mode | Display | WiFi | Duration |
 |------|---------|------|----------|
 | Measurement | OFF | OFF | ~2-3 sec |
-| Display | ON | ON | Until sleep |
+| Display | ON | OFF | Until sleep |
 
 The majority of time is spent in deep sleep (~30 minutes between measurements).
 
@@ -82,6 +82,10 @@ The majority of time is spent in deep sleep (~30 minutes between measurements).
 **Fix**: `configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER)` is called in `setup()` after every wake. This restores the timezone without a network call — the hardware RTC already has the correct UTC epoch.
 
 **Note**: Pressing the physical RESET button clears the RTC peripheral entirely (time resets to 1970). Only NTP/BLE sync can restore the time after a hardware reset.
+
+### Auto NTP Sync on Boot
+
+When the RTC loses time (e.g. after hardware RESET button), the device automatically attempts NTP sync via WiFi on boot. If WiFi is configured, time is restored silently. If not, dashboard shows "SYNC TIME!" warning.
 
 ## Serial Monitor & Deep Sleep
 

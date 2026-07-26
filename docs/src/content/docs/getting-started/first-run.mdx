@@ -50,15 +50,11 @@ Press **Navigate** (GPIO8) or **Select** (GPIO3) to wake into display mode. This
 
 1. **Serial** — `=== Boot #N ===` + `Wakeup: Button`
 2. **Hardware init** — SD card, display (ST7789), sensor, battery, RTC all initialize
-3. **Time sync** — display shows "Syncing time..." progress screen:
-   - Default mode is `BLE_FIRST` — tries phone sync first, falls back to WiFi NTP
-   - BLE: device advertises as "HikingStation" for 10 seconds with live countdown ("BLE 9s...", "BLE 8s...")
-   - If phone writes a 4-byte epoch → time set, BLE stops
-   - If no phone connects → falls back to WiFi NTP
-   - Sync mode is configurable and persisted to LittleFS
+3. **Auto NTP sync** — if WiFi is configured, time is synced via NTP automatically on boot (no UI shown)
 4. **Startup screen** — "Booting..." briefly, then system status
 5. **Current reading** — live BME280 reading with current time + battery info (color-coded: green >50%, yellow 20-50%, red &lt;20%)
 6. **3 second pause** on the current reading
+7. **Dashboard** — if the time is invalid (e.g., RTC lost power), the dashboard displays "SYNC TIME!" to prompt manual sync
 
 ### Menu Navigation
 
@@ -67,7 +63,7 @@ Two-button navigation on a 240x240 TFT:
 - **Button A (GPIO8, Navigate)** — cycles through menu items
 - **Button B (GPIO3, Select)** — selects the highlighted item
 
-The menu renders at textSize(1) to fit all 7 items. Highlighted item shows cyan background; others are white on black.
+The menu renders at textSize(1) to fit all 8 items. Highlighted item shows cyan background; others are white on black.
 
 ### Menu Items
 
@@ -76,6 +72,7 @@ The menu renders at textSize(1) to fit all 7 items. Highlighted item shows cyan 
 | **Graph Temp** | 24h rolling temperature graph from SD card data. Press any button to return. |
 | **Graph Humidity** | 24h rolling humidity graph. Press any button to return. |
 | **Graph Altitude** | 24h rolling altitude graph. Press any button to return. |
+| **Calendar** | View comfort log history by date. Press B to see detail. |
 | **Settings** | Sub-menu: cycle Sleep Interval (1m/5m/15m/30m/1hr) and NTP Sync (1hr/6hr/12hr/24hr). Settings saved to LittleFS. |
 | **OTA** | Connects WiFi, shows IP on display, starts ElegantOTA web server on port 80. Visit `http://<ip>/update` in browser. Auth: `admin` / `hikingstation`. Shows progress bar on TFT. Device reboots after upload. **Never returns to menu.** |
 | **Sync Time** | Sub-menu showing current sync mode + last sync time/source. Button A cycles modes (OFF / BLE / WiFi / BLE+WiFi / WiFi+BLE). Button B triggers manual sync. |
@@ -120,7 +117,7 @@ When the device enters deep sleep (from menu "Sleep" or end of measurement mode)
 
 1. Display turns off
 2. I2C power rail cut (GPIO20) — saves ~55uA
-3. EXT1 wake configured on both buttons (active LOW)
+3. EXT1 wake configured on Select button only (GPIO3)
 4. Timer wake configured for next measurement interval
 5. GPIO2 (backlight) held LOW during sleep — prevents floating pin leakage
 

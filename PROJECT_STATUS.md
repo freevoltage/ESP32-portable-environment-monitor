@@ -23,7 +23,7 @@ Application (main.cpp)
 
 `main.cpp` never calls hardware managers directly — all interactions go through service layers.
 
-**Important**: There are duplicate libraries at two levels — `lib/data_service/` and `lib/services/data/`, `lib/connectivity_service/` and `lib/services/connectivity/`, `lib/display_service/` and `lib/services/display/`. The top-level versions are the ones used by the build. The `lib/services/` copies are older/alternate implementations.
+**Important**: There are duplicate libraries at two levels — `lib/data_service/` and `lib/services/data/`, `lib/connectivity_service/` and `lib/services/connectivity/`, `lib/display_service/` and `lib/services/display/`. The `lib/services/` versions are the ones used by the build. The top-level copies are older.
 
 ## Hardware
 
@@ -49,7 +49,7 @@ Application (main.cpp)
 ### Display Mode (button wake via EXT1)
 - Turn on display → show dashboard with sensor data + time + battery + connectivity icon
 - Navigate 3-item dashboard: Log Comfort, Menu, Sleep
-- Full menu (7 items): Graph Temp / Graph Humidity / Graph Altitude / Settings / OTA / Sync Time / Back
+- Full menu (8 items): Graph Temp / Graph Humidity / Graph Altitude / Calendar / Settings / OTA / Sync Time / Back
 - Settings sub-menu: Sleep Interval (1m/5m/15m/30m/1hr), NTP Sync (1hr/6hr/12hr/24hr), Back
 - 24h rolling graph using `getReadingsSince()`
 - OTA mode: ElegantOTA web server, B-button abort, 120s timeout, "WiFi required for OTA" message
@@ -63,10 +63,10 @@ Application (main.cpp)
 - `SensorReading` — temp, humidity, pressure, altitude, timestamp, isValid
 - `TemperatureStats` — min, max, average, sampleCount, isValid
 - `SystemStatus` — sensor/display/storage/rtc/wifi ok, freeMemory, uptime
-- `BatteryStatus` — percentage, voltage, charging, isLow
+- `BatteryStatus` — voltage, percent, chargeRate, isValid
 - `ComfortLevel` — enum class : uint8_t (TOO_COLD=0..TOO_WARM=4)
 - `ComfortLog` — timestamp + ComfortLevel
-- `DisplayMenu` — enum class : uint8_t (GRAPH_TEMP..BACK) [7 items]
+- `DisplayMenu` — enum class : uint8_t (GRAPH_TEMP..BACK) [8 items]
 - `SyncMode` — enum class : uint8_t (OFF=0, BLE=1, WIFI=2, BLE_FIRST=3, WIFI_FIRST=4)
 - `SyncSource` — enum class : uint8_t (NONE=0, BLE=1, WIFI=2)
 - `SyncStatus` — source, timestamp, inProgress
@@ -92,7 +92,7 @@ Application (main.cpp)
 | Module                 | Location                            | Status                    | Tests                     |
 | ---------------------- | ----------------------------------- | ------------------------- | ------------------------- |
 | `data_service`         | `lib/services/data/`                | Complete (232 lines)      | 21 native mock + 21 on-device |
-| `display_service`      | `lib/services/display/`             | Complete (~140 lines)     | Tested on hardware (7-item menu, dashboard, graphs, comfort UI) |
+| `display_service`      | `lib/services/display/`             | Complete (~140 lines)     | Tested on hardware (8-item menu, dashboard, graphs, comfort UI) |
 | `connectivity_service` | `lib/services/connectivity/`        | Complete (116 lines)      | 12 native mock            |
 | `time_sync_service`    | `lib/services/time_sync_service/`   | Complete (BLE+WiFi)       | 15 native mock        |
 
@@ -124,7 +124,7 @@ Application (main.cpp)
 5. `test_hiking_comfort_single` — Comfort log store + retrieve preserves level
 6. `test_hiking_comfort_multiple` — Multiple comfort logs + timestamp filtering
 7. `test_hiking_display_graph` — Graph renders 10 data points on TFT
-8. `test_hiking_display_menu` — Menu renders all 7 items
+8. `test_hiking_display_menu` — Menu renders all 8 items
 9. `test_hiking_display_comfort_ui` — Comfort UI renders all 5 levels
 10. `test_hiking_full_workflow` — End-to-end: sensor → SD → display graph
 11. `test_hiking_comfort_workflow` — End-to-end: sensor → comfort log → query
@@ -133,7 +133,7 @@ Application (main.cpp)
 ## Recent Changes (2026-07-26)
 
 - **Timezone fix** — `configTime()` called in `setup()` after every deep sleep wake. The TZ env var was being lost on deep sleep, causing time to show2 hours behind CEST. Hardware RTC retains UTC epoch; only the timezone needed restoring.
-- **Sleep removed from menu** — redundant with Dashboard Sleep item. Menu now 7 items: Graph Temp/Humidity/Altitude, Settings, OTA, Sync Time, Back.
+- **Sleep removed from menu** — redundant with Dashboard Sleep item. Menu now 8 items: Graph Temp/Humidity/Altitude, Calendar, Settings, OTA, Sync Time, Back.
 - **Debug mode** — when serial monitor is connected, device enters display mode (full UI) and skips deep sleep (soft restarts every10s). When monitor is disconnected, device sleeps normally. Auto-detects via `if (Serial)`.
 - **`while (!Serial)` removed** — device was hanging forever on wake without USB host. Replaced with `delay(100)`.
 - **Auto monitor removed** — `scripts/auto_monitor.py` deleted. `pio run -t upload` no longer opens the monitor. Serial monitor auto-reconnects after deep sleep USB disconnect and triggers a hardware reset (native USB limitation).
@@ -141,7 +141,7 @@ Application (main.cpp)
 
 ## Recent Changes (2026-07-22)
 
-- **Settings sub-menu added** — SettingsManager class with LittleFS persistence (`/settings.txt`). Menu now 7 items: Graph Temp/Humidity/Altitude, Settings, OTA, Sync Time, Sleep. Settings sub-menu: Sleep Interval (1m/5m/15m/30m/1hr), NTP Sync (1hr/6hr/12hr/24hr), Back.
+- **Settings sub-menu added** — SettingsManager class with LittleFS persistence (`/settings.txt`). Menu now 8 items: Graph Temp/Humidity/Altitude, Calendar, Settings, OTA, Sync Time, Sleep. Settings sub-menu: Sleep Interval (1m/5m/15m/30m/1hr), NTP Sync (1hr/6hr/12hr/24hr), Back.
 - **WiFi abort callback** — `WiFiManager::connect()` accepts optional `AbortCallback` for button-press abort. OTA mode uses this for B-button cancellation. Returns false if aborted.
 - **Dashboard redesign** — 3 items (Log Comfort, Menu, Sleep). Header shows "WiFi" when connected. Battery bar shows "Last:WiFi" or "Last:BLE" for sync source. Footer: `"A=Nav B=Sel A+B=Back"`.
 - **Log Comfort removed from menu** — now accessed from Dashboard only (comfort log protection: one per day)
@@ -166,8 +166,7 @@ Application (main.cpp)
 - **BLE time sync service added** — `TimeSyncService` library with NimBLE-Arduino, 5 configurable sync modes (OFF/BLE/WiFi/BLE+WiFi/WiFi+BLE), LittleFS persistence
 - **OTA updates** — ElegantOTA + AsyncWebServer on port 8080, partition table updated (ota_4mb.csv), TFT progress bar, auth (admin/hikingstation)
 - **Battery management** — MAX17048 fuel gauge library, I2C power control (GPIO20), TFT battery display with color-coded alerts
-- **Menu expanded** to 7 items: Graph Temp / Graph Humidity / Graph Altitude / Log Comfort / OTA / Sync Time / Sleep
-- **Display mode auto-sync** — time sync runs on wake per configured mode, no manual step needed
+- **Menu expanded** to 8 items: Graph Temp / Graph Humidity / Graph Altitude / Calendar / Log Comfort / OTA / Sync Time / Sleep
 - **`setBrightness()` bug fixed** — was inverting PWM value; fixed to raw passthrough
 - **Test runner format bug fixed** — missing colon between file path and line number
 - **Starlight wiki** — 16 pages, GitHub Pages auto-deploy workflow

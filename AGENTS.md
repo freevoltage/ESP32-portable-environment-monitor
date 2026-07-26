@@ -8,7 +8,7 @@ PlatformIO embedded C++ project for Adafruit Feather ESP32-C6. Reads BME280 sens
 
 ```sh
 pio run -e main          # build firmware
-pio run -t upload -e main  # upload + auto-opens serial monitor (via scripts/auto_monitor.py)
+pio run -t upload -e main    # upload firmware
 pio run -t clean         # full clean before rebuilding after platform/lib changes
 pio device monitor       # open serial monitor manually
 ```

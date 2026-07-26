@@ -17,10 +17,10 @@ Verify these pages load and show **no stale content**:
 | Page | What to check |
 |------|---------------|
 | **Hardware Setup** (`getting-started/hardware-setup`) | GPIO8 = Navigate, GPIO9 = NOT listed as NAV |
-| **First Run** (`getting-started/first-run`) | Menu has 7 items: Graph Temp/Humidity/Altitude, Settings, OTA, Sync Time, Sleep. **No** "Log Comfort" in menu table. Settings sub-menu documented. `/settings.txt` and `/debug.log` in config/SD tables. |
+| **First Run** (`getting-started/first-run`) | Menu has 8 items: Graph Temp/Humidity/Altitude, Calendar, Settings, OTA, Sync Time, Back. **No** "Log Comfort" in menu table. Settings sub-menu documented. `/settings.txt` and `/debug.log` in config/SD tables. |
 | **System Overview** (`architecture/overview`) | SettingsManager in architecture diagram. Directory structure includes `settings_manager/`. Firmware modes mention configurable interval. |
 | **Hardware Layer** (`architecture/hardware-layer`) | Battery Manager section. Settings Manager section. WiFi `connect()` shows abort callback param. |
-| **Services Layer** (`architecture/services-layer`) | Menu system shows 7 items + dashboard + sub-menus. ConnectivityService `connect()` shows abort. Interaction diagram includes TimeSyncService. |
+| **Services Layer** (`architecture/services-layer`) | Menu system shows 8 items + dashboard + sub-menus. ConnectivityService `connect()` shows abort. Interaction diagram includes TimeSyncService. |
 | **config.h Reference** (`configuration/config-h`) | Timing shows `60` dev default with "overridden by SettingsManager" note. OTA section (timeout, auth). Debug section (`DEBUG_LOG_FILENAME`). |
 | **Deep Sleep** (`configuration/deep-sleep`) | Timer wake says "configurable via Settings", not hardcoded 1800. |
 | **Testing** (`development/testing`) | 68 mock tests, not 33. |
@@ -90,8 +90,8 @@ pio test -e main
 
 - Press button B to wake → should show **Dashboard** (not menu directly)
 - Dashboard shows: header (sensor data + time + "WiFi" when connected), battery bar with "Last:WiFi" or "Last:BLE", footer
-- Press B on "Menu" → should show **7 items**: Graph Temp, Graph Humidity, Graph Altitude, Settings, OTA, Sync Time, Sleep
-- Button A cycles through all 7. No "Log Comfort" in this list.
+- Press B on "Menu" → should show **8 items**: Graph Temp, Graph Humidity, Graph Altitude, Calendar, Settings, OTA, Sync Time, Back
+- Button A cycles through all 8. No "Log Comfort" in this list.
 
 ### 6b. Settings Sub-Menu
 
@@ -172,7 +172,7 @@ New "Guides" section should appear in sidebar with "BLE Companion App".
 | Firmware builds | | |
 | 68 mock tests pass | | |
 | 34 hardware tests pass | | |
-| Menu (7 items) works | | |
+| Menu (8 items) works | | |
 | Settings sub-menu works | | |
 | WiFi abort works | | |
 | Connectivity icon works | | |

@@ -98,6 +98,21 @@ Display sync mode status (BLE/WiFi/NTP).
 
 Display sync progress countdown (e.g., "BLE 9s...").
 
+### `showCalendarList(items, selectedIndex)`
+
+Draw the calendar list view showing comfort log entries by date. Supports navigation and selection.
+
+**Parameters**:
+- `items` — List of calendar entries to display
+- `selectedIndex` — Currently highlighted item
+
+### `showCalendarDetail(item)`
+
+Draw the detail view for a single calendar/comfort log entry.
+
+**Parameters**:
+- `item` — The calendar entry to display
+
 ### `showBatteryInfo(voltage, soc)`
 
 Display battery status screen.

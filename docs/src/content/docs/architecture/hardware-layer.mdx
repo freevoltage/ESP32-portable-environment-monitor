@@ -68,6 +68,8 @@ SD card storage for sensor logs and comfort logs.
 | `getReadingsSince(time_t)` | Get readings from last 24h |
 | `storeComfortLog(ComfortLog)` | Append to `/comfort.csv` |
 | `getComfortLogsSince(time_t)` | Get comfort logs since time |
+| `getAllComfortLogs()` | Get all comfort logs from `/comfort.csv` |
+| `deleteComfortLogsForDay(time_t)` | Delete all comfort logs for a given day |
 | `cleanup(time_t, uint32_t)` | Remove old entries (file rewrite) |
 
 **CSV Format**:

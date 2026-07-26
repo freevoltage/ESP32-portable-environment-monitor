@@ -50,7 +50,7 @@ Byte representation (little-endian):
 
 ### Timeout Behavior
 
-- Device advertises for **30 seconds** (`BLE_SYNC_TIMEOUT_MS`) after BLE sync is triggered
+- Device advertises for **10 seconds** (`BLE_SYNC_TIMEOUT_MS`) after BLE sync is triggered
 - If no phone connects within the timeout, BLE sync fails
 - Device falls back to WiFi NTP sync if configured (see Sync Modes below)
 - After timeout, device stops advertising and releases BLE resources

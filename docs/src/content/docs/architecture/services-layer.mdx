@@ -44,6 +44,8 @@ Manages all display output — menus, graphs, comfort UI.
 | `showSyncProgress(message, remaining)` | Sync progress countdown |
 | `showSyncSubMenu(mode, lastSync)` | Sync sub-menu with 3 items |
 | `showSettingsSubMenu(selected, settings)` | Settings sub-menu with cycling values |
+| `showCalendarList(entries)` | Calendar list with comfort log history |
+| `showCalendarDetail(entry)` | Calendar detail view for a single entry |
 | `showOTAMode()` | OTA mode screen with abort hint |
 | `showOTAProgress(progress)` | OTA upload progress bar |
 | `showBatteryInfo(voltage, soc)` | Battery status screen |
@@ -52,7 +54,7 @@ Manages all display output — menus, graphs, comfort UI.
 **Menu System**:
 - Two-button navigation (Navigate + Select)
 - Dashboard (3 items): Log Comfort / Menu / Sleep
-- Full menu (7 items): Graph Temp / Graph Humidity / Graph Altitude / Settings / OTA / Sync Time / Back
+- Full menu (8 items): Graph Temp / Graph Humidity / Graph Altitude / Calendar / Settings / OTA / Sync Time / Back
 - Settings sub-menu (3 items): Sleep Interval / NTP Sync / Back
 - Sync sub-menu (3 items): Mode / Sync Now / Back
 

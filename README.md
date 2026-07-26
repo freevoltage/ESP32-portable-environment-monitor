@@ -9,7 +9,7 @@ A portable hiking weather station built with **Adafruit Feather ESP32-C6**, **BM
 - **SD card logging** — CSV format, sensor data + comfort logs
 - **Two-mode operation** — silent measurement (timer wake) + interactive display (button wake)
 - **Deep sleep** — ~2-3 sec wake time, 30 min intervals
-- **WiFi/NTP sync** — automatic time synchronization on display wake
+- **WiFi/NTP sync** — auto-sync on boot when time is invalid (after hardware reset); manual sync from menu
 - **BLE phone sync** — sync time from phone app via NimBLE (configurable modes)
 - **Battery monitoring** — MAX17048 fuel gauge with color-coded display
 - **24h rolling graphs** — visualize temperature, humidity, altitude history
@@ -142,6 +142,7 @@ Both-buttons abort works from **every screen**: comfort logging, sync sub-menu, 
 │ > Graph Temperature          │
 │   Graph Humidity             │
 │   Graph Altitude             │
+│   Calendar                   │
 │   Settings                   │
 │   OTA                        │
 │   Sync Time                  │
@@ -157,6 +158,7 @@ Both-buttons abort works from **every screen**: comfort logging, sync sub-menu, 
 | Item | Action |
 |------|--------|
 | Graph Temp/Humidity/Altitude | Show 24h rolling graph |
+| Calendar | View daily comfort logs |
 | Settings | Device settings sub-menu (Sleep Interval, NTP Sync) |
 | OTA | WiFi firmware update (B=Exit, 120s timeout) |
 | Sync Time | Sub-menu: Mode / Sync Now / Back |
