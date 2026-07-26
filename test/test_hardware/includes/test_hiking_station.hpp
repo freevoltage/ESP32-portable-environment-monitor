@@ -243,6 +243,60 @@ void test_hiking_comfort_multiple() {
     Serial.println("  -> PASS");
 }
 
+void test_hiking_comfort_get_all() {
+    Serial.println("\n[HIKING] test_hiking_comfort_get_all");
+
+    time_t base = testRtc.getEpochTime();
+    ComfortLevel levels[] = {
+        ComfortLevel::TOO_COLD, ComfortLevel::COLD, ComfortLevel::COMFORTABLE
+    };
+
+    for (int i = 0; i < 3; i++) {
+        ComfortLog log(base + (i * 86400), levels[i]);  // One per day
+        testStorage.storeComfortLog(log);
+    }
+
+    std::vector<ComfortLog> allLogs;
+    bool ok = testStorage.getAllComfortLogs(allLogs);
+    TEST_ASSERT_TRUE_MESSAGE(ok, "getAllComfortLogs should succeed");
+    TEST_ASSERT_EQUAL_MESSAGE(3, allLogs.size(), "Should return all 3 logs");
+
+    Serial.printf("  getAllComfortLogs returned %d entries\n", (int)allLogs.size());
+    Serial.println("  -> PASS");
+}
+
+void test_hiking_comfort_delete_day() {
+    Serial.println("\n[HIKING] test_hiking_comfort_delete_day");
+
+    time_t base = testRtc.getEpochTime();
+    time_t day1Start = base - (base % 86400);  // Start of today
+    time_t day2Start = day1Start - 86400;       // Start of yesterday
+
+    // Store logs for two days
+    ComfortLog log1(day1Start + 3600, ComfortLevel::WARM);
+    ComfortLog log2(day2Start + 3600, ComfortLevel::COLD);
+    testStorage.storeComfortLog(log1);
+    testStorage.storeComfortLog(log2);
+
+    Serial.printf("  Stored 2 logs: day1=%ld, day2=%ld\n",
+                  (long)day1Start, (long)day2Start);
+
+    // Delete day1
+    bool ok = testStorage.deleteComfortLogsForDay(day1Start);
+    TEST_ASSERT_TRUE_MESSAGE(ok, "deleteComfortLogsForDay should succeed");
+
+    // Verify day1 is gone, day2 remains
+    std::vector<ComfortLog> remaining;
+    testStorage.getAllComfortLogs(remaining);
+
+    TEST_ASSERT_EQUAL_MESSAGE(1, remaining.size(), "Should have 1 log remaining");
+    TEST_ASSERT_EQUAL_MESSAGE((long)day2Start + 3600, (long)remaining[0].timestamp,
+                              "Remaining log should be from day2");
+
+    Serial.printf("  After delete: %d log remaining (day2)\n", (int)remaining.size());
+    Serial.println("  -> PASS");
+}
+
 // ── Phase 4: Display ──────────────────────────────────────────────────
 
 void test_hiking_display_graph() {
@@ -465,6 +519,8 @@ namespace test_hiking_station {
         RUN_TEST(test_hiking_measurement_cycle);
         RUN_TEST(test_hiking_comfort_single);
         RUN_TEST(test_hiking_comfort_multiple);
+        RUN_TEST(test_hiking_comfort_get_all);
+        RUN_TEST(test_hiking_comfort_delete_day);
         RUN_TEST(test_hiking_display_graph);
         RUN_TEST(test_hiking_display_menu);
         RUN_TEST(test_hiking_display_comfort_ui);

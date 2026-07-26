@@ -46,6 +46,10 @@ class DisplayService{
         // Settings Display
         bool showSettingsSubMenu(int selectedItem, const DeviceSettings& settings);
 
+        // Calendar Display
+        bool showCalendarList(const std::vector<ComfortLog>& logs, int selectedIndex);
+        bool showCalendarDetail(const char* dateStr, ComfortLevel level, bool hasLog, int selectedItem);
+
         // Display Management
         void forceUpdate();
         bool needsUpdate(const SensorReading& newReading) const;

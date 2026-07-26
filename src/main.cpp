@@ -490,7 +490,7 @@ bool enterMenu(bool& aborted) {
 
         if (btn == 1) {
             int idx = static_cast<int>(currentMenu);
-            idx = (idx + 1) % 7;
+            idx = (idx + 1) % 8;
             currentMenu = static_cast<DisplayMenu>(idx);
         }
 
@@ -553,6 +553,117 @@ bool enterMenu(bool& aborted) {
                                 case SYNC_BACK:
                                     inSyncMenu = false;
                                     break;
+                            }
+                        }
+                    }
+                    break;
+                }
+
+                case DisplayMenu::CALENDAR: {
+                    // Calendar view: scrollable list of comfort logs
+                    std::vector<ComfortLog> allLogs;
+                    storage.getAllComfortLogs(allLogs);
+
+                    // Sort by timestamp descending (most recent first)
+                    std::sort(allLogs.begin(), allLogs.end(), [](const ComfortLog& a, const ComfortLog& b) {
+                        return a.timestamp > b.timestamp;
+                    });
+
+                    int calSelected = 0;
+                    bool inCalendar = true;
+
+                    while (inCalendar) {
+                        displayService.showCalendarList(allLogs, calSelected);
+
+                        int cbtn = waitForButton();
+
+                        if (cbtn == 3) { inCalendar = false; break; }   // Abort → menu
+
+                        if (cbtn == 1) {
+                            // Scroll down
+                            if (!allLogs.empty()) {
+                                calSelected = (calSelected + 1) % allLogs.size();
+                            }
+                        }
+
+                        if (cbtn == 2) {
+                            // Select day → detail view
+                            if (allLogs.empty()) {
+                                // No logs at all — go back
+                                inCalendar = false;
+                                break;
+                            }
+
+                            ComfortLog& selectedLog = allLogs[calSelected];
+
+                            // Format date for header
+                            struct tm* ti = localtime(&selectedLog.timestamp);
+                            char dateBuf[16];
+                            snprintf(dateBuf, sizeof(dateBuf), "%s %d",
+                                     "JanFebMarAprMayJunJulAugSepOctNovDec" + (ti->tm_mon * 3),
+                                     ti->tm_mday);
+
+                            // Detail view: 2 items (Change/Back or Log it/Back)
+                            int detailItem = 0;
+                            bool inDetail = true;
+
+                            while (inDetail) {
+                                displayService.showCalendarDetail(dateBuf, selectedLog.level, true, detailItem);
+
+                                int dbtn = waitForButton();
+
+                                if (dbtn == 3) { inDetail = false; break; }   // Abort → calendar list
+
+                                if (dbtn == 1) {
+                                    detailItem = (detailItem + 1) % 2;
+                                }
+
+                                if (dbtn == 2) {
+                                    if (detailItem == 0) {
+                                        // Change: open comfort UI with current level pre-selected
+                                        ComfortLevel newLevel = selectedLog.level;
+                                        bool editing = true;
+
+                                        while (editing) {
+                                            displayService.showComfortUI(newLevel);
+
+                                            int ebtn = waitForButton();
+
+                                            if (ebtn == 3) { editing = false; }           // Abort → detail
+                                            if (ebtn == 1) {                                 // Cycle level
+                                                int cl = static_cast<int>(newLevel);
+                                                cl = (cl + 1) % 5;
+                                                newLevel = static_cast<ComfortLevel>(cl);
+                                            }
+                                            if (ebtn == 2) {                                 // Confirm edit
+                                                // Delete old log and store new one
+                                                time_t dayStart = selectedLog.timestamp - (ti->tm_hour * 3600 + ti->tm_min * 60 + ti->tm_sec);
+                                                storage.deleteComfortLogsForDay(dayStart);
+
+                                                ComfortLog newLog;
+                                                newLog.timestamp = selectedLog.timestamp;
+                                                newLog.level = newLevel;
+                                                storage.storeComfortLog(newLog);
+
+                                                // Refresh log list
+                                                allLogs.clear();
+                                                storage.getAllComfortLogs(allLogs);
+                                                std::sort(allLogs.begin(), allLogs.end(), [](const ComfortLog& a, const ComfortLog& b) {
+                                                    return a.timestamp > b.timestamp;
+                                                });
+
+                                                display.clear();
+                                                display.showMessage("UPDATED!");
+                                                delay(1000);
+                                                editing = false;
+                                                inDetail = false;
+                                            }
+                                        }
+                                    } else {
+                                        // Back
+                                        inDetail = false;
+                                    }
+                                }
                             }
                         }
                     }

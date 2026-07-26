@@ -60,7 +60,7 @@ Both-buttons abort works from **every screen**: comfort logging, sync sub-menu, 
 
 **Dashboard** (first screen on button wake): Shows sensor data + time + battery + connectivity indicator. Three items: Log Comfort, Menu, Sleep. Header shows "WiFi" when connected. Battery bar shows "Last:WiFi" or "Last:BLE" for sync source.
 
-**Menu** (7 items): Graph Temp, Graph Humidity, Graph Altitude, Settings, OTA, Sync Time, Back.
+**Menu** (8 items): Graph Temp, Graph Humidity, Graph Altitude, Calendar, Settings, OTA, Sync Time, Back.
 
 **Settings sub-menu** (3 items): Sleep Interval (cycle: 1m/5m/15m/30m/1hr), NTP Sync (cycle: 1hr/6hr/12hr/24hr), Back. Settings persisted to `/settings.txt` on LittleFS.
 

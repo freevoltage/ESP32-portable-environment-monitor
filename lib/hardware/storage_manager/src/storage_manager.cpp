@@ -764,6 +764,129 @@ bool StorageManager::getComfortLogsSince(time_t timestamp, std::vector<ComfortLo
     return true;
 }
 
+bool StorageManager::getAllComfortLogs(std::vector<ComfortLog> &logs)
+{
+    logs.clear();
+
+    if (!_initialized)
+    {
+        LOG_ERROR("Storage not initialized");
+        return false;
+    }
+
+    const String comfortFile = COMFORT_FILENAME;
+
+    if (!fileExists(comfortFile))
+    {
+        return true; // No comfort logs yet, empty is valid
+    }
+
+    File file = SD.open(comfortFile.c_str(), FILE_READ);
+    if (!file)
+    {
+        LOG_ERROR("Failed to open comfort file");
+        return false;
+    }
+
+    // Skip header
+    if (file.available())
+    {
+        file.readStringUntil('\n');
+    }
+
+    while (file.available())
+    {
+        String line = file.readStringUntil('\n');
+        line.trim();
+        if (line.length() == 0) continue;
+
+        ComfortLog log;
+        unsigned long ts;
+        int level;
+        if (sscanf(line.c_str(), "%lu,%d", &ts, &level) == 2)
+        {
+            log.timestamp = static_cast<time_t>(ts);
+            log.level = static_cast<ComfortLevel>(level);
+            logs.push_back(log);
+        }
+    }
+
+    file.close();
+    LOG_INFO("Retrieved all %d comfort logs", logs.size());
+    return true;
+}
+
+bool StorageManager::deleteComfortLogsForDay(time_t dayStart)
+{
+    if (!_initialized)
+    {
+        LOG_ERROR("Storage not initialized");
+        return false;
+    }
+
+    const String comfortFile = COMFORT_FILENAME;
+
+    if (!fileExists(comfortFile))
+    {
+        return true; // Nothing to delete
+    }
+
+    // Read all logs
+    std::vector<ComfortLog> allLogs;
+    if (!getAllComfortLogs(allLogs))
+    {
+        return false;
+    }
+
+    // Filter out logs for this day (within 24h window)
+    time_t dayEnd = dayStart + 86400;
+    std::vector<ComfortLog> remaining;
+    for (const auto& log : allLogs)
+    {
+        if (log.timestamp < dayStart || log.timestamp >= dayEnd)
+        {
+            remaining.push_back(log);
+        }
+    }
+
+    // Rewrite file with remaining logs
+    deleteFile(comfortFile);
+
+    if (remaining.empty())
+    {
+        LOG_INFO("Deleted all comfort logs for day %lu", static_cast<unsigned long>(dayStart));
+        return true;
+    }
+
+    // Create file with header
+    File headerFile = SD.open(comfortFile.c_str(), FILE_WRITE);
+    if (!headerFile)
+    {
+        LOG_ERROR("Failed to recreate comfort file");
+        return false;
+    }
+    headerFile.println("Timestamp,ComfortLevel");
+    headerFile.flush();
+    headerFile.close();
+
+    // Append remaining logs
+    File dataFile = SD.open(comfortFile.c_str(), FILE_APPEND);
+    if (!dataFile)
+    {
+        LOG_ERROR("Failed to open comfort file for rewriting");
+        return false;
+    }
+
+    for (const auto& log : remaining)
+    {
+        dataFile.printf("%lu,%d\n", static_cast<unsigned long>(log.timestamp), static_cast<int>(log.level));
+    }
+    dataFile.close();
+
+    LOG_INFO("Deleted comfort logs for day %lu, %d remaining", static_cast<unsigned long>(dayStart), remaining.size());
+    return true;
+}
+
 /* This function is the core reading function helper used whenever a read operation happens.
 - For shouldInclude possibilities are:
     - Include only Recent Readings

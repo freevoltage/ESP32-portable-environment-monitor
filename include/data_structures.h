@@ -146,6 +146,7 @@ enum class DisplayMenu : uint8_t {
     GRAPH_TEMP,
     GRAPH_HUMIDITY,
     GRAPH_ALTITUDE,
+    CALENDAR,
     SETTINGS,
     OTA,
     SYNC_TIME,

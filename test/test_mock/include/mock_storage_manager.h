@@ -94,6 +94,25 @@ bool StorageManager::getComfortLogsSince(time_t timestamp, std::vector<ComfortLo
     return true;
 }
 
+bool StorageManager::getAllComfortLogs(std::vector<ComfortLog> &logs) {
+    if (!isReady()) return false;
+    logs = mockComfortVector;
+    return true;
+}
+
+bool StorageManager::deleteComfortLogsForDay(time_t dayStart) {
+    if (!isReady()) return false;
+    time_t dayEnd = dayStart + 86400;
+    mockComfortVector.erase(
+        std::remove_if(mockComfortVector.begin(), mockComfortVector.end(),
+            [dayStart, dayEnd](const ComfortLog& l) {
+                return l.timestamp >= dayStart && l.timestamp < dayEnd;
+            }),
+        mockComfortVector.end()
+    );
+    return true;
+}
+
 bool StorageManager::fileExists(const String &filename) const {
     return mockStorageInitialized;
 }
