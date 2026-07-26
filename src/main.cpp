@@ -80,6 +80,19 @@ void enterDeepSleep() {
     Serial.println("Entering deep sleep...");
     displayService.turnOff();
 
+    // Development mode: if USB is connected (Serial is true), skip deep sleep.
+    // On ESP32-C6 with native USB, deep sleep disconnects the USB bus — the
+    // computer re-enumerates the device and triggers a hardware reset, causing
+    // an infinite boot loop. When on USB power, we loop every 10s instead,
+    // keeping the device interactive for development and debugging.
+    // When USB is disconnected (battery power), deep sleep works normally.
+    if (Serial) {
+        Serial.println("[DEV] USB connected — skipping deep sleep (loop mode)");
+        delay(10000);
+        ESP.restart();
+        return;
+    }
+
     // Cut I2C power rail to save ~55uA during sleep
     battery.disableI2CPower();
 

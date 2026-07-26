@@ -76,11 +76,16 @@ The project uses the **Tasmota fork** of platform-espressif32 (not the official 
 
 ## Deep Sleep & Serial Monitor
 
-The Adafruit Feather ESP32-C6 uses **native USB**. When the serial monitor is connected, deep sleep causes USB disconnection/re-enumeration which triggers a hardware reset — an infinite boot loop no software flag can prevent. This is a hardware-level limitation.
+The Adafruit Feather ESP32-C6 uses **native USB**. Deep sleep disconnects the USB bus — the computer re-enumerates the device and triggers a hardware reset, causing an infinite boot loop.
 
-**For deep sleep testing**: flash the device, then **unplug the USB cable**. The device runs standalone on battery and sleeps properly. Press button B to wake into display mode.
+**Development mode** (USB connected): `enterDeepSleep()` detects `if (Serial)` (true whenever USB is connected) and skips deep sleep. The device takes a reading, shows the dashboard, waits 10s, and restarts. Fully interactive for development and debugging. Deep sleep is not tested in this mode.
 
-**For debugging**: keep USB connected and open `pio device monitor`. The monitor will cause resets when the device tries to sleep, but you can still interact with the display between resets. Close the monitor and unplug USB when done.
+**Production mode** (USB disconnected, battery): `Serial` is false. The device enters deep sleep normally — sleeps for `measurementIntervalSec`, wakes on timer or button B.
+
+| Power Source | `Serial` | Behavior |
+|---|---|---|
+| USB cable (development) | true | Skip deep sleep, loop every 10s, full UI |
+| Battery (production) | false | Deep sleep 30min, silent measurement, button wake |
 
 ## Conditional Compilation (MOCK)
 
