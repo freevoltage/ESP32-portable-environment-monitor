@@ -74,3 +74,10 @@ The hiking station redesign is complete. The last remaining items are either you
 - [] Multi-sensor support
 - [] Web dashboard (WiFi status page, live data, config)
 - [] BLE companion phone app (see BLE_INTERFACE.md)
+
+
+
+## Verification Results
+- After uploading the main. The devcise does not stay in deep sleep. It automatically boots up after a few seconds and goes back to the dashboard. Even when i select the "sleep" option from the dashboard, the device goes to sleep but immediatly wakes up again and to the dashboard. The expected behaviour would be, that I need to wake it up from the Dashboard using the BUTTON B. 
+- Menu: In the Menu there is not "return path". ( ah well there is, by pressing both buttons. but would be nice to have a dedicated "back" option)
+- Another problem is that the measured values for temperature and hummidty are very incorrect. The measurement results are always higher than the reality, by a coupld of degrees. I dont know if it is possible to correct it using the BME280. If this is an offset thing, or calibration thing. Also the altidude is way to high. I am in berlin, which should be arround 34-38m above ocean, but the display shows 115m

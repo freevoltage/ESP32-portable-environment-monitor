@@ -21,7 +21,10 @@
 
 // BME280
 //#define BME280_ADDRESS 0x77
-#define SEALEVELPRESSURE_HPA (1013.25)
+#define SEALEVELPRESSURE_HPA (1018.25)  // Berlin actual sea-level pressure (~1018 hPa)
+                                        // Calibrate: set to your local QNH from weather service
+#define TEMP_OFFSET       0.0f  // Calibration offset in °C (positive = subtract from reading)
+#define HUMIDITY_OFFSET   0.0f  // Calibration offset in % (positive = subtract from reading)
 
 // Deep Sleep Configuration
 #define uS_TO_S_FACTOR 1000000ULL

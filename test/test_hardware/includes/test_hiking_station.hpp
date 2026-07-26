@@ -47,6 +47,7 @@ const char* menuToString(DisplayMenu menu) {
         case DisplayMenu::OTA:             return "OTA";
         case DisplayMenu::SYNC_TIME:       return "Sync Time";
         case DisplayMenu::SLEEP:           return "Sleep";
+        case DisplayMenu::BACK:            return "Back";
         default:                           return "Unknown";
     }
 }
@@ -277,10 +278,10 @@ void test_hiking_display_menu() {
         DisplayMenu::GRAPH_TEMP, DisplayMenu::GRAPH_HUMIDITY,
         DisplayMenu::GRAPH_ALTITUDE, DisplayMenu::SETTINGS,
         DisplayMenu::OTA, DisplayMenu::SYNC_TIME,
-        DisplayMenu::SLEEP
+        DisplayMenu::SLEEP, DisplayMenu::BACK
     };
 
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < 8; i++) {
         Serial.printf("  Rendering menu [%d]: %s\n", i, menuToString(items[i]));
         testDisplayService->showMenu(items[i]);
         delay(800); // Pause so user can see each item on the TFT

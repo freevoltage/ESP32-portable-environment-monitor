@@ -83,6 +83,15 @@ void enterDeepSleep() {
     // Cut I2C power rail to save ~55uA during sleep
     battery.disableI2CPower();
 
+    // Wait for buttons to be released before configuring EXT1 wake.
+    // If the user is still holding B (SEL) when deep sleep starts,
+    // ESP_EXT1_WAKEUP_ANY_LOW fires immediately — instant unwanted wake.
+    Serial.println("[SLEEP] Waiting for button release...");
+    while (digitalRead(SEL_BUTTON_PIN) == LOW || digitalRead(NAV_BUTTON_PIN) == LOW) {
+        delay(10);
+    }
+    delay(50); // Additional debounce after release
+
     // Configure EXT1 wake on Select button only (GPIO3 = valid RTC GPIO on ESP32-C6)
     // Note: GPIO8/GPIO9 are NOT RTC GPIOs — only GPIO0-7 support EXT1 wakeup
     ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(
@@ -356,9 +365,7 @@ void runDisplayMode() {
         }
     }
 
-    // Configure buttons as inputs
-    pinMode(NAV_BUTTON_PIN, INPUT_PULLUP);
-    pinMode(SEL_BUTTON_PIN, INPUT_PULLUP);
+    // Buttons already configured with pull-ups in setup() before detectWakeupCause()
 
     // ── Dashboard loop ──────────────────────────────────────────────
     // Dashboard shows current readings + three quick actions:
@@ -474,7 +481,7 @@ bool enterMenu(bool& aborted) {
 
         if (btn == 1) {
             int idx = static_cast<int>(currentMenu);
-            idx = (idx + 1) % 7;
+            idx = (idx + 1) % 8;
             currentMenu = static_cast<DisplayMenu>(idx);
         }
 
@@ -491,6 +498,11 @@ bool enterMenu(bool& aborted) {
                     break;
 
                 case DisplayMenu::SLEEP:
+                    inMenu = false;
+                    break;
+
+                case DisplayMenu::BACK:
+                    aborted = true;
                     inMenu = false;
                     break;
 
@@ -568,6 +580,13 @@ void setup() {
 
     ++bootCount;
     Serial.printf("\n=== Boot #%d ===\n", bootCount);
+
+    // Enable button pull-ups BEFORE detectWakeupCause() so GPIO reads are reliable.
+    // After deep sleep wake, GPIOs reset to input without pull-up — floating pins
+    // can read LOW and cause false EXT1 detection in the fallback logic.
+    pinMode(NAV_BUTTON_PIN, INPUT_PULLUP);
+    pinMode(SEL_BUTTON_PIN, INPUT_PULLUP);
+
     printWakeupReason();
 
     esp_sleep_wakeup_cause_t cause = detectWakeupCause();

@@ -26,7 +26,9 @@ description: All configuration options in include/config.h.
 
 | Define | Value | Description |
 |--------|-------|-------------|
-| `SEALEVELPRESSURE_HPA` | `1013.25` | Sea level pressure for altitude calculation |
+| `SEALEVELPRESSURE_HPA` | `1018.25` | Sea level pressure for altitude calculation (set to your local QNH) |
+| `TEMP_OFFSET` | `0.0` | Temperature calibration offset in °C (positive = subtract from reading) |
+| `HUMIDITY_OFFSET` | `0.0` | Humidity calibration offset in % (positive = subtract from reading) |
 
 ## Timing
 
