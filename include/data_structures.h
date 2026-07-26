@@ -149,6 +149,5 @@ enum class DisplayMenu : uint8_t {
     SETTINGS,
     OTA,
     SYNC_TIME,
-    SLEEP,
     BACK
 };

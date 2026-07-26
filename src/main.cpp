@@ -493,7 +493,7 @@ bool enterMenu(bool& aborted) {
 
         if (btn == 1) {
             int idx = static_cast<int>(currentMenu);
-            idx = (idx + 1) % 8;
+            idx = (idx + 1) % 7;
             currentMenu = static_cast<DisplayMenu>(idx);
         }
 
@@ -507,10 +507,6 @@ bool enterMenu(bool& aborted) {
 
                 case DisplayMenu::SETTINGS:
                     enterSettingsSubMenu();
-                    break;
-
-                case DisplayMenu::SLEEP:
-                    inMenu = false;
                     break;
 
                 case DisplayMenu::BACK:
@@ -589,6 +585,11 @@ void setup() {
 
     // Load device settings from LittleFS
     settings.begin();
+
+    // Restore timezone after deep sleep wake. configTime() sets the TZ env var
+    // in regular RAM, which is wiped by deep sleep. The hardware RTC retains the
+    // correct UTC epoch, so we just need to re-apply the timezone offset.
+    configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
 
     ++bootCount;
     Serial.printf("\n=== Boot #%d ===\n", bootCount);

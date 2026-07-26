@@ -51,7 +51,7 @@ Pin definitions live in `include/config.h`.
 
 ```sh
 pio run -e main              # build firmware
-pio run -t upload -e main    # flash (auto-opens serial monitor)
+pio run -t upload -e main    # flash only
 pio device monitor           # open serial monitor manually
 pio run -t clean             # clean build (run after platform/lib changes)
 ```
@@ -145,7 +145,7 @@ Both-buttons abort works from **every screen**: comfort logging, sync sub-menu, 
 │   Settings                   │
 │   OTA                        │
 │   Sync Time                  │
-│   Sleep                      │
+│   Back                       │
 ├──────────────────────────────┤
 │ A=Navigate  B=Select        │
 │ A+B=Back to Dashboard       │
@@ -160,7 +160,7 @@ Both-buttons abort works from **every screen**: comfort logging, sync sub-menu, 
 | Settings | Device settings sub-menu (Sleep Interval, NTP Sync) |
 | OTA | WiFi firmware update (B=Exit, 120s timeout) |
 | Sync Time | Sub-menu: Mode / Sync Now / Back |
-| Sleep | Enter deep sleep |
+| Back | Return to Dashboard |
 
 ### Sync Time Sub-Menu
 

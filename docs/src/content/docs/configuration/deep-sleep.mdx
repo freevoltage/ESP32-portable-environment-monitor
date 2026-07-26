@@ -74,3 +74,20 @@ Without this, `digitalWrite(TFT_LIT, HIGH)` has no effect — the backlight stay
 | Display | ON | ON | Until sleep |
 
 The majority of time is spent in deep sleep (~30 minutes between measurements).
+
+## Timezone Persistence
+
+`configTime()` sets the `TZ` environment variable in regular RAM, which is wiped by deep sleep. The hardware RTC retains the correct UTC epoch, but after wake `localtime()` defaults to UTC — causing a 2-hour offset for CEST.
+
+**Fix**: `configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER)` is called in `setup()` after every wake. This restores the timezone without a network call — the hardware RTC already has the correct UTC epoch.
+
+**Note**: Pressing the physical RESET button clears the RTC peripheral entirely (time resets to 1970). Only NTP/BLE sync can restore the time after a hardware reset.
+
+## Debug Mode (Serial Monitor)
+
+The Adafruit Feather ESP32-C6 uses **native USB**. When the serial monitor is connected, deep sleep causes USB disconnection/re-enumeration which triggers a hardware reset. `enterDeepSleep()` auto-detects this: if `Serial` is active, it skips deep sleep and soft-restarts after 10s instead.
+
+| Scenario | Behavior |
+|----------|----------|
+| Monitor connected | Display mode → 10s → restart → loop (no deep sleep) |
+| Monitor disconnected | Measurement mode → deep sleep → wake → loop |

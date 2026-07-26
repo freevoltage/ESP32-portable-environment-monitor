@@ -67,7 +67,7 @@ Two-button navigation on a 240x240 TFT:
 - **Button A (GPIO8, Navigate)** — cycles through menu items
 - **Button B (GPIO3, Select)** — selects the highlighted item
 
-The menu renders at textSize(1) to fit all 8 items. Highlighted item shows cyan background; others are white on black.
+The menu renders at textSize(1) to fit all 7 items. Highlighted item shows cyan background; others are white on black.
 
 ### Menu Items
 
@@ -79,7 +79,7 @@ The menu renders at textSize(1) to fit all 8 items. Highlighted item shows cyan 
 | **Settings** | Sub-menu: cycle Sleep Interval (1m/5m/15m/30m/1hr) and NTP Sync (1hr/6hr/12hr/24hr). Settings saved to LittleFS. |
 | **OTA** | Connects WiFi, shows IP on display, starts ElegantOTA web server on port 80. Visit `http://<ip>/update` in browser. Auth: `admin` / `hikingstation`. Shows progress bar on TFT. Device reboots after upload. **Never returns to menu.** |
 | **Sync Time** | Sub-menu showing current sync mode + last sync time/source. Button A cycles modes (OFF / BLE / WiFi / BLE+WiFi / WiFi+BLE). Button B triggers manual sync. |
-| **Sleep** | Exits menu, enters deep sleep (same config as measurement mode). |
+| **Back** | Returns to Dashboard. |
 
 ### Graph Behavior
 

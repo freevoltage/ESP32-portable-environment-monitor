@@ -167,8 +167,8 @@ bool DisplayService::showMenu(DisplayMenu current) {
     displayManager->clear();
     displayManager->drawHeader("MENU");
 
-    const char* items[] = {"Graph Temp", "Graph Humidity", "Graph Altitude", "Settings", "OTA", "Sync Time", "Sleep", "Back"};
-    const int itemCount = 8;
+    const char* items[] = {"Graph Temp", "Graph Humidity", "Graph Altitude", "Settings", "OTA", "Sync Time", "Back"};
+    const int itemCount = 7;
 
     for (int i = 0; i < itemCount; i++)
     {

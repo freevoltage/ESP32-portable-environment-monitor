@@ -49,7 +49,7 @@ Application (main.cpp)
 ### Display Mode (button wake via EXT1)
 - Turn on display → show dashboard with sensor data + time + battery + connectivity icon
 - Navigate 3-item dashboard: Log Comfort, Menu, Sleep
-- Full menu (7 items): Graph Temp / Graph Humidity / Graph Altitude / Settings / OTA / Sync Time / Sleep
+- Full menu (7 items): Graph Temp / Graph Humidity / Graph Altitude / Settings / OTA / Sync Time / Back
 - Settings sub-menu: Sleep Interval (1m/5m/15m/30m/1hr), NTP Sync (1hr/6hr/12hr/24hr), Back
 - 24h rolling graph using `getReadingsSince()`
 - OTA mode: ElegantOTA web server, B-button abort, 120s timeout, "WiFi required for OTA" message
@@ -66,7 +66,7 @@ Application (main.cpp)
 - `BatteryStatus` — percentage, voltage, charging, isLow
 - `ComfortLevel` — enum class : uint8_t (TOO_COLD=0..TOO_WARM=4)
 - `ComfortLog` — timestamp + ComfortLevel
-- `DisplayMenu` — enum class : uint8_t (GRAPH_TEMP..SLEEP) [7 items]
+- `DisplayMenu` — enum class : uint8_t (GRAPH_TEMP..BACK) [7 items]
 - `SyncMode` — enum class : uint8_t (OFF=0, BLE=1, WIFI=2, BLE_FIRST=3, WIFI_FIRST=4)
 - `SyncSource` — enum class : uint8_t (NONE=0, BLE=1, WIFI=2)
 - `SyncStatus` — source, timestamp, inProgress
@@ -129,6 +129,15 @@ Application (main.cpp)
 10. `test_hiking_full_workflow` — End-to-end: sensor → SD → display graph
 11. `test_hiking_comfort_workflow` — End-to-end: sensor → comfort log → query
 12. `test_hiking_timing` — Sensor + store + read <100ms
+
+## Recent Changes (2026-07-26)
+
+- **Timezone fix** — `configTime()` called in `setup()` after every deep sleep wake. The TZ env var was being lost on deep sleep, causing time to show2 hours behind CEST. Hardware RTC retains UTC epoch; only the timezone needed restoring.
+- **Sleep removed from menu** — redundant with Dashboard Sleep item. Menu now 7 items: Graph Temp/Humidity/Altitude, Settings, OTA, Sync Time, Back.
+- **Debug mode** — when serial monitor is connected, device enters display mode (full UI) and skips deep sleep (soft restarts every10s). When monitor is disconnected, device sleeps normally. Auto-detects via `if (Serial)`.
+- **`while (!Serial)` removed** — device was hanging forever on wake without USB host. Replaced with `delay(100)`.
+- **Auto monitor removed** — `scripts/auto_monitor.py` deleted. `pio run -t upload` no longer opens the monitor. Serial monitor auto-reconnects after deep sleep USB disconnect and triggers a hardware reset (native USB limitation).
+- **`monitor_rts = 0` / `monitor_dtr = 0`** added to platformio.ini (best effort for initial connection).
 
 ## Recent Changes (2026-07-22)
 
