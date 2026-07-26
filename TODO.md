@@ -82,6 +82,11 @@ The hiking station redesign is complete. The last remaining items are either you
 - Menu: In the Menu there is not "return path". ( ah well there is, by pressing both buttons. but would be nice to have a dedicated "back" option)
 - Another problem is that the measured values for temperature and hummidty are very incorrect. The measurement results are always higher than the reality, by a coupld of degrees. I dont know if it is possible to correct it using the BME280. If this is an offset thing, or calibration thing. Also the altidude is way to high. I am in berlin, which should be arround 34-38m above ocean, but the display shows 115
 
-- [] I had the idea for an additional "calendar" view. Or Logging View. Where I get the logging data vissible for the past days. (Maybe since the beginning of my hike) Then I would need some way to let the device know when my hike started. But well no I think this is too compliicated. I think it just just use whatever is saved on the SD Card. But it needs to use the date of the savings, Because maybe I forogot to log on a day and then it should not be confused. And this view could also allow me to re-open a day and change its logging value? That would be cool right? 
+- [x] I had the idea for an additional "calendar" view. Or Logging View. Where I get the logging data vissible for the past days. (Maybe since the beginning of my hike) Then I would need some way to let the device know when my hike started. But well no I think this is too compliicated. I think it just just use whatever is saved on the SD Card. But it needs to use the date of the savings, Because maybe I forogot to log on a day and then it should not be confused. And this view could also allow me to re-open a day and change its logging value? That would be cool right?
+
+- [] The Calendar view should the date buggy. it currently shows it like "JULAUGSEPOCTNOV: Comfort" It should show the actual date in DD-MM-YY format.
+Also the "global go back key combbo of BUTTON A + BUTTON B does not work here at all. so i am stuck in the calendar mode.
+
+I just currently synced the Time via WIFI. then pressed "RESET" and the time sync was gone and the time displayed was 1970 again. THIS IA CRITICAL BUG 
 
 

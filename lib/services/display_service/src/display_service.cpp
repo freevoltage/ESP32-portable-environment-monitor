@@ -296,12 +296,11 @@ bool DisplayService::showCalendarList(const std::vector<ComfortLog>& logs, int s
         int idx = i;  // logs should already be in reverse chronological order
         const ComfortLog& log = logs[idx];
 
-        // Format date
+        // Format date as DD-MM-YY
         struct tm* ti = localtime(&log.timestamp);
         char dateBuf[16];
-        snprintf(dateBuf, sizeof(dateBuf), "%s %2d",
-                 "JanFebMarAprMayJunJulAugSepOctNovDec" + (ti->tm_mon * 3),
-                 ti->tm_mday);
+        snprintf(dateBuf, sizeof(dateBuf), "%02d-%02d-%02d",
+                 ti->tm_mday, ti->tm_mon + 1, (ti->tm_year + 1900) % 100);
 
         // Highlight selected item
         if (idx == selectedIndex) {

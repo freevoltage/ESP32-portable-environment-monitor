@@ -383,7 +383,11 @@ void runDisplayMode() {
     bool inDisplayMode = true;
 
     while (inDisplayMode) {
-        displayService.showDashboard(reading, rtc.getFormattedTime(), dashItem, battStatus,
+        // Show "SYNC TIME!" warning if year < 2020 (time not set)
+        time_t checkNow = rtc.getEpochTime();
+        struct tm* checkTm = localtime(&checkNow);
+        const char* timeStr = (checkTm->tm_year < (2020 - 1900)) ? "SYNC TIME!" : rtc.getFormattedTime().c_str();
+        displayService.showDashboard(reading, timeStr, dashItem, battStatus,
                                      wifiMgr.isConnected(), timeSync.getStatus().lastSource);
 
         int btn = waitForButton();
@@ -571,13 +575,14 @@ bool enterMenu(bool& aborted) {
 
                     int calSelected = 0;
                     bool inCalendar = true;
+                    bool calAborted = false;
 
-                    while (inCalendar) {
+                    while (inCalendar && !calAborted) {
                         displayService.showCalendarList(allLogs, calSelected);
 
                         int cbtn = waitForButton();
 
-                        if (cbtn == 3) { inCalendar = false; break; }   // Abort → menu
+                        if (cbtn == 3) { calAborted = true; break; }   // Abort → menu
 
                         if (cbtn == 1) {
                             // Scroll down
@@ -590,29 +595,28 @@ bool enterMenu(bool& aborted) {
                             // Select day → detail view
                             if (allLogs.empty()) {
                                 // No logs at all — go back
-                                inCalendar = false;
+                                calAborted = true;
                                 break;
                             }
 
                             ComfortLog& selectedLog = allLogs[calSelected];
 
-                            // Format date for header
+                            // Format date as DD-MM-YY for header
                             struct tm* ti = localtime(&selectedLog.timestamp);
                             char dateBuf[16];
-                            snprintf(dateBuf, sizeof(dateBuf), "%s %d",
-                                     "JanFebMarAprMayJunJulAugSepOctNovDec" + (ti->tm_mon * 3),
-                                     ti->tm_mday);
+                            snprintf(dateBuf, sizeof(dateBuf), "%02d-%02d-%02d",
+                                     ti->tm_mday, ti->tm_mon + 1, (ti->tm_year + 1900) % 100);
 
                             // Detail view: 2 items (Change/Back or Log it/Back)
                             int detailItem = 0;
                             bool inDetail = true;
 
-                            while (inDetail) {
+                            while (inDetail && !calAborted) {
                                 displayService.showCalendarDetail(dateBuf, selectedLog.level, true, detailItem);
 
                                 int dbtn = waitForButton();
 
-                                if (dbtn == 3) { inDetail = false; break; }   // Abort → calendar list
+                                if (dbtn == 3) { calAborted = true; break; }   // Abort → menu
 
                                 if (dbtn == 1) {
                                     detailItem = (detailItem + 1) % 2;
@@ -624,12 +628,12 @@ bool enterMenu(bool& aborted) {
                                         ComfortLevel newLevel = selectedLog.level;
                                         bool editing = true;
 
-                                        while (editing) {
+                                        while (editing && !calAborted) {
                                             displayService.showComfortUI(newLevel);
 
                                             int ebtn = waitForButton();
 
-                                            if (ebtn == 3) { editing = false; }           // Abort → detail
+                                            if (ebtn == 3) { calAborted = true; break; }  // Abort → menu
                                             if (ebtn == 1) {                                 // Cycle level
                                                 int cl = static_cast<int>(newLevel);
                                                 cl = (cl + 1) % 5;
@@ -699,6 +703,31 @@ void setup() {
     // correct UTC epoch, so we just need to re-apply the timezone offset.
     configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
 
+    // Auto NTP sync if time is invalid (e.g. after hardware RESET button).
+    // The ESP32-C6 RTC loses time on hardware reset — only deep sleep preserves it.
+    // Silently sync if WiFi is configured; adds ~2-3s to boot time.
+    time_t now;
+    time(&now);
+    struct tm* timeinfo = localtime(&now);
+    if (timeinfo->tm_year < (2020 - 1900)) {  // Year < 2020 = not set
+        Serial.println("[BOOT] Time invalid — attempting NTP sync...");
+        const WiFiConfig& wifiCfg = connectivity.getWiFiConfig();
+        if (wifiCfg.isValid && strlen(wifiCfg.ssid) > 0) {
+            if (wifiMgr.connect(wifiCfg.ssid, wifiCfg.password, 8)) {
+                if (wifiMgr.syncTimeNTP(NTP_SERVER, GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC)) {
+                    Serial.println("[BOOT] NTP sync succeeded");
+                } else {
+                    Serial.println("[BOOT] NTP sync failed");
+                }
+                wifiMgr.disconnect();
+            } else {
+                Serial.println("[BOOT] WiFi connect failed — time not set");
+            }
+        } else {
+            Serial.println("[BOOT] No WiFi configured — time not set");
+        }
+    }
+
     ++bootCount;
     Serial.printf("\n=== Boot #%d ===\n", bootCount);
 
@@ -754,7 +783,11 @@ void loop() {
     bool inDashboard = true;
 
     while (inDashboard) {
-        displayService.showDashboard(reading, rtc.getFormattedTime(), dashItem, battStatus,
+        // Show "SYNC TIME!" warning if year < 2020 (time not set)
+        time_t checkNow = rtc.getEpochTime();
+        struct tm* checkTm = localtime(&checkNow);
+        const char* timeStr = (checkTm->tm_year < (2020 - 1900)) ? "SYNC TIME!" : rtc.getFormattedTime().c_str();
+        displayService.showDashboard(reading, timeStr, dashItem, battStatus,
                                      wifiMgr.isConnected(), timeSync.getStatus().lastSource);
 
         int btn = waitForButton();
