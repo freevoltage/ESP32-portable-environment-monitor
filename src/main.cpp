@@ -386,7 +386,8 @@ void runDisplayMode() {
         // Show "SYNC TIME!" warning if year < 2020 (time not set)
         time_t checkNow = rtc.getEpochTime();
         struct tm* checkTm = localtime(&checkNow);
-        const char* timeStr = (checkTm->tm_year < (2020 - 1900)) ? "SYNC TIME!" : rtc.getFormattedTime().c_str();
+        String formattedTime = rtc.getFormattedTime();
+        const char* timeStr = (checkTm->tm_year < (2020 - 1900)) ? "SYNC TIME!" : formattedTime.c_str();
         displayService.showDashboard(reading, timeStr, dashItem, battStatus,
                                      wifiMgr.isConnected(), timeSync.getStatus().lastSource);
 
@@ -786,7 +787,8 @@ void loop() {
         // Show "SYNC TIME!" warning if year < 2020 (time not set)
         time_t checkNow = rtc.getEpochTime();
         struct tm* checkTm = localtime(&checkNow);
-        const char* timeStr = (checkTm->tm_year < (2020 - 1900)) ? "SYNC TIME!" : rtc.getFormattedTime().c_str();
+        String formattedTime = rtc.getFormattedTime();
+        const char* timeStr = (checkTm->tm_year < (2020 - 1900)) ? "SYNC TIME!" : formattedTime.c_str();
         displayService.showDashboard(reading, timeStr, dashItem, battStatus,
                                      wifiMgr.isConnected(), timeSync.getStatus().lastSource);
 
