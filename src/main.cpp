@@ -603,11 +603,12 @@ void setup() {
 
     esp_sleep_wakeup_cause_t cause = detectWakeupCause();
 
-    if (cause == ESP_SLEEP_WAKEUP_EXT1) {
-        // Button wake → full display mode
+    // Serial host connected → always display mode (debug: interact with UI)
+    // Button wake → display mode (normal)
+    // Timer wake without serial → measurement mode (silent, display off)
+    if (Serial || cause == ESP_SLEEP_WAKEUP_EXT1) {
         runDisplayMode();
     } else {
-        // Timer wake or power-on → silent measurement
         rtc.begin();
         runMeasurementMode();
     }
