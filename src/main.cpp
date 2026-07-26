@@ -80,16 +80,12 @@ void enterDeepSleep() {
     Serial.println("Entering deep sleep...");
     displayService.turnOff();
 
-    // Development mode: if USB is connected (Serial is true), skip deep sleep.
-    // On ESP32-C6 with native USB, deep sleep disconnects the USB bus — the
-    // computer re-enumerates the device and triggers a hardware reset, causing
-    // an infinite boot loop. When on USB power, we loop every 10s instead,
-    // keeping the device interactive for development and debugging.
-    // When USB is disconnected (battery power), deep sleep works normally.
+    // Dev mode: skip deep sleep and return. The device stays alive via loop()
+    // which handles periodic measurements and the dashboard UI.
+    // No ESP.restart() — that also causes USB re-enumeration and hardware
+    // reset on native USB boards.
     if (Serial) {
-        Serial.println("[DEV] USB connected — skipping deep sleep (loop mode)");
-        delay(10000);
-        ESP.restart();
+        Serial.println("[DEV] USB connected — returning to loop()");
         return;
     }
 
@@ -618,5 +614,95 @@ void setup() {
 }
 
 void loop() {
-    // Never reached — deep sleep restarts the chip
+    // Dev mode only — production never reaches loop() (device deep sleeps in setup()).
+    // On native USB, ESP.restart() and deep sleep both cause USB re-enumeration
+    // -> hardware reset -> infinite boot loop. So we stay alive by naturally looping
+    // here instead. Each iteration: take a reading, show dashboard, handle buttons.
+    if (!Serial) return;
+
+    // Initialize hardware (idempotent — safe to call each iteration)
+    digitalWrite(TFT_CS, HIGH);
+    storage.begin();
+    sensor.begin();
+    battery.begin();
+
+    // Take a fresh reading
+    SensorReading reading;
+    BatteryStatus battStatus;
+    if (dataService.collectCurrentReading()) {
+        reading = dataService.getCurrentReading();
+        dataService.storeCurrentReading();
+        battStatus = battery.getStatus();
+        Serial.printf("[DEV] Reading: %.1f°C %.0f%% %.0fhPa\n",
+                      reading.temperature, reading.humidity, reading.pressure);
+    }
+
+    // Dashboard loop — same UI as runDisplayMode(), but "Sleep" continues
+    // the loop (new reading) instead of trying to deep sleep.
+    int dashItem = 0;
+    bool inDashboard = true;
+
+    while (inDashboard) {
+        displayService.showDashboard(reading, rtc.getFormattedTime(), dashItem, battStatus,
+                                     wifiMgr.isConnected(), timeSync.getStatus().lastSource);
+
+        int btn = waitForButton();
+
+        if (btn == 1) {
+            dashItem = (dashItem + 1) % 3;
+        }
+
+        if (btn == 2) {
+            if (dashItem == 0) {
+                // ── Log Comfort ──
+                time_t now = rtc.getEpochTime();
+                struct tm* ti = localtime(&now);
+                time_t startOfDay = now - (ti->tm_hour * 3600 + ti->tm_min * 60 + ti->tm_sec);
+
+                std::vector<ComfortLog> todayLogs;
+                storage.getComfortLogsSince(startOfDay, todayLogs);
+
+                if (!todayLogs.empty()) {
+                    display.clear();
+                    display.showMessage("Already logged\ntoday!");
+                    delay(1500);
+                } else {
+                    ComfortLevel comfortLevel = ComfortLevel::COMFORTABLE;
+                    bool selecting = true;
+
+                    while (selecting) {
+                        displayService.showComfortUI(comfortLevel);
+                        int cbtn = waitForButton();
+                        if (cbtn == 3) { selecting = false; }
+                        if (cbtn == 1) {
+                            int cl = static_cast<int>(comfortLevel);
+                            cl = (cl + 1) % 5;
+                            comfortLevel = static_cast<ComfortLevel>(cl);
+                        }
+                        if (cbtn == 2) {
+                            ComfortLog log;
+                            log.timestamp = rtc.getEpochTime();
+                            log.level = comfortLevel;
+                            storage.storeComfortLog(log);
+                            display.clear();
+                            display.showMessage("LOGGED!");
+                            delay(1500);
+                            selecting = false;
+                        }
+                    }
+                }
+            } else if (dashItem == 1) {
+                // ── Menu ──
+                bool aborted = false;
+                enterMenu(aborted);
+            } else {
+                // ── Sleep → in dev mode, just break to take a new reading ──
+                Serial.println("[DEV] Sleep selected — new reading coming");
+                inDashboard = false;
+            }
+        }
+        // btn == 3 (both) at dashboard -> stay in dashboard
+    }
+
+    delay(1000); // Brief pause before next reading
 }

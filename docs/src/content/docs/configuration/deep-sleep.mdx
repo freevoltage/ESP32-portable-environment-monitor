@@ -85,13 +85,13 @@ The majority of time is spent in deep sleep (~30 minutes between measurements).
 
 ## Serial Monitor & Deep Sleep
 
-The Adafruit Feather ESP32-C6 uses **native USB**. Deep sleep disconnects the USB bus — the computer re-enumerates the device and triggers a hardware reset, causing an infinite boot loop.
+The Adafruit Feather ESP32-C6 uses **native USB**. Deep sleep disconnects the USB bus — the computer re-enumerates the device and triggers a hardware reset, causing an infinite boot loop. `ESP.restart()` has the same problem.
 
-**Development mode** (USB connected): `enterDeepSleep()` detects `if (Serial)` (true whenever USB is connected) and skips deep sleep. The device takes a reading, shows the dashboard, waits 10s, and restarts. Fully interactive for development and debugging. Deep sleep is not tested in this mode.
+**Development mode** (USB connected): `enterDeepSleep()` detects `if (Serial)` and returns immediately. The device stays alive via `loop()`, which takes periodic readings and shows the dashboard UI. Full button interaction works. Deep sleep is not tested in this mode.
 
 **Production mode** (USB disconnected, battery): `Serial` is false. The device enters deep sleep normally — sleeps for `measurementIntervalSec`, wakes on timer or button B.
 
 | Power Source | `Serial` | Behavior |
 |---|---|---|
-| USB cable (development) | true | Skip deep sleep, loop every 10s, full UI |
+| USB cable (development) | true | Skip deep sleep, loop in `loop()`, full UI |
 | Battery (production) | false | Deep sleep 30min, silent measurement, button wake |
