@@ -83,11 +83,10 @@ The majority of time is spent in deep sleep (~30 minutes between measurements).
 
 **Note**: Pressing the physical RESET button clears the RTC peripheral entirely (time resets to 1970). Only NTP/BLE sync can restore the time after a hardware reset.
 
-## Debug Mode (Serial Monitor)
+## Serial Monitor & Deep Sleep
 
-The Adafruit Feather ESP32-C6 uses **native USB**. When the serial monitor is connected, deep sleep causes USB disconnection/re-enumeration which triggers a hardware reset. `enterDeepSleep()` auto-detects this: if `Serial` is active, it skips deep sleep and soft-restarts after 10s instead.
+The Adafruit Feather ESP32-C6 uses **native USB**. When the serial monitor is connected, deep sleep causes USB disconnection/re-enumeration which triggers a hardware reset. No software flag can prevent this.
 
-| Scenario | Behavior |
-|----------|----------|
-| Monitor connected | Display mode → 10s → restart → loop (no deep sleep) |
-| Monitor disconnected | Measurement mode → deep sleep → wake → loop |
+**For deep sleep testing**: flash the device, then **unplug the USB cable**. The device runs standalone on battery and sleeps properly. Press button B to wake into display mode.
+
+**For debugging**: keep USB connected and open `pio device monitor`. You can interact with the display between resets. Close the monitor and unplug USB when done.

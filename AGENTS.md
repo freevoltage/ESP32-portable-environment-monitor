@@ -74,6 +74,14 @@ Both-buttons abort works from **every screen**: comfort logging, sync sub-menu, 
 
 The project uses the **Tasmota fork** of platform-espressif32 (not the official Espressif platform) to get Arduino framework support for ESP32-C6. If you see `Error: This board doesn't support arduino framework!`, run `pio run -t clean` and reinstall packages with `pio pkg uninstall && pio pkg install`.
 
+## Deep Sleep & Serial Monitor
+
+The Adafruit Feather ESP32-C6 uses **native USB**. When the serial monitor is connected, deep sleep causes USB disconnection/re-enumeration which triggers a hardware reset — an infinite boot loop no software flag can prevent. This is a hardware-level limitation.
+
+**For deep sleep testing**: flash the device, then **unplug the USB cable**. The device runs standalone on battery and sleeps properly. Press button B to wake into display mode.
+
+**For debugging**: keep USB connected and open `pio device monitor`. The monitor will cause resets when the device tries to sleep, but you can still interact with the display between resets. Close the monitor and unplug USB when done.
+
 ## Conditional Compilation (MOCK)
 
 Headers use `#ifdef MOCK` to swap Arduino types for standard C++ types when running on the host. The `env:mock` environment passes `-DMOCK` as a build flag. When adding new headers that use `Arduino.h` types (e.g., `String`, `time_t`), wrap Arduino includes in `#ifndef MOCK` guards. See `include/data_structures.h` and `include/logger.h` for the pattern.
