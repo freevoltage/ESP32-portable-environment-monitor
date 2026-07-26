@@ -6,6 +6,6 @@ def after_upload(source, target, env):
     # Without this, the serial monitor toggles DTR/RTS when the ESP32
     # enters deep sleep (USB disconnects) and reconnects — this triggers
     # a hard reset, causing an infinite boot loop.
-    subprocess.Popen(["pio", "device", "monitor", "--rts", "false", "--dtr", "false"])
+    subprocess.Popen(["pio", "device", "monitor", "--rts", "0", "--dtr", "0"])
 
 env.AddPostAction("upload", after_upload)
